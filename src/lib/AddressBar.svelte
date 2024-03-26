@@ -15,6 +15,6 @@ function handleSubmit() {
 
 <div>
 <form class="row" id="address-bar" on:submit|preventDefault={handleSubmit}>
-  <input bind:value={val} placeholder="autonomi website address" />
+  Type an xor:// or http:// URL and press enter: <input bind:value={val} placeholder="autonomi website address" />
 </form>
 </div>
