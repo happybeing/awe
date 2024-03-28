@@ -5,6 +5,12 @@ This is a demonstration of a web browser for Autonomi, an autonomous secure peer
 
 As a demonstration, this app will only provide minimal web browser functionality. It is part of a project to demonstrate how to publish and browse static websites using Autonomi.
 
+## Usage
+TODO
+
+## Installation
+TODO: for Linux, Android, Windows, MacOS
+
 ## Aims:
 - operation on Windows, MacOS, Linux and Android
 - full feature operation of static websites built using any web framework and published on Autonomi
