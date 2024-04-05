@@ -387,7 +387,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-stream",
- "aweb_client",
  "bytes",
  "clap 4.5.4",
  "color-eyre",
@@ -410,10 +409,6 @@ dependencies = [
  "tokio",
  "xor_name",
 ]
-
-[[package]]
-name = "aweb_client"
-version = "0.1.0"
 
 [[package]]
 name = "backoff"
