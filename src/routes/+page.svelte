@@ -7,14 +7,31 @@ let webViewUrl = '';
 
 let rowNavigationHeight = "20px";
 
-function handleBack() {}
-function handleForward() {}
-
+// Test URLs
 let val = 'http://autonomi.com';
+
+// The following need re-uploading to each new testnet with "safe files upload -p"
+// Don't forget '-p' to make public
+val = 'axor://9ff3c8719f0e228f86621e3afa20cb533434d7f9f76ec2cbe8d3ab637757d483'; // Traktion's blog
+val = 'axor://86f7f345ce751485e06ed42792b93794572eec71a2bde0ec284327ecc2e41f04'; // aweb-sites/site1/index.html
 
 function handleSubmit() {
   webViewUrl = val;
 }
+
+// TODO fix cross-origin block using CSP: SecurityError: Blocked a frame with origin "http://localhost:5173" from accessing a cross-origin frame. Protocols, domains, and ports must match.
+/** @type {HTMLIFrameElement} */
+	let webframe;
+function handleBackButton() {
+  webframe.contentDocument?.defaultView?.history.back();
+  // document.getElementById('webframe').back();
+//  webframe.contentWindow?.history.back();
+}
+
+function handleForwardButton() {
+  webframe.contentWindow?.history.forward();
+}
+
 </script>
 
 <style>
@@ -26,6 +43,7 @@ function handleSubmit() {
 }
 
 .button {
+  visibility: hidden; /* TODO implement tracking of history and use to set iframe.src */
   height: 4ch;
   width: 4ch;
 }
@@ -61,13 +79,13 @@ input[type="text"] {
 </style>
 
 <div class="container">
-    <button class="button" onclick="button1Function()">&lt;</button>
-    <button class="button" onclick="button2Function()">&gt;</button>
+    <button class="button" on:click={handleBackButton}>&lt;</button>
+    <button class="button" on:click={handleBackButton}>&gt;</button>
 <form class="input-form" on:submit|preventDefault={handleSubmit}>
-  Type an xor:// or http:// URL and press enter:<input class="input" type=text bind:value={val} placeholder="autonomi address" />
+  Type an axor:// URL and press enter:<input class="input" type=text bind:value={val} placeholder="autonomi address" />
 </form>
 </div>
 
 <div class="row-view iframe-wrapper" >
-  <iframe src={webViewUrl} name="webview" title={webViewTitle}></iframe>
+  <iframe id="webframe" bind:this={webframe} src={webViewUrl} name="webview" title={webViewTitle}></iframe>
 </div>

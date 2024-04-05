@@ -6,7 +6,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "aweb-demo",
+    "productName": "awe",
     "version": "0.1.0"
   },
   "tauri": {

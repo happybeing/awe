@@ -1,11 +1,11 @@
 [package]
-name = "app"
+name = "awe"
 version = "0.1.0"
-description = "Autonomi Browser (demo)"
+description = "Autonomi Web Browser and Publisher (demo)"
 authors = ["Mark <git@happybeing.com>"]
 license = "GPL-3.0"
 repository = ""
-default-run = "app"
+default-run = "awe"
 edition = "2021"
 rust-version = "1.60"
 
@@ -18,8 +18,30 @@ tauri-build = { version = "1.5.1", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.6.1", features = [] }
+aweb_client = { version = "0.1.0", path = "../../aweb_client" }
+sn_client = "=0.105.2"
+sn_node = "=0.105.3"
+sn_peers_acquisition = "=0.2.8"
+sn_transfers = "=0.17.1"
+anyhow = "1.0.81"
+async-stream = "0.3.5"
+bytes = "1.6.0"
+futures = "0.3.30"
+log = "0.4.21"
+multiaddr = "0.18.1"
+tokio = "1.37.0"
+tempfile = "3.10.1"
+xor_name = "5.0.0"
+color-eyre = "0.6.3"
+env_logger = "0.11.3"
+hex = "0.4.3"
+dirs-next = "2.0.0"
+structopt = "0.3.26"
+clap = "4.5.4"
 
 [features]
+local-discovery = ["sn_client/local-discovery", "sn_peers_acquisition/local-discovery"]
+network-contacts = ["sn_peers_acquisition/network-contacts"]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
 # DO NOT REMOVE!!
