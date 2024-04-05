@@ -28,7 +28,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "awe-p2p-web-browser-publisher",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
