@@ -40,6 +40,7 @@ structopt = "0.3.26"
 clap = "4.5.4"
 
 [features]
+default = ["network-contacts"]
 local-discovery = ["sn_client/local-discovery", "sn_peers_acquisition/local-discovery"]
 network-contacts = ["sn_peers_acquisition/network-contacts"]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
