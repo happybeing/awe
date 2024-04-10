@@ -24,7 +24,7 @@ use sn_client::{
 };
 use sn_peers_acquisition::get_peers_from_args;
 
-use crate::autonomi_client;
+use crate::awe_client;
 use crate::cli_options::Opt;
 
 // TODO See if I can instantiate a client and other startup things as static and share
@@ -47,16 +47,15 @@ pub async fn register_protocols() {
                 let opt = Opt::parse();
                 let peers = get_peers_from_args(opt.peers).await?;
                 let timeout = opt.connection_timeout;
-                autonomi_client::connect_to_autonomi(peers, timeout).await
+                awe_client::connect_to_autonomi(peers, timeout).await
             })
             .expect("Failed to connect to Autonomi Network");
-            let wallet_dir = autonomi_client::get_client_data_dir_path()
-                .expect("Failed to get client data dir path");
+            let wallet_dir =
+                awe_client::get_client_data_dir_path().expect("Failed to get client data dir path");
             let files_api = FilesApi::build(client.clone(), wallet_dir)
                 .expect("Failed to instantiate FilesApi");
             futures::executor::block_on(async move {
-                crate::autonomi_protocols::handle_protocol_xor(&client, &req, &files_api.clone())
-                    .await
+                crate::awe_protocols::handle_protocol_xor(&client, &req, &files_api.clone()).await
             })
         })
         .register_uri_scheme_protocol("awex", move |_app, req| {
@@ -66,16 +65,15 @@ pub async fn register_protocols() {
                 let opt = Opt::parse();
                 let peers = get_peers_from_args(opt.peers).await?;
                 let timeout = opt.connection_timeout;
-                autonomi_client::connect_to_autonomi(peers, timeout).await
+                awe_client::connect_to_autonomi(peers, timeout).await
             })
             .expect("Failed to connect to Autonomi Network");
-            let wallet_dir = autonomi_client::get_client_data_dir_path()
-                .expect("Failed to get client data dir path");
+            let wallet_dir =
+                awe_client::get_client_data_dir_path().expect("Failed to get client data dir path");
             let files_api = FilesApi::build(client.clone(), wallet_dir)
                 .expect("Failed to instantiate FilesApi");
             futures::executor::block_on(async move {
-                crate::autonomi_protocols::handle_protocol_awex(&client, &req, &files_api.clone())
-                    .await
+                crate::awe_protocols::handle_protocol_awex(&client, &req, &files_api.clone()).await
             })
         })
         .register_uri_scheme_protocol("awe", move |_app, req| {
@@ -85,16 +83,15 @@ pub async fn register_protocols() {
                 let opt = Opt::parse();
                 let peers = get_peers_from_args(opt.peers).await?;
                 let timeout = opt.connection_timeout;
-                autonomi_client::connect_to_autonomi(peers, timeout).await
+                awe_client::connect_to_autonomi(peers, timeout).await
             })
             .expect("Failed to connect to Autonomi Network");
-            let wallet_dir = autonomi_client::get_client_data_dir_path()
-                .expect("Failed to get client data dir path");
+            let wallet_dir =
+                awe_client::get_client_data_dir_path().expect("Failed to get client data dir path");
             let files_api = FilesApi::build(client.clone(), wallet_dir)
                 .expect("Failed to instantiate FilesApi");
             futures::executor::block_on(async move {
-                crate::autonomi_protocols::handle_protocol_awe(&client, &req, &files_api.clone())
-                    .await
+                crate::awe_protocols::handle_protocol_awe(&client, &req, &files_api.clone()).await
             })
         })
         // This does nothing:
@@ -119,7 +116,7 @@ async fn handle_protocol_xor(
     //     "<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{autonomi_url:?}</BODY></HTML>"
     // );
 
-    let xor_name = match autonomi_client::str_to_xor_name(&autonomi_url) {
+    let xor_name = match awe_client::str_to_xor_name(&autonomi_url) {
         Ok(xor_name) => xor_name,
         Err(err) => {
             let message = format!("Failed to parse XOR address [{:?}]", err);
@@ -130,7 +127,7 @@ async fn handle_protocol_xor(
         }
     };
 
-    match autonomi_client::autonomi_get_file(xor_name, files_api).await {
+    match awe_client::autonomi_get_file(xor_name, files_api).await {
         Ok(content) => {
             println!("Successfully retrieved data at [{}]", autonomi_url);
             return tauri::http::ResponseBuilder::new().body(content.to_vec());

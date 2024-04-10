@@ -18,9 +18,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod autonomi_client;
-mod autonomi_protocols;
-mod autonomi_websites;
+mod awe_client;
+mod awe_protocols;
+mod awe_websites;
 mod cli_options;
 mod subcommands;
 
@@ -42,10 +42,10 @@ async fn main() -> Result<()> {
     // Leave this here for now as a way to show if connecting is not working,
     // even though it is not used, and the handlers do this for each request.
     // TODO rationalise these steps and minimise repeats across requests.
-    let client_data_dir_path = autonomi_client::get_client_data_dir_path()?;
+    let client_data_dir_path = awe_client::get_client_data_dir_path()?;
 
     println!("Initialising Autonomi client...");
-    let secret_key = autonomi_client::get_client_secret_key(&client_data_dir_path)?;
+    let secret_key = awe_client::get_client_secret_key(&client_data_dir_path)?;
 
     let bootstrap_peers = get_peers_from_args(opt.peers).await?;
 
@@ -63,8 +63,7 @@ async fn main() -> Result<()> {
 
     // get the broadcaster as we want to have our own progress bar.
     let broadcaster = ClientEventsBroadcaster::default();
-    let progress_bar_handler =
-        autonomi_client::spawn_connection_progress_bar(broadcaster.subscribe());
+    let progress_bar_handler = awe_client::spawn_connection_progress_bar(broadcaster.subscribe());
 
     let result = Client::new(
         secret_key,
@@ -97,6 +96,6 @@ async fn main() -> Result<()> {
     };
 
     // Registers protocols and open the browser
-    crate::autonomi_protocols::register_protocols().await;
+    crate::awe_protocols::register_protocols().await;
     Ok(())
 }
