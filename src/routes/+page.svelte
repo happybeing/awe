@@ -12,8 +12,9 @@ let val = 'http://autonomi.com';
 
 // The following need re-uploading to each new testnet with "safe files upload -p"
 // Don't forget '-p' to make public
-val = 'axor://9ff3c8719f0e228f86621e3afa20cb533434d7f9f76ec2cbe8d3ab637757d483'; // Traktion's blog
-val = 'axor://86f7f345ce751485e06ed42792b93794572eec71a2bde0ec284327ecc2e41f04'; // aweb-sites/site1/index.html
+val = 'xor://9ff3c8719f0e228f86621e3afa20cb533434d7f9f76ec2cbe8d3ab637757d483'; // Traktion's blog
+val = 'xor://86f7f345ce751485e06ed42792b93794572eec71a2bde0ec284327ecc2e41f04'; // aweb-sites/site1/index.html
+val = 'xor://4d83224458a3ab0ccfe6952f0375a94fde88d0add19caf38d9f3ba3a1934c621'; // aweb-sites/site2/index.html
 
 function handleSubmit() {
   webViewUrl = val;
