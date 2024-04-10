@@ -141,7 +141,14 @@ pub async fn publish_website_content(
         files_upload_summary.completed_files
     );
 
+    let completed_files = files_upload_summary.completed_files.clone();
+    println!("WEBSITE CONTENT UPLOADED:");
+    for (path, _, chunk_address) in completed_files {
+        println!("{} {path:?}", chunk_address.to_hex());
+    }
+
     Ok(files_upload_summary)
+    // Err(eyre!("NOTING"))//Ok(files_upload_summary)
 }
 
 /// Creates metadata for a website using the upload_summary and website_settings
