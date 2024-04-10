@@ -78,7 +78,7 @@ pub async fn register_protocols() {
                     .await
             })
         })
-        .register_uri_scheme_protocol("aweb", move |_app, req| {
+        .register_uri_scheme_protocol("awe", move |_app, req| {
             let handle = tokio::runtime::Handle::current();
             let _guard = handle.enter();
             let client = futures::executor::block_on(async move {
@@ -93,7 +93,7 @@ pub async fn register_protocols() {
             let files_api = FilesApi::build(client.clone(), wallet_dir)
                 .expect("Failed to instantiate FilesApi");
             futures::executor::block_on(async move {
-                crate::autonomi_protocols::handle_protocol_aweb(&client, &req, &files_api.clone())
+                crate::autonomi_protocols::handle_protocol_awe(&client, &req, &files_api.clone())
                     .await
             })
         })
@@ -112,7 +112,7 @@ async fn handle_protocol_xor(
     req: &Request,
     files_api: &FilesApi,
 ) -> Result<Response, Box<dyn std::error::Error>> {
-    println!("Hello from handle_protocol_axor()");
+    println!("Hello from handle_protocol_xor()");
 
     let autonomi_url = String::from(req.uri());
     // let content = format!(
@@ -181,7 +181,7 @@ async fn handle_protocol_awex(
     req: &Request,
     _files_api: &FilesApi,
 ) -> Result<Response, Box<dyn std::error::Error>> {
-    println!("Hello from handle_protocol_axweb()");
+    println!("Hello from handle_protocol_awex()");
     let url = req.uri();
     let content =
         format!("<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{url:?}</BODY></HTML>");
@@ -189,12 +189,12 @@ async fn handle_protocol_awex(
 }
 
 // Placeholder for webname protocol
-async fn handle_protocol_aweb(
+async fn handle_protocol_awe(
     _client: &Client,
     req: &Request,
     _files_api: &FilesApi,
 ) -> Result<Response, Box<dyn std::error::Error>> {
-    println!("Hello from handle_protocol_axweb()");
+    println!("Hello from handle_protocol_awe()");
     let url = req.uri();
     let content =
         format!("<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{url:?}</BODY></HTML>");
