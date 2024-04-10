@@ -15,16 +15,99 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use clap::Parser;
+use tauri::http::{status::StatusCode, Request, Response};
+
 use sn_client::{
     networking::{GetRecordError, NetworkError},
     Client, FilesApi,
 };
-// use std::error::Error;
-use tauri::http::{status::StatusCode, Request, Response};
+use sn_peers_acquisition::get_peers_from_args;
 
 use crate::autonomi_client;
+use crate::cli_options::Opt;
 
-pub async fn handle_protocol_axor(
+// TODO See if I can instantiate a client and other startup things as static and share
+// TODO across handlers and requests. For now I make new client etc. for every request.
+// TODO So maybe make some objects static? (app_config / client / files_api)
+//
+// TODO review technique used to call async within protocol handlers (discouraged here: https://stackoverflow.com/questions/66035290/how-do-i-await-a-future-inside-a-non-async-method-which-was-called-from-an-async)
+// TODO Tauri is supposed to support calling async inside protocol handler, but I didn't find a recommended method
+// TODO ASKED Tauri Discord: https://discord.com/channels/616186924390023171/1224053280565497896
+// TODO ASKED Stack Overflow:https://stackoverflow.com/questions/78255320/what-is-the-recommended-technique-for-calling-an-async-function-within-a-tauri-p
+// TODO Notes: Discord solution re Tauri 2.0 - thought I was using v2.0?
+// TODO Notes: Discord solution suggests I can use spawn after all, worth trying as this blocks for ages
+pub async fn register_protocols() {
+    tauri::Builder::default()
+        .register_uri_scheme_protocol("xor", move |_app, req| {
+            let handle = tokio::runtime::Handle::current();
+            let _guard = handle.enter();
+            // initialise safe network connection and files api
+            let client = futures::executor::block_on(async move {
+                let opt = Opt::parse();
+                let peers = get_peers_from_args(opt.peers).await?;
+                let timeout = opt.connection_timeout;
+                autonomi_client::connect_to_autonomi(peers, timeout).await
+            })
+            .expect("Failed to connect to Autonomi Network");
+            let wallet_dir = autonomi_client::get_client_data_dir_path()
+                .expect("Failed to get client data dir path");
+            let files_api = FilesApi::build(client.clone(), wallet_dir)
+                .expect("Failed to instantiate FilesApi");
+            futures::executor::block_on(async move {
+                crate::autonomi_protocols::handle_protocol_xor(&client, &req, &files_api.clone())
+                    .await
+            })
+        })
+        .register_uri_scheme_protocol("awex", move |_app, req| {
+            let handle = tokio::runtime::Handle::current();
+            let _guard = handle.enter();
+            let client = futures::executor::block_on(async move {
+                let opt = Opt::parse();
+                let peers = get_peers_from_args(opt.peers).await?;
+                let timeout = opt.connection_timeout;
+                autonomi_client::connect_to_autonomi(peers, timeout).await
+            })
+            .expect("Failed to connect to Autonomi Network");
+            let wallet_dir = autonomi_client::get_client_data_dir_path()
+                .expect("Failed to get client data dir path");
+            let files_api = FilesApi::build(client.clone(), wallet_dir)
+                .expect("Failed to instantiate FilesApi");
+            futures::executor::block_on(async move {
+                crate::autonomi_protocols::handle_protocol_awex(&client, &req, &files_api.clone())
+                    .await
+            })
+        })
+        .register_uri_scheme_protocol("aweb", move |_app, req| {
+            let handle = tokio::runtime::Handle::current();
+            let _guard = handle.enter();
+            let client = futures::executor::block_on(async move {
+                let opt = Opt::parse();
+                let peers = get_peers_from_args(opt.peers).await?;
+                let timeout = opt.connection_timeout;
+                autonomi_client::connect_to_autonomi(peers, timeout).await
+            })
+            .expect("Failed to connect to Autonomi Network");
+            let wallet_dir = autonomi_client::get_client_data_dir_path()
+                .expect("Failed to get client data dir path");
+            let files_api = FilesApi::build(client.clone(), wallet_dir)
+                .expect("Failed to instantiate FilesApi");
+            futures::executor::block_on(async move {
+                crate::autonomi_protocols::handle_protocol_aweb(&client, &req, &files_api.clone())
+                    .await
+            })
+        })
+        // This does nothing:
+        // TODO try using CSP to block other protocols. Review this: https://stackoverflow.com/questions/77806138/what-is-the-correct-way-to-configure-csp-in-tauri-when-using-css-in-js-libraries
+        .register_uri_scheme_protocol("http", |_app, req| {
+            println!("http-scheme: {req:?}");
+            tauri::http::ResponseBuilder::new().body(Vec::new())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+
+async fn handle_protocol_xor(
     _client: &Client,
     req: &Request,
     files_api: &FilesApi,
@@ -92,7 +175,21 @@ pub async fn handle_protocol_axor(
     }
 }
 
-pub async fn handle_protocol_axweb(
+// Placeholder for website xor protocol
+async fn handle_protocol_awex(
+    _client: &Client,
+    req: &Request,
+    _files_api: &FilesApi,
+) -> Result<Response, Box<dyn std::error::Error>> {
+    println!("Hello from handle_protocol_axweb()");
+    let url = req.uri();
+    let content =
+        format!("<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{url:?}</BODY></HTML>");
+    tauri::http::ResponseBuilder::new().body(content.into_bytes())
+}
+
+// Placeholder for webname protocol
+async fn handle_protocol_aweb(
     _client: &Client,
     req: &Request,
     _files_api: &FilesApi,

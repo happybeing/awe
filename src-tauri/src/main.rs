@@ -20,73 +20,83 @@
 
 mod autonomi_client;
 mod autonomi_protocols;
+mod autonomi_websites;
 mod cli_options;
+mod subcommands;
 
 use clap::Parser;
 use color_eyre::Result;
-use sn_client::FilesApi;
+use sn_client::{
+    Client, ClientEvent, ClientEventsBroadcaster, ClientEventsReceiver, FilesApi, FilesDownload,
+};
 use sn_peers_acquisition::get_peers_from_args;
 
-use cli_options::Opt;
+use cli_options::{Opt, SubCmd};
+use subcommands::web::web_cmds;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // TODO make some of the objects here static: app_config / client / files_api
+    color_eyre::install()?;
+    let opt = Opt::parse();
 
-    // TODO review technique used to call async within protocol handlers (discouraged here: https://stackoverflow.com/questions/66035290/how-do-i-await-a-future-inside-a-non-async-method-which-was-called-from-an-async)
-    // TODO Tauri is supposed to support calling async inside protocol handler, but I didn't find a recommended method
-    // TODO ASKED Tauri Discord: https://discord.com/channels/616186924390023171/1224053280565497896
-    // TODO ASKED Stack Overflow:https://stackoverflow.com/questions/78255320/what-is-the-recommended-technique-for-calling-an-async-function-within-a-tauri-p
-    // TODO Notes: Discord solution re Tauri 2.0 - thought I was using v2.0?
-    // TODO Notes: Discord solution suggests I can use spawn after all, worth trying as this blocks for ages
-    tauri::Builder::default()
-        .register_uri_scheme_protocol("axor", move |_app, req| {
-            let handle = tokio::runtime::Handle::current();
-            let _guard = handle.enter();
-            // initialise safe network connection and files api
-            let client = futures::executor::block_on(async move {
-                let opt = Opt::parse();
-                let peers = get_peers_from_args(opt.peers).await?;
-                let timeout = opt.connection_timeout;
-                autonomi_client::connect_to_autonomi(peers, timeout).await
-            })
-            .expect("Failed to connect to Autonomi Network");
-            let wallet_dir = autonomi_client::get_client_data_dir_path()
-                .expect("Failed to get client data dir path");
-            let files_api = FilesApi::build(client.clone(), wallet_dir)
-                .expect("Failed to instantiate FilesApi");
-            futures::executor::block_on(async move {
-                crate::autonomi_protocols::handle_protocol_axor(&client, &req, &files_api.clone())
-                    .await
-            })
-        })
-        .register_uri_scheme_protocol("axweb", move |_app, req| {
-            let handle = tokio::runtime::Handle::current();
-            let _guard = handle.enter();
-            let client = futures::executor::block_on(async move {
-                let opt = Opt::parse();
-                let peers = get_peers_from_args(opt.peers).await?;
-                let timeout = opt.connection_timeout;
-                autonomi_client::connect_to_autonomi(peers, timeout).await
-            })
-            .expect("Failed to connect to Autonomi Network");
-            let wallet_dir = autonomi_client::get_client_data_dir_path()
-                .expect("Failed to get client data dir path");
-            let files_api = FilesApi::build(client.clone(), wallet_dir)
-                .expect("Failed to instantiate FilesApi");
-            futures::executor::block_on(async move {
-                crate::autonomi_protocols::handle_protocol_axweb(&client, &req, &files_api.clone())
-                    .await
-            })
-        })
-        // This does nothing:
-        // TODO try using CSP to block other protocols. Review this: https://stackoverflow.com/questions/77806138/what-is-the-correct-way-to-configure-csp-in-tauri-when-using-css-in-js-libraries
-        .register_uri_scheme_protocol("http", |_app, req| {
-            println!("http-scheme: {req:?}");
-            tauri::http::ResponseBuilder::new().body(Vec::new())
-        })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    // Leave this here for now as a way to show if connecting is not working,
+    // even though it is not used, and the handlers do this for each request.
+    // TODO rationalise these steps and minimise repeats across requests.
+    let client_data_dir_path = autonomi_client::get_client_data_dir_path()?;
 
+    println!("Initialising Autonomi client...");
+    let secret_key = autonomi_client::get_client_secret_key(&client_data_dir_path)?;
+
+    let bootstrap_peers = get_peers_from_args(opt.peers).await?;
+
+    println!(
+        "Connecting to the network with {} peers",
+        bootstrap_peers.len(),
+    );
+
+    let bootstrap_peers = if bootstrap_peers.is_empty() {
+        // empty vec is returned if `local-discovery` flag is provided
+        None
+    } else {
+        Some(bootstrap_peers)
+    };
+
+    // get the broadcaster as we want to have our own progress bar.
+    let broadcaster = ClientEventsBroadcaster::default();
+    let progress_bar_handler =
+        autonomi_client::spawn_connection_progress_bar(broadcaster.subscribe());
+
+    let result = Client::new(
+        secret_key,
+        bootstrap_peers,
+        opt.connection_timeout,
+        Some(broadcaster),
+    )
+    .await;
+
+    // await on the progress bar to complete before handling the client result. If client errors out, we would
+    // want to make the progress bar clean up gracefully.
+    progress_bar_handler.await?;
+    let client = result?;
+
+    // default to verifying storage
+    let should_verify_store = !opt.no_verify;
+
+    match opt.cmd {
+        Some(SubCmd::Web(cmds)) => {
+            web_cmds(cmds, &client, &client_data_dir_path, should_verify_store).await?;
+            return Ok(());
+        }
+        // TODO Webname commands
+        // SubCmd::WebnameCmds(cmds) => {
+        //     webname_cmds(cmds, &client, &client_data_dir_path, should_verify_store).await?
+        // }
+
+        // Default is not to return, but open the browser by continuing
+        None => {}
+    };
+
+    // Registers protocols and open the browser
+    crate::autonomi_protocols::register_protocols().await;
     Ok(())
 }

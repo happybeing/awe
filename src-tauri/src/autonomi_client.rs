@@ -18,12 +18,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use bytes::Bytes;
 use color_eyre::Result;
 use core::time::Duration;
+use indicatif::ProgressBar;
 use log::info;
+use tokio::{sync::broadcast::error::RecvError, task::JoinHandle};
+
 use multiaddr::Multiaddr;
 use sn_client::protocol::storage::ChunkAddress;
 use sn_client::transfers::bls::SecretKey;
 use sn_client::transfers::bls_secret_from_hex;
-use sn_client::{Client, ClientEventsBroadcaster, FilesApi, FilesDownload};
+use sn_client::{
+    Client, ClientEvent, ClientEventsBroadcaster, ClientEventsReceiver, FilesApi, FilesDownload,
+};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use xor_name::XorName;
@@ -108,6 +113,8 @@ pub async fn autonomi_get_file(
     };
 }
 
+// The following functions copied from sn_cli with minor changes (eg to message text)
+
 /// Get path to wallet_dir for this app, for use with sn_client::FilesApi
 /// TODO post-demo, change to app specific wallet rather than sharing the Safe CLI wallet
 pub fn get_client_data_dir_path() -> Result<PathBuf> {
@@ -152,4 +159,46 @@ pub fn get_client_secret_key(root_dir: &PathBuf) -> Result<SecretKey> {
         secret_key
     };
     Ok(secret_key)
+}
+
+/// Helper to subscribe to the client events broadcaster and spin up a progress bar that terminates when the
+/// client successfully connects to the network or if it errors out.
+pub fn spawn_connection_progress_bar(mut rx: ClientEventsReceiver) -> JoinHandle<()> {
+    // Network connection progress bar
+    let progress_bar = ProgressBar::new_spinner();
+    progress_bar.enable_steady_tick(Duration::from_millis(120));
+    progress_bar.set_message("Connecting to Autonomi Network...");
+    let new_style = progress_bar.style().tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈🔗");
+    progress_bar.set_style(new_style);
+
+    progress_bar.set_message("Connecting to Autonomi Network...");
+
+    tokio::spawn(async move {
+        let mut peers_connected = 0;
+        loop {
+            match rx.recv().await {
+                Ok(ClientEvent::ConnectedToNetwork) => {
+                    progress_bar.finish_with_message("Connected to the Network");
+                    break;
+                }
+                Ok(ClientEvent::PeerAdded {
+                    max_peers_to_connect,
+                }) => {
+                    peers_connected += 1;
+                    progress_bar.set_message(format!(
+                        "{peers_connected}/{max_peers_to_connect} initial peers found.",
+                    ));
+                }
+                Err(RecvError::Lagged(_)) => {
+                    // Even if the receiver is lagged, we would still get the ConnectedToNetwork during each new
+                    // connection. Thus it would be okay to skip this error.
+                }
+                Err(RecvError::Closed) => {
+                    progress_bar.finish_with_message("Could not connect to the network");
+                    break;
+                }
+                _ => {}
+            }
+        }
+    })
 }
