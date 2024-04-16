@@ -14,26 +14,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-use autonomi::{
-    download_file, download_files, ChunkManager, Estimator, FilesUploadSummary, FilesUploader,
-    UploadedFile, UPLOADED_FILES,
-};
-
 use color_eyre::eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
-use sn_client::{Client, ClientEventsBroadcaster, FilesApi, UploadCfg, BATCH_SIZE};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use xor_name::XorName;
 
-#[derive(Serialize, Deserialize)]
-pub struct WebsiteMetadata {
-    // TODO implement web server like configuration such as redirects
-    // TODO provide a method for versioning of this structure which allows older versions to be parsed
-    // TODO provide for optional metadata (possibly encrypted), which is ignored by this module.
-    // TODO  Such as metadata created by and accessible to a site builder.
-    path_map: HashMap<PathBuf, XorName>,
-}
+use autonomi::{FilesUploadSummary, FilesUploader};
+use self_encryption::MAX_CHUNK_SIZE;
+use sn_client::{Client, ClientEventsBroadcaster, FilesApi, UploadCfg, BATCH_SIZE};
+use sn_protocol::storage::Chunk;
+
+use crate::awe_website_metadata::osstr_to_string;
+
+use super::awe_website_metadata::WebsiteMetadata;
 
 /// Upload the website content and website metadata to Autonomi
 /// TODO returns the xor address for the metadata used to access the website
@@ -77,6 +71,7 @@ pub async fn publish_website(
             match publish_website_metadata(
                 client,
                 root_dir,
+                website_root,
                 &site_upload_summary,
                 make_public,
                 website_settings,
@@ -148,20 +143,50 @@ pub async fn publish_website_content(
     }
 
     Ok(files_upload_summary)
-    // Err(eyre!("NOTING"))//Ok(files_upload_summary)
 }
 
+// TODO review handling of errors that might occur here
+// TODO consider extracting FilesApi::get_local_payment_and_upload_chunk() to StorageApi module
 /// Creates metadata for a website using the upload_summary and website_settings
 /// and stores it on Autonomi
-/// Returns the xor address of the stored summary
-/// TODO everything!
+/// Assumes paths are canonical
+/// Returns the xor address of the stored metadata
 pub async fn publish_website_metadata(
     client: &Client,
     root_dir: &Path,
+    website_root: &PathBuf,
     site_upload_summary: &FilesUploadSummary,
     make_public: bool,
     website_settings: Option<&WebsiteMetadata>, // TODO change to the JSON query object when implemented
     upload_cfg: &UploadCfg,
-) -> Result<()> {
-    Ok(())
+) -> Result<XorName> {
+    let mut metadata = WebsiteMetadata::new();
+
+    if let Some(website_root_string) = osstr_to_string(website_root.as_os_str()) {
+        println!("DEBUG publish_website_metadata() website_root '{website_root_string}'");
+        let resource_path_start = if website_root_string.ends_with(std::path::MAIN_SEPARATOR) {
+            website_root_string.len() - 1
+        } else {
+            website_root_string.len()
+        };
+
+        for (full_path, _file_name, chunk_address) in
+            site_upload_summary.completed_files.clone().into_iter()
+        {
+            if let Some(resource_full_path) = osstr_to_string(full_path.as_os_str()) {
+                let resource_path = resource_full_path[resource_path_start..].to_string();
+                println!("Adding '{resource_full_path}' as '{resource_path}'");
+                metadata.add_resource_to_metadata(&resource_path, chunk_address.clone())?
+            }
+        }
+
+        let xor_name = metadata
+            .put_website_metadata_to_network(client.clone(), root_dir, upload_cfg)
+            .await?;
+        println!("WEBSITE METADATA UPLOADED:\n{xor_name:64x}");
+
+        return Ok(xor_name);
+    }
+
+    return Err(eyre!("Invalid website root: '{website_root:?}'"));
 }

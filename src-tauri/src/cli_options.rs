@@ -21,6 +21,8 @@ use color_eyre::Result;
 use core::time::Duration;
 use sn_peers_acquisition::PeersArgs;
 
+// TODO add example to each CLI subcommand
+
 use crate::subcommands::web;
 ///! Command line options and usage
 #[derive(Parser)]

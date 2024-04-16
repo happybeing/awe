@@ -33,7 +33,7 @@ use sn_client::{Client, ClientEventsBroadcaster, FilesApi, UploadCfg, BATCH_SIZE
 use sn_protocol::storage::RetryStrategy;
 use xor_name::XorName;
 
-use crate::awe_websites::publish_website;
+use crate::awe_website_publisher::publish_website;
 
 // Adapted from sn_cli::subcommands::files::files_cmds()
 

@@ -129,6 +129,7 @@ pub fn get_client_data_dir_path() -> Result<PathBuf> {
     Ok(home_dir)
 }
 
+// TODO return error rather than panic
 pub fn str_to_xor_name(str: &String) -> Result<XorName> {
     let path = Path::new(str);
     let hex_xorname = path

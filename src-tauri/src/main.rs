@@ -20,7 +20,8 @@
 
 mod awe_client;
 mod awe_protocols;
-mod awe_websites;
+mod awe_website_metadata;
+mod awe_website_publisher;
 mod cli_options;
 mod subcommands;
 
@@ -34,6 +35,7 @@ use sn_peers_acquisition::get_peers_from_args;
 use cli_options::{Opt, SubCmd};
 use subcommands::web::web_cmds;
 
+// TODO need to reset terminal when returning early (to fix cursor keys which are ok if the window is opened)
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;

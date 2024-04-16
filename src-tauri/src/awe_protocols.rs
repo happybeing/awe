@@ -55,7 +55,7 @@ pub async fn register_protocols() {
             let files_api = FilesApi::build(client.clone(), wallet_dir)
                 .expect("Failed to instantiate FilesApi");
             futures::executor::block_on(async move {
-                crate::awe_protocols::handle_protocol_xor(&client, &req, &files_api.clone()).await
+                crate::awe_protocols::handle_protocol_xor(&req, &files_api.clone()).await
             })
         })
         .register_uri_scheme_protocol("awex", move |_app, req| {
@@ -73,7 +73,7 @@ pub async fn register_protocols() {
             let files_api = FilesApi::build(client.clone(), wallet_dir)
                 .expect("Failed to instantiate FilesApi");
             futures::executor::block_on(async move {
-                crate::awe_protocols::handle_protocol_awex(&client, &req, &files_api.clone()).await
+                crate::awe_protocols::handle_protocol_awex(&req, &files_api.clone()).await
             })
         })
         .register_uri_scheme_protocol("awe", move |_app, req| {
@@ -91,7 +91,7 @@ pub async fn register_protocols() {
             let files_api = FilesApi::build(client.clone(), wallet_dir)
                 .expect("Failed to instantiate FilesApi");
             futures::executor::block_on(async move {
-                crate::awe_protocols::handle_protocol_awe(&client, &req, &files_api.clone()).await
+                crate::awe_protocols::handle_protocol_awe(&req, &files_api.clone()).await
             })
         })
         // This does nothing:
@@ -104,18 +104,98 @@ pub async fn register_protocols() {
         .expect("error while running tauri application");
 }
 
+use crate::awe_website_metadata::{get_website_metadata_from_network, PATH_SEPARATOR};
+use xor_name::XorName;
+
+// TODO implement publishing via version register (based on webname)
+// TODO Placeholder for awe:// webname protocol
+/// Fetch data using a webname URL
+/// Returns content as an http Response
+async fn handle_protocol_awe(
+    req: &Request,
+    _files_api: &FilesApi,
+) -> Result<Response, Box<dyn std::error::Error>> {
+    println!("Hello from handle_protocol_awe()");
+    let url = req.uri();
+    let content =
+        format!("<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{url:?}</BODY></HTML>");
+    tauri::http::ResponseBuilder::new().body(content.into_bytes())
+}
+
+// TODO remove percent encoding
+const PROTOCOL_AWEX: &str = "awex://";
+
+/// Fetch data using an xor URL (awex:// protocol address and optional path)
+/// Returns content as an http Response
+async fn handle_protocol_awex(
+    req: &Request,
+    files_api: &FilesApi,
+) -> Result<Response, Box<dyn std::error::Error>> {
+    println!("Hello from handle_protocol_awex()");
+
+    let url = req.uri();
+    println!("DEBUG url '{url}'");
+    let (_, remainder) = if url.starts_with(PROTOCOL_AWEX) {
+        url.split_at(PROTOCOL_AWEX.len())
+    } else {
+        ("", url)
+    };
+
+    let mut remainder = remainder.to_string();
+    let (xor_string, resource_path) = match remainder.find(PATH_SEPARATOR) {
+        Some(separator_position) => {
+            let path_part = remainder.split_off(separator_position);
+            (remainder, path_part)
+        }
+        None => (remainder, String::from(PATH_SEPARATOR)),
+    };
+
+    println!("DEBUG (xor_string, resource_path): ({xor_string}, {resource_path})'");
+    let xor_name = match awe_client::str_to_xor_name(&xor_string) {
+        Ok(xor_name) => xor_name,
+        Err(err) => {
+            let message = format!("Failed to parse XOR address [{:?}]", err);
+            println!("{message}");
+            return tauri::http::ResponseBuilder::new()
+                .status(StatusCode::BAD_REQUEST)
+                .body(message.into_bytes());
+        }
+    };
+
+    let metadata = match get_website_metadata_from_network(xor_name, files_api).await {
+        Ok(metadata) => metadata,
+        Err(err) => {
+            let message = format!("Failed to parse XOR address [{:?}]", err);
+            println!("{message}");
+            return tauri::http::ResponseBuilder::new()
+                .status(StatusCode::BAD_REQUEST)
+                .body(message.into_bytes());
+        }
+    };
+
+    let xor_name = match metadata.lookup_resource(&resource_path) {
+        Ok(xor_name) => xor_name,
+        Err(status_code) => {
+            let message = format!("Resource not found at {resource_path}");
+            println!("{message}");
+            return tauri::http::ResponseBuilder::new()
+                .status(status_code)
+                .body(message.into_bytes());
+        }
+    };
+
+    awe_fetch_xor_data(xor_name, files_api).await
+}
+
+/// fetch data using just an xor address (xor:// protocol)
 async fn handle_protocol_xor(
-    _client: &Client,
     req: &Request,
     files_api: &FilesApi,
 ) -> Result<Response, Box<dyn std::error::Error>> {
     println!("Hello from handle_protocol_xor()");
 
+    // TODO test if need to handle trailing slash
     let autonomi_url = String::from(req.uri());
-    // let content = format!(
-    //     "<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{autonomi_url:?}</BODY></HTML>"
-    // );
-
     let xor_name = match awe_client::str_to_xor_name(&autonomi_url) {
         Ok(xor_name) => xor_name,
         Err(err) => {
@@ -127,42 +207,26 @@ async fn handle_protocol_xor(
         }
     };
 
+    return awe_fetch_xor_data(xor_name, files_api).await;
+}
+
+/// Fetch data from network and return as an http Response
+async fn awe_fetch_xor_data(
+    xor_name: XorName,
+    files_api: &FilesApi,
+) -> Result<Response, Box<dyn std::error::Error>> {
+    println!("Fetching xor data: {xor_name:64x}");
+
     match awe_client::autonomi_get_file(xor_name, files_api).await {
         Ok(content) => {
-            println!("Successfully retrieved data at [{}]", autonomi_url);
+            println!("Retrieved {} bytes", content.len());
             return tauri::http::ResponseBuilder::new().body(content.to_vec());
         }
         Err(e) => {
-            // TODO Improve autonomi application level API errors (e.g. in a crate, or in the Autonomi APIs).
-            // TODO Autonomi API errors are largely internal. Could do with a subset of API errors for apps.
-            // The following are a very selective sample
-            let message: String;
+            let (status, status_message) = tauri_http_status_from_network_error(&e);
             let error_message = format!("{:?}", e);
-            let (status, status_message) = match e {
-                // GetRecordError(GetRecordError(Deserialization)) => (
-                //     StatusCode::INTERNAL_SERVER_ERROR,
-                //     "Internal Server Error - deserialisation failed",
-                // ),
-                sn_client::Error::Deserialization(error) => {
-                    message = format!("Internal Server Error - deserialisation failed ({error})");
-                    (StatusCode::INTERNAL_SERVER_ERROR, message.as_str())
-                }
-                sn_client::Error::Network(NetworkError::GetRecordError(
-                    GetRecordError::RecordNotFound,
-                )) => (StatusCode::NOT_FOUND, "404 Not found"),
-
-                sn_client::Error::Network(_network_error) => (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "Unknown error (NetworkError)",
-                ),
-                _ => (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "Unknown error (or default)",
-                ),
-            };
-
             let body_message =
-                format!("Failed to retrieve data at [{autonomi_url}]: {error_message}");
+                format!("Failed to retrieve data at [{xor_name:64x}]: {error_message}");
             println!("{body_message}\n{status_message}");
 
             return tauri::http::ResponseBuilder::new()
@@ -172,28 +236,32 @@ async fn handle_protocol_xor(
     }
 }
 
-// Placeholder for website xor protocol
-async fn handle_protocol_awex(
-    _client: &Client,
-    req: &Request,
-    _files_api: &FilesApi,
-) -> Result<Response, Box<dyn std::error::Error>> {
-    println!("Hello from handle_protocol_awex()");
-    let url = req.uri();
-    let content =
-        format!("<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{url:?}</BODY></HTML>");
-    tauri::http::ResponseBuilder::new().body(content.into_bytes())
-}
+// TODO Improve autonomi application level API errors (e.g. in a crate, or in the Autonomi APIs).
+// TODO Autonomi API errors are largely internal. Could do with a subset of API errors for apps.
+// The following are a very selective sample
+pub fn tauri_http_status_from_network_error(error: &sn_client::Error) -> (StatusCode, String) {
+    let message: String;
 
-// Placeholder for webname protocol
-async fn handle_protocol_awe(
-    _client: &Client,
-    req: &Request,
-    _files_api: &FilesApi,
-) -> Result<Response, Box<dyn std::error::Error>> {
-    println!("Hello from handle_protocol_awe()");
-    let url = req.uri();
-    let content =
-        format!("<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{url:?}</BODY></HTML>");
-    tauri::http::ResponseBuilder::new().body(content.into_bytes())
+    match error {
+        // GetRecordError(GetRecordError(Deserialization)) => (
+        //     StatusCode::INTERNAL_SERVER_ERROR,
+        //     "Internal Server Error - deserialisation failed",
+        // ),
+        sn_client::Error::Deserialization(error) => {
+            message = format!("Internal Server Error - deserialisation failed ({error})");
+            (StatusCode::INTERNAL_SERVER_ERROR, message.clone())
+        }
+        sn_client::Error::Network(NetworkError::GetRecordError(GetRecordError::RecordNotFound)) => {
+            (StatusCode::NOT_FOUND, String::from("404 Not found"))
+        }
+
+        sn_client::Error::Network(_network_error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            String::from("Unknown error (NetworkError))"),
+        ),
+        _ => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            String::from("Unknown error (or default)"),
+        ),
+    }
 }

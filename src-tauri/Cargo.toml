@@ -42,6 +42,10 @@ dirs-next = "2.0.0"
 structopt = "0.3.26"
 clap = "4.5.4"
 walkdir = "~2.5.0"
+chrono = { version = "0.4.37", features = ["serde"] }
+rmp-serde = "1.1.2"
+self_encryption = "0.29.1"
+percent-encoding = "2.3.1"
 
 [features]
 default = ["network-contacts"]
