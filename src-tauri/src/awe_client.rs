@@ -88,7 +88,6 @@ pub async fn autonomi_get_file(
             Err(e)
         }
     };
-    println!("DEBUG default return");
 }
 
 // The following functions copied from sn_cli with minor changes (eg to message text)

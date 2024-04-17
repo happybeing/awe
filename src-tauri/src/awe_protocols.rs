@@ -122,7 +122,6 @@ async fn handle_protocol_awe(
     tauri::http::ResponseBuilder::new().body(content.into_bytes())
 }
 
-// TODO remove percent encoding
 const PROTOCOL_AWEX: &str = "awex://";
 
 /// Fetch data using an xor URL (awex:// protocol address and optional path)

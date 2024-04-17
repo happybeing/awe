@@ -20,10 +20,11 @@ use clap::Subcommand;
 use color_eyre::Result;
 use core::time::Duration;
 use sn_peers_acquisition::PeersArgs;
+use sn_protocol::storage::RetryStrategy;
+use std::path::PathBuf;
 
 // TODO add example to each CLI subcommand
 
-use crate::subcommands::web;
 ///! Command line options and usage
 #[derive(Parser)]
 #[command(
@@ -37,8 +38,8 @@ pub struct Opt {
     pub peers: PeersArgs,
 
     /// Available sub commands
-    #[clap(subcommand)]
-    pub cmd: Option<SubCmd>,
+    #[command(subcommand)]
+    pub cmd: Option<Subcommands>,
 
     /// The maximum duration to wait for a connection to the network before timing out.
     #[clap(long = "timeout", value_parser = |t: &str| -> Result<Duration> { Ok(t.parse().map(Duration::from_secs)?) })]
@@ -59,13 +60,45 @@ pub struct Opt {
 
 // TODO add subcommands webname and fetch
 #[derive(Subcommand, Debug)]
-pub(super) enum SubCmd {
-    /// Commands for website publishing
-    #[clap(name = "web", subcommand)]
-    Web(web::WebCmds),
-    // /// Commands for web name management
-    // TODO #[clap(name = "webname", subcommand)]
-    // Webnames(webnames::RegisterCmds),
+pub enum Subcommands {
+    /// Open the browser (this is the default if no command is given)
+    Browse {},
+
+    /// Publish a website or estimate the cost of uploading.
+    ///
+    /// Uploads a tree of website files to the network along with metadata allowing
+    /// the website to be accessed. (Pays using the default wallet).
+    ///
+    /// On successful upload prints the xor address of the website, accessible
+    /// using Awe Browser using a URL like 'awex://<XOR-ADDRESS>'.
+    Publish {
+        /// The root directory of the website to be published.
+        #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
+        website_root: PathBuf,
+        /// Estimate the cost of uploading the website
+        #[clap(long, short)]
+        estimate_cost: bool,
+        /// Optional website configuration such as default index file, redirects etc.
+        #[clap(long = "website-config", short = 'c', value_name = "JSON-FILE")]
+        website_config: Option<PathBuf>,
+        /// The batch_size to split chunks into parallel handling batches
+        /// during payment and upload processing.
+        #[clap(long, default_value_t = sn_client::BATCH_SIZE, short='b')]
+        batch_size: usize,
+        /// Should the website content be made accessible to all. (This is irreversible.)
+        ///
+        /// Note that without access to the website metadata even public data won't be
+        /// discoverable. Access will only be possible with the address of the metadata
+        /// or of the individual uploaded pages and resources contained in the metadata.
+        #[clap(long, name = "make-public", default_value = "true", short = 'p')]
+        make_public: bool,
+        /// Set the strategy to use on chunk upload failure. Does not modify the spend failure retry attempts yet.
+        ///
+        /// Choose a retry strategy based on effort level, from 'quick' (least effort), through 'balanced',
+        /// to 'persistent' (most effort).
+        #[clap(long, default_value_t = RetryStrategy::Balanced, short = 'r', help = "Sets the retry strategy on upload failure. Options: 'quick' for minimal effort, 'balanced' for moderate effort, or 'persistent' for maximum effort.")]
+        retry_strategy: RetryStrategy,
+    },
 }
 
 // pub fn get_app_name() -> String {
