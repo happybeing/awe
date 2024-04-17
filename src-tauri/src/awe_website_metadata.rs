@@ -21,7 +21,6 @@ use std::path::{Path, PathBuf};
 use bytes::{BufMut, BytesMut};
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::{eyre, Result};
-use percent_encoding::{percent_decode, percent_encode, AsciiSet, CONTROLS};
 use serde::{Deserialize, Serialize};
 use tauri::http::status::StatusCode;
 use xor_name::XorName;
@@ -34,9 +33,6 @@ use crate::awe_client;
 
 pub const PATH_SEPARATOR: char = '/';
 pub const PATH_SEPARATOR_U8: u8 = b'/';
-
-// For percent encoding in webify_string()
-const FRAGMENT: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
 pub async fn get_website_metadata_from_network(
     xor_name: XorName,
@@ -155,7 +151,6 @@ impl WebsiteMetadata {
     /// The resource_website_path MUST:
     /// - start with a forward slash denoting the website root
     /// - use forward slash to separate directories
-    /// - have been percent encoded
     pub fn add_resource_to_metadata(
         &mut self,
         resource_website_path: &String,
@@ -246,15 +241,15 @@ impl WebsitePathMap {
     }
 
     /// Add a website resource to the metadata map
-    /// This method handles percent encoding, and translation of path separators
     /// resource_website_path MUST begin with a path separator denoting the website root
+    /// This method handles translation of path separators
     pub fn add_resource_to_metadata(
         &mut self,
         resource_website_path: &String,
         chunk_address: ChunkAddress,
     ) -> Result<()> {
         println!("DEBUG add_resource_to_metadata() path '{resource_website_path}'");
-        let mut web_path = Self::webify_string(&resource_website_path, true);
+        let mut web_path = Self::webify_string(&resource_website_path);
         if let Some(last_separator_position) = web_path.rfind(PATH_SEPARATOR) {
             let resource_file_name = web_path.split_off(last_separator_position + 1);
             println!(
@@ -273,11 +268,11 @@ impl WebsitePathMap {
         Ok(())
     }
 
-    // Replace OS path separators with '/' and percent encode all non-alphanumeric non-'/'
-    fn webify_path(path: &Path, decode_first: bool) -> String {
+    // Replace OS path separators with '/'
+    fn webify_path(path: &Path) -> String {
         match path.to_str() {
             Some(path_string) => {
-                return Self::webify_string(&path_string.to_string(), decode_first);
+                return Self::webify_string(&path_string.to_string());
             }
             None => {}
         }
@@ -285,23 +280,10 @@ impl WebsitePathMap {
         String::from("")
     }
 
-    // Replace OS path separators with '/' and percent encode all non-alphanumeric non-'/'
-    // If decode_first is true, the string is percent decoded before re-encoding
-    fn webify_string(path_string: &String, decode_first: bool) -> String {
+    // Replace OS path separators with '/'
+    fn webify_string(path_string: &String) -> String {
         let mut path_string = path_string.clone();
-
-        if decode_first {
-            path_string = percent_decode(path_string.as_bytes())
-                .decode_utf8_lossy()
-                .to_string();
-        };
-
-        let path_string = path_string.replace(std::path::MAIN_SEPARATOR_STR, "/");
-        let webified_string = percent_encode(path_string.as_bytes(), FRAGMENT)
-            .to_string()
-            .clone();
-
-        return webified_string;
+        return path_string.replace(std::path::MAIN_SEPARATOR_STR, "/");
     }
 }
 
