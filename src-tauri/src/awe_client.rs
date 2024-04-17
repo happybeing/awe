@@ -67,50 +67,28 @@ pub async fn connect_to_autonomi(
     Ok(result?)
 }
 
-// pub async fn old_connect_to_autonomi(peer: &Multiaddr) -> Result<Client> {
-//     // note: this was pulled directly from sn_cli
-
-//     println!("Initialising Autonomi client...");
-//     let secret_key = get_client_secret_key(&get_client_data_dir_path()?)?;
-
-//     let peer_args = PeersArgs {
-//         first: false,
-//         peers: vec![peer.clone()],
-//     };
-//     let bootstrap_peers = get_peers_from_args(peer_args).await?;
-
-//     println!(
-//         "Connecting to Autonomi with {} peer(s)",
-//         bootstrap_peers.len(),
-//     );
-
-//     let bootstrap_peers = if bootstrap_peers.is_empty() {
-//         // empty vec is returned if `local-discovery` flag is provided
-//         None
-//     } else {
-//         Some(bootstrap_peers)
-//     };
-
-//     // get the broadcaster as we want to have our own progress bar.
-//     let broadcaster = ClientEventsBroadcaster::default();
-
-//     let result = Client::new(secret_key, bootstrap_peers, None, Some(broadcaster)).await?;
-//     Ok(result)
-// }
-
 pub async fn autonomi_get_file(
     xor_name: XorName,
     files_api: &FilesApi,
 ) -> Result<Bytes, sn_client::Error> {
+    println!("DEBUG autonomi_get_file()");
     let mut files_download = FilesDownload::new(files_api.clone());
 
+    println!("DEBUG calling files_download.download_from()");
     return match files_download
         .download_from(ChunkAddress::new(xor_name), 0, usize::MAX)
         .await
     {
-        Ok(content) => Ok(content),
-        Err(e) => Err(e),
+        Ok(content) => {
+            println!("DEBUG Ok() return");
+            Ok(content)
+        }
+        Err(e) => {
+            println!("DEBUG Err() return");
+            Err(e)
+        }
     };
+    println!("DEBUG default return");
 }
 
 // The following functions copied from sn_cli with minor changes (eg to message text)

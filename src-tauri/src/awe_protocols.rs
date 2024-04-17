@@ -162,8 +162,12 @@ async fn handle_protocol_awex(
         }
     };
 
+    println!("DEBUG calling get_website_metadata_from_network()");
     let metadata = match get_website_metadata_from_network(xor_name, files_api).await {
-        Ok(metadata) => metadata,
+        Ok(metadata) => {
+            println!("DEBUG got metadata");
+            metadata
+        }
         Err(err) => {
             let message = format!("Failed to parse XOR address [{:?}]", err);
             println!("{message}");

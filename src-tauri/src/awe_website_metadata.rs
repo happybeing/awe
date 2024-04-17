@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 use std::collections::HashMap;
+use std::default;
 use std::path::{Path, PathBuf};
 
 use bytes::{BufMut, BytesMut};
@@ -42,7 +43,6 @@ pub async fn get_website_metadata_from_network(
     files_api: &FilesApi,
 ) -> Result<WebsiteMetadata, sn_client::Error> {
     println!("Getting website metadata at {xor_name:64x}");
-
     match awe_client::autonomi_get_file(xor_name, files_api).await {
         Ok(content) => {
             println!("Retrieved {} bytes", content.len());
@@ -50,7 +50,10 @@ pub async fn get_website_metadata_from_network(
             Ok(metadata)
         }
 
-        Err(e) => Err(e),
+        Err(e) => {
+            println!("FAILED: {e}");
+            Err(e)
+        }
     }
 }
 
@@ -80,7 +83,8 @@ impl WebsiteMetadata {
     }
 
     /// Look up a canonicalised web resource path (which must begin with '/').
-    /// If the path ends with '/' a directory is assumed and it will look for a default index file.
+    /// If the path ends with '/' or no file matches a directory is assumed.
+    /// For directories it will look for a default index file based on the site metadata settings.
     /// Returns a tuple with the resource's xor address if found, and a suitable HTTP response code.
     pub fn lookup_resource(&self, resource_path: &String) -> Result<XorName, StatusCode> {
         let last_separator_result = resource_path.rfind(PATH_SEPARATOR);
@@ -88,39 +92,49 @@ impl WebsiteMetadata {
             return Err(StatusCode::BAD_REQUEST);
         }
 
+        let mut original_resource_path = resource_path.clone();
         let mut resource_path = resource_path.clone();
         let last_separator = last_separator_result.unwrap();
         println!("Splitting path '{}'", resource_path);
         let second_part = resource_path.split_off(last_separator + 1);
         println!("...into '{}' and '{}'", resource_path, second_part);
 
-        if let Some(resources) = self.path_map.paths_to_files_map.get(&resource_path) {
+        println!("Looking for resource at '{resource_path}'");
+        if let Some(mut resources) = self.path_map.paths_to_files_map.get(&resource_path) {
             if second_part.len() > 0 {
                 println!("DEBUG WebsiteMetadata looking up '{}'", second_part);
                 match Self::lookup_name_in_vec(&second_part, &resources) {
                     Some(xorname) => return Ok(xorname),
-                    None => return Err(StatusCode::NOT_FOUND),
+                    None => {}
                 }
-            } else {
-                println!(
-                    "DEBUG looking for a default INDEX file, one of {:?}",
-                    self.index_filenames
-                );
-                // Look for a default index file
-                for index_file in &self.index_filenames {
-                    // TODO might it be necessary to return the name of the resource?
-                    match Self::lookup_name_in_vec(&index_file, &resources) {
-                        Some(xorname) => return Ok(xorname),
-                        None => {}
-                    }
-                    return Err(StatusCode::NOT_FOUND);
+            };
+        };
+
+        // Assume the second part is a directory name, so remake the path for that
+        let mut new_resource_path = if original_resource_path.ends_with(PATH_SEPARATOR) {
+            original_resource_path.clone()
+        } else {
+            original_resource_path.clone() + PATH_SEPARATOR.to_string().as_str()
+        };
+
+        println!("Retrying for index file in new_resource_path '{new_resource_path}'");
+        if let Some(new_resources) = self.path_map.paths_to_files_map.get(&new_resource_path) {
+            println!(
+                "DEBUG looking for a default INDEX file, one of {:?}",
+                self.index_filenames
+            );
+            // Look for a default index file
+            for index_file in &self.index_filenames {
+                // TODO might it be necessary to return the name of the resource?
+                match Self::lookup_name_in_vec(&index_file, &new_resources) {
+                    Some(xorname) => return Ok(xorname),
+                    None => {}
                 }
             }
-        } else {
-            println!("Didn't find resources at '{resource_path}'");
-            println!("{:?}", self.path_map.paths_to_files_map);
-            return Err(StatusCode::NOT_FOUND);
-        }
+        };
+
+        println!("FAILED to find resource for path: '{original_resource_path} in:");
+        println!("{:?}", self.path_map.paths_to_files_map);
 
         Err(StatusCode::NOT_FOUND)
     }

@@ -17,8 +17,8 @@ val = 'xor://86f7f345ce751485e06ed42792b93794572eec71a2bde0ec284327ecc2e41f04'; 
 val = 'xor://4d83224458a3ab0ccfe6952f0375a94fde88d0add19caf38d9f3ba3a1934c621'; // aweb-sites/site2/index.html
 
 // Websites
-val = 'awex://fa525b90a7642d81707d2792b79eca469c87fe19e351b0728240f4480e5be6ae'; // dweb-blog ~/src/_2020-and-before/safe-react/dweb-blog/dist
-val = 'awex://3d5fd0a6163bc28a185bb2c528280beb0866164b58bb26c738734ebb60e6d6d4'; // aweb-sites/site2
+val = 'awex://9012f2422030ed6d63bd7f6d2aafc0e12e205bce93fe075eedfdf5bd6e186531'; // aweb-sites/site2
+val = 'awex://8adf7d9336812e061bf0ca67a31120d9e0a65a371f860e305e0274ac50de9e13'; // dweb-blog ~/src/_2020-and-before/safe-react/dweb-blog/dist
 
 function handleSubmit() {
   webViewUrl = val;

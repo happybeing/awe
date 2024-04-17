@@ -35,7 +35,7 @@ use sn_peers_acquisition::get_peers_from_args;
 use cli_options::{Opt, SubCmd};
 use subcommands::web::web_cmds;
 
-// TODO need to reset terminal when returning early (to fix cursor keys which are ok if the window is opened)
+// TODO fix messed up cursor keys. Only happens if I close window manually. Ctrl-C in terminal or CLI commands are fine
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
