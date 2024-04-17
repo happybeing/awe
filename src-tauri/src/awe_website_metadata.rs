@@ -56,13 +56,15 @@ pub async fn get_website_metadata_from_network(
 #[derive(Serialize, Deserialize)]
 pub struct WebsiteMetadata {
     // TODO implement web server like configuration such as redirects
-    // TODO provide a method for versioning of this structure which allows older versions to be parsed
+    // TODO maybe provide a method for versioning of this structure which allows older versions to be parsed
     // TODO provide for optional metadata (possibly encrypted), which is ignored by this module.
     // TODO  Such as metadata created by and accessible to a site builder.
-
-    // TODO re-enable date_published - disabled to keep xor address constant during development
-    // date_published: DateTime<Utc>,
+    // TODO  Implement as String holding JSON, and mandate that:
+    // TODO  Only a single application unique key per application be stored at the top level
+    // TODO  and that applications only create values under their own key.
+    // TODO  In the default provide "awe" as a top level key with no sub-values
     /// System time of device publishing to Autonomi
+    date_published: DateTime<Utc>,
     pub path_map: WebsitePathMap,
 
     index_filenames: Vec<String>, // Acceptable default index filenames (e.g. 'index.html')
@@ -71,8 +73,7 @@ pub struct WebsiteMetadata {
 impl WebsiteMetadata {
     pub fn new() -> WebsiteMetadata {
         WebsiteMetadata {
-            // TODO re-enable date_published - disabled to keep xor address constant during development
-            // date_published: Utc::now(),
+            date_published: Utc::now(),
             path_map: WebsitePathMap::new(),
             index_filenames: Vec::from([String::from("index.html"), String::from("index.htm")]),
         }
