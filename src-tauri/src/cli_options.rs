@@ -19,9 +19,13 @@ use clap::Parser;
 use clap::Subcommand;
 use color_eyre::Result;
 use core::time::Duration;
+use std::path::PathBuf;
+use xor_name::XorName;
+
 use sn_peers_acquisition::PeersArgs;
 use sn_protocol::storage::RetryStrategy;
-use std::path::PathBuf;
+
+use crate::awe_client::str_to_xor_name;
 
 // TODO add example to each CLI subcommand
 
@@ -58,27 +62,109 @@ pub struct Opt {
     // TODO --wallet-path <path-to-wallet-dir>
 }
 
+fn greater_than_0(s: &str) -> Result<usize, String> {
+    match s.parse::<usize>() {
+        Err(e) => Err(e.to_string()),
+        Ok(value) => {
+            if value >= 1 {
+                Ok(value)
+            } else {
+                Err(String::from("Number must be greater than zero"))
+            }
+        }
+    }
+}
+
 // TODO add subcommands webname and fetch
 #[derive(Subcommand, Debug)]
 pub enum Subcommands {
-    /// Open the browser (this is the default if no command is given)
-    Browse {},
+    /// Open the browser (this is the default if no command is given).
+    Browse {
+        /// Browse the specified website version
+        #[clap(long, short = 'v', value_parser = greater_than_0)]
+        website_version: usize,
+    },
 
-    /// Publish a website or estimate the cost of uploading.
-    ///
-    /// Uploads a tree of website files to the network along with metadata allowing
-    /// the website to be accessed. (Pays using the default wallet).
-    ///
-    /// On successful upload prints the xor address of the website, accessible
-    /// using Awe Browser using a URL like 'awex://<XOR-ADDRESS>'.
-    Publish {
-        /// The root directory of the website to be published.
+    // TODO add an example or two to each command section
+    /// Estimate the cost of publishing or updating a website
+    Estimate {
+        /// The root directory containing the website content to be published
         #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
         website_root: PathBuf,
-        /// Estimate the cost of uploading the website
-        #[clap(long, short)]
-        estimate_cost: bool,
-        /// Optional website configuration such as default index file, redirects etc.
+        /// Should the website content be made accessible to all. (This is irreversible.)
+        ///
+        /// Note that without access to the website metadata even public data won't be
+        /// discoverable. Access will only be possible with the address of the metadata
+        /// or of the individual uploaded pages and resources contained in the metadata.
+        #[clap(long, name = "make-public", default_value = "true", short = 'p')]
+        make_public: bool,
+    },
+
+    /// Publish a new website
+    ///
+    /// Uploads a tree of website files to Autonomi and pays using the default wallet
+    ///
+    /// If successful, prints the xor address of the website, accessible
+    /// using Awe Browser using a URL like 'awex://<XOR-ADDRESS>'.
+    Publish {
+        /// The root directory containing the website content to be published
+        #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
+        website_root: PathBuf,
+        // TODO when NRS, re-instate the following (and 'conflicts_with = "update"' above)
+        // /// Update the website at given awe NRS name
+        // #[clap(
+        //     long,
+        //     short = 'n',
+        //     conflicts_with = "update_xor"
+        // )]
+        // name: String,
+        /// Optional website configuration such as default index file(s), redirects etc.
+        #[clap(long = "website-config", short = 'c', value_name = "JSON-FILE")]
+        website_config: Option<PathBuf>,
+        /// The batch_size to split chunks into parallel handling batches
+        /// during payment and upload processing.
+        #[clap(long, default_value_t = sn_client::BATCH_SIZE, short='b')]
+        batch_size: usize,
+        /// Should the website content be made accessible to all. (This is irreversible.)
+        ///
+        /// Note that without access to the website metadata even public data won't be
+        /// discoverable. Access will only be possible with the address of the metadata
+        /// or of the individual uploaded pages and resources contained in the metadata.
+        #[clap(long, name = "make-public", default_value = "true", short = 'p')]
+        make_public: bool,
+        /// Set the strategy to use on chunk upload failure. Does not modify the spend failure retry attempts yet.
+        ///
+        /// Choose a retry strategy based on effort level, from 'quick' (least effort), through 'balanced',
+        /// to 'persistent' (most effort).
+        #[clap(long, default_value_t = RetryStrategy::Balanced, short = 'r', help = "Sets the retry strategy on upload failure. Options: 'quick' for minimal effort, 'balanced' for moderate effort, or 'persistent' for maximum effort.")]
+        retry_strategy: RetryStrategy,
+    },
+
+    /// Update an existing website while preserving old versions on Autonomi
+    ///
+    /// Uploads changes in the website content directory and makes this the
+    /// default version. Pays using the default wallet.
+    ///
+    /// If successful upload prints the xor address of the website, accessible
+    /// using Awe Browser using a URL like 'awex://<XOR-ADDRESS>'.
+    Update {
+        /// The root directory containing the new website content to be uploaded
+        #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
+        website_root: PathBuf,
+        /// Xor address of website to be updated
+        #[clap(long, value_parser = str_to_xor_name)]
+        update_xor: XorName,
+        // TODO when NRS, re-instate the following (and 'conflicts_with = "update"' above)
+        // /// Update the website at given awe NRS name
+        // #[clap(
+        //     long,
+        //     short = 'u',
+        //     conflicts_with = "new",
+        //     conflicts_with = "estimate_cost",
+        //     conflicts_with = "update_xor"
+        // )]
+        // update: String,
+        /// Optional website configuration such as default index file(s), redirects etc.
         #[clap(long = "website-config", short = 'c', value_name = "JSON-FILE")]
         website_config: Option<PathBuf>,
         /// The batch_size to split chunks into parallel handling batches

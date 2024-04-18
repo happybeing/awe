@@ -87,35 +87,26 @@ pub async fn cli_commands() -> Result<()> {
     let verify_store = !opt.no_verify;
 
     match opt.cmd {
+        Some(Subcommands::Estimate {
+            website_root,
+            make_public,
+        }) => {
+            let files_api = FilesApi::build(client.clone(), root_dir.clone())?;
+            let chunk_manager = ChunkManager::new(root_dir.as_path());
+            Estimator::new(chunk_manager, files_api)
+                .estimate_cost(website_root, make_public, root_dir.as_path())
+                .await?;
+            return Ok(());
+        }
         Some(Subcommands::Publish {
             website_root,
-            estimate_cost,
+            // update, TODO when NRS, re-instate
             make_public,
             website_config,
             batch_size,
             retry_strategy,
         }) => {
-            if estimate_cost {
-                let files_api = FilesApi::build(client.clone(), root_dir.clone())?;
-                let chunk_manager = ChunkManager::new(root_dir.as_path());
-                Estimator::new(chunk_manager, files_api)
-                    .estimate_cost(website_root, make_public, root_dir.as_path())
-                    .await?;
-                return Ok(());
-            }
-
-            let files_count = count_files_in_path_recursively(&website_root);
-
-            if files_count == 0 {
-                if website_root.is_dir() {
-                    bail!(
-                        "The directory specified for upload is empty. \
-              Please verify the provided path."
-                    );
-                } else {
-                    bail!("The provided file path is invalid. Please verify the path.");
-                }
-            }
+            let _ = check_website_path(&website_root);
 
             let upload_config = UploadCfg {
                 batch_size,
@@ -124,6 +115,37 @@ pub async fn cli_commands() -> Result<()> {
                 ..Default::default()
             };
 
+            // TODO first create the awe website versions
+            publish_website(
+                &website_root,
+                website_config,
+                make_public,
+                &client,
+                root_dir.as_path(),
+                &upload_config,
+            )
+            .await;
+            Ok(())
+        }
+        Some(Subcommands::Update {
+            website_root,
+            // name, TODO when NRS, re-instate
+            update_xor,
+            make_public,
+            website_config,
+            batch_size,
+            retry_strategy,
+        }) => {
+            let _ = check_website_path(&website_root);
+
+            let upload_config = UploadCfg {
+                batch_size,
+                verify_store,
+                retry_strategy,
+                ..Default::default()
+            };
+
+            // TODO get existing awe website versions
             publish_website(
                 &website_root,
                 website_config,
@@ -137,14 +159,44 @@ pub async fn cli_commands() -> Result<()> {
         }
 
         // Default is not to return, but open the browser by continuing
-        Some(Subcommands::Browse {}) | None => {
+        Some(Subcommands::Browse { website_version }) => {
             // Register protocols and open the browser
             // TODO if present, store URL parameter to be picked up by web front-end
             // TODO the URL parameter Option<String> for Browse, Fetch and no-command
+            // TODO pass website_version
+            println!("website_version: {website_version}");
+            return Ok(());
+            crate::awe_protocols::register_protocols().await;
+            Ok(())
+        }
+
+        // Default is not to return, but open the browser by continuing
+        None => {
+            let website_version: usize = 0;
+            // Register protocols and open the browser
+            // TODO if present, store URL parameter to be picked up by web front-end
+            // TODO the URL parameter Option<String> for Browse, Fetch and no-command
+            // TODO pass website_version
             crate::awe_protocols::register_protocols().await;
             Ok(())
         }
     }
+}
+
+fn check_website_path(website_root: &PathBuf) -> Result<()> {
+    let files_count = count_files_in_path_recursively(&website_root);
+
+    if files_count == 0 {
+        if website_root.is_dir() {
+            bail!(
+                "The directory specified for upload is empty. \
+        Please verify the provided path."
+            );
+        } else {
+            bail!("The provided file path is invalid. Please verify the path.");
+        }
+    }
+    Ok(())
 }
 
 fn count_files_in_path_recursively(file_path: &PathBuf) -> u32 {
