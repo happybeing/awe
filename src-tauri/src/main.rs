@@ -36,6 +36,21 @@ async fn main() -> Result<()> {
         std::env::set_var("RUST_SPANTRACE", "0");
     }
 
+    // Windows doesn't attach a GUI application to the console so we
+    // do it manually. This method doesn't cause the terminal input
+    // to be blocked and so new commands can be entered while awe
+    // sends output to the console. A blocking method is available,
+    // but would require creation of a new terminal, which is not
+    // suitable because awe is also a command line app.
+    //
+    // See: https://github.com/tauri-apps/tauri/issues/8305#issuecomment-1826871949
+    //
+    #[cfg(windows)]
+    {
+        use windows::Win32::System::Console::AllocConsole;
+        let _ = unsafe { AllocConsole() };
+    }
+
     let _ = awe_subcommands::cli_commands().await;
     Ok(())
 }
