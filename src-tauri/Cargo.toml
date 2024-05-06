@@ -25,6 +25,9 @@ sn_client = { path = "../../safe_network/sn_client", version = "0.105.2" }
 sn_logging = { path = "../../safe_network/sn_logging", version = "0.2.25" }
 sn_peers_acquisition= { path="../../safe_network/sn_peers_acquisition", version = "0.2.8" }
 sn_protocol = { path = "../../safe_network/sn_protocol", version = "0.16.1" }
+sn_registers = { path = "../../safe_network/sn_registers", version = "0.3.12" }
+sn_transfers = { path = "../../safe_network/sn_transfers", version = "0.17.1" }
+rand = { version = "~0.8.5", features = ["small_rng"] }
 anyhow = "1.0.81"
 async-stream = "0.3.5"
 bytes = "1.6.0"
@@ -45,6 +48,9 @@ walkdir = "~2.5.0"
 chrono = { version = "0.4.37", features = ["serde"] }
 rmp-serde = "1.1.2"
 self_encryption = "0.29.1"
+crdts = "7.3.2"
+lazy_static = "1.4.0"
+url = "2.5.0"
 
 [features]
 default = ["network-contacts"]

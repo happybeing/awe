@@ -31,7 +31,10 @@ use color_eyre::Result;
 // TODO fix messed up cursor keys. Only happens if I close window manually. Ctrl-C in terminal or CLI commands are fine
 #[tokio::main]
 async fn main() -> Result<()> {
-    color_eyre::install()?;
+    // color_eyre::install()?;
+    if std::env::var("RUST_SPANTRACE").is_err() {
+        std::env::set_var("RUST_SPANTRACE", "0");
+    }
 
     let _ = awe_subcommands::cli_commands().await;
     Ok(())

@@ -16,10 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use bytes::Bytes;
-use color_eyre::Result;
+use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
 use indicatif::ProgressBar;
 use log::info;
+use sn_registers::RegisterAddress;
 use tokio::{sync::broadcast::error::RecvError, task::JoinHandle};
 
 use multiaddr::Multiaddr;
@@ -104,6 +105,14 @@ pub fn get_client_data_dir_path() -> Result<PathBuf> {
     std::fs::create_dir_all(home_dir.as_path())?;
     info!("home_dir.as_path(): {}", home_dir.to_str().unwrap());
     Ok(home_dir)
+}
+
+// TODO return error rather than panic
+pub fn str_to_register_address(str: &str) -> Result<RegisterAddress> {
+    match RegisterAddress::from_hex(str) {
+        Ok(register_address) => Ok(register_address),
+        Err(e) => Err(eyre!("Invalid register address string '{str}':\n{e:?}")),
+    }
 }
 
 // TODO return error rather than panic

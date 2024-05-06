@@ -15,7 +15,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 use std::collections::HashMap;
-use std::default;
 use std::path::{Path, PathBuf};
 
 use bytes::{BufMut, BytesMut};
@@ -26,20 +25,19 @@ use tauri::http::status::StatusCode;
 use xor_name::XorName;
 
 use self_encryption::MAX_CHUNK_SIZE;
-use sn_client::{Client, ClientEventsBroadcaster, FilesApi, UploadCfg, BATCH_SIZE};
+use sn_client::{Client, FilesApi, UploadCfg};
 use sn_protocol::storage::{Chunk, ChunkAddress};
 
 use crate::awe_client;
 
 pub const PATH_SEPARATOR: char = '/';
-pub const PATH_SEPARATOR_U8: u8 = b'/';
 
 pub async fn get_website_metadata_from_network(
-    xor_name: XorName,
+    metadata_xor_name: XorName,
     files_api: &FilesApi,
-) -> Result<WebsiteMetadata, sn_client::Error> {
-    println!("Getting website metadata at {xor_name:64x}");
-    match awe_client::autonomi_get_file(xor_name, files_api).await {
+) -> Result<WebsiteMetadata> {
+    println!("DEBUG Getting website metadata at {metadata_xor_name:64x}");
+    match awe_client::autonomi_get_file(metadata_xor_name, files_api).await {
         Ok(content) => {
             println!("Retrieved {} bytes", content.len());
             let metadata: WebsiteMetadata = rmp_serde::from_slice(&content)?;
@@ -48,23 +46,54 @@ pub async fn get_website_metadata_from_network(
 
         Err(e) => {
             println!("FAILED: {e}");
-            Err(e)
+            Err(e.into())
         }
     }
 }
 
+/// Manage settings as a JSON string in order to ensure serialisation and deserialisation
+/// of WebsiteMetadata succeeds even as different settings are added or removed.
+//
+// This struct is used for two separate groups of settings. The first configure the
+// website by defining redirects, overrides for default index files etc. The second is
+// for awe and third-party application settings which are not needed in order to
+// display the website itself, but may be used to change the behaviour of a client
+// app when it accesses the website, or provide information about the client used
+// to create or publish the site.
+#[derive(Serialize, Deserialize)]
+pub struct JsonSettings {
+    json_string: String,
+    // TODO implement non-serialised holder for JSON query object
+}
+
+impl JsonSettings {
+    pub fn new() -> JsonSettings {
+        JsonSettings {
+            json_string: String::from(""),
+        }
+    }
+    // TODO implement parsing to/from JSON query object
+    // TODO implement setting/getting values using a hierarchy of keys
+
+    /// Reads a JSON website configuration and returns a JSON query object
+    /// TODO replace return type with a JSON query object holding settings
+    pub fn load_json_file(website_config: &PathBuf) -> Result<JsonSettings> {
+        // TODO load_json_file()
+        Ok(JsonSettings::new())
+    }
+}
 #[derive(Serialize, Deserialize)]
 pub struct WebsiteMetadata {
-    // TODO implement web server like configuration such as redirects
-    // TODO maybe provide a method for versioning of this structure which allows older versions to be parsed
-    // TODO provide for optional metadata (possibly encrypted), which is ignored by this module.
-    // TODO  Such as metadata created by and accessible to a site builder.
-    // TODO  Implement as String holding JSON, and mandate that:
-    // TODO  Only a single application unique key per application be stored at the top level
-    // TODO  and that applications only create values under their own key.
-    // TODO  In the default provide "awe" as a top level key with no sub-values
     /// System time of device publishing to Autonomi
     date_published: DateTime<Utc>,
+    // TODO use website_config to implement web server like configuration such as redirects
+    pub website_config: JsonSettings,
+    // TODO document usage of third_party_settings JSON for metadata created by and accessible
+    // TODO to unknown applications such as site builder, as well as awe. Mandate that:
+    // TODO   Only a single application unique key per application be stored at the top level
+    // TODO   and that applications only create values under their own key.
+    // TODO   In the default provide "awe" as a top level key with no sub-values
+    pub third_party_settings: JsonSettings,
     pub path_map: WebsitePathMap,
 
     index_filenames: Vec<String>, // Acceptable default index filenames (e.g. 'index.html')
@@ -74,6 +103,8 @@ impl WebsiteMetadata {
     pub fn new() -> WebsiteMetadata {
         WebsiteMetadata {
             date_published: Utc::now(),
+            website_config: JsonSettings::new(),
+            third_party_settings: JsonSettings::new(),
             path_map: WebsitePathMap::new(),
             index_filenames: Vec::from([String::from("index.html"), String::from("index.htm")]),
         }
@@ -130,7 +161,7 @@ impl WebsiteMetadata {
             }
         };
 
-        println!("FAILED to find resource for path: '{original_resource_path} in:");
+        println!("FAILED to find resource for path: '{original_resource_path}' in:");
         println!("{:?}", self.path_map.paths_to_files_map);
 
         Err(StatusCode::NOT_FOUND)
@@ -249,13 +280,13 @@ impl WebsitePathMap {
         resource_website_path: &String,
         chunk_address: ChunkAddress,
     ) -> Result<()> {
-        println!("DEBUG add_resource_to_metadata() path '{resource_website_path}'");
+        // println!("DEBUG add_resource_to_metadata() path '{resource_website_path}'");
         let mut web_path = Self::webify_string(&resource_website_path);
         if let Some(last_separator_position) = web_path.rfind(PATH_SEPARATOR) {
             let resource_file_name = web_path.split_off(last_separator_position + 1);
-            println!(
-                "DEBUG Splitting at {last_separator_position} into path: '{web_path}' file: '{resource_file_name}'"
-            );
+            // println!(
+            //     "DEBUG Splitting at {last_separator_position} into path: '{web_path}' file: '{resource_file_name}'"
+            // );
             self.paths_to_files_map
                 .entry(web_path)
                 .and_modify(|vector| vector.push((resource_file_name.clone(), chunk_address)))

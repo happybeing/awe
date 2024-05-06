@@ -19,13 +19,14 @@ use clap::Parser;
 use clap::Subcommand;
 use color_eyre::Result;
 use core::time::Duration;
+use sn_registers::RegisterAddress;
 use std::path::PathBuf;
 use xor_name::XorName;
 
 use sn_peers_acquisition::PeersArgs;
 use sn_protocol::storage::RetryStrategy;
 
-use crate::awe_client::str_to_xor_name;
+use crate::awe_client::{str_to_register_address, str_to_xor_name};
 
 // TODO add example to each CLI subcommand
 
@@ -38,6 +39,19 @@ use crate::awe_client::str_to_xor_name;
     long_about = "a web browser and website publishing app for Autonomi peer-to-peer network (demo)"
 )]
 pub struct Opt {
+    /// Optional awe URL to browse.
+    ///
+    /// Use amx://<XOR-ADDRESS> to browse a website (use --website-version to specify a version).
+    ///
+    /// Use xor://<XOR-ADDRESS> to load or fetch to a file rather than a website.
+    // TODO mention awx://name
+    // TODO implement fetch subcommand
+    pub url: Option<String>,
+
+    /// Browse the specified website version
+    #[clap(long, short = 'w', value_parser = greater_than_0)]
+    pub website_version: Option<u64>,
+
     #[command(flatten)]
     pub peers: PeersArgs,
 
@@ -62,8 +76,8 @@ pub struct Opt {
     // TODO --wallet-path <path-to-wallet-dir>
 }
 
-fn greater_than_0(s: &str) -> Result<usize, String> {
-    match s.parse::<usize>() {
+fn greater_than_0(s: &str) -> Result<u64, String> {
+    match s.parse::<u64>() {
         Err(e) => Err(e.to_string()),
         Ok(value) => {
             if value >= 1 {
@@ -80,9 +94,18 @@ fn greater_than_0(s: &str) -> Result<usize, String> {
 pub enum Subcommands {
     /// Open the browser (this is the default if no command is given).
     Browse {
+        /// Optional awe URL to browse.
+        ///
+        /// Use amx://<XOR-ADDRESS> to browse a website (use --website-version to specify a version).
+        ///
+        /// Use xor://<XOR-ADDRESS> to load or fetch to a file rather than a website.
+        // TODO mention awx://name
+        // TODO implement fetch subcommand
+        url: Option<String>,
+
         /// Browse the specified website version
-        #[clap(long, short = 'v', value_parser = greater_than_0)]
-        website_version: usize,
+        #[clap(long, short = 'w', value_parser = greater_than_0)]
+        website_version: Option<u64>,
     },
 
     // TODO add an example or two to each command section
@@ -105,7 +128,7 @@ pub enum Subcommands {
     /// Uploads a tree of website files to Autonomi and pays using the default wallet
     ///
     /// If successful, prints the xor address of the website, accessible
-    /// using Awe Browser using a URL like 'awex://<XOR-ADDRESS>'.
+    /// using Awe Browser using a URL like 'awx://<XOR-ADDRESS>'.
     Publish {
         /// The root directory containing the website content to be published
         #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
@@ -146,14 +169,14 @@ pub enum Subcommands {
     /// default version. Pays using the default wallet.
     ///
     /// If successful upload prints the xor address of the website, accessible
-    /// using Awe Browser using a URL like 'awex://<XOR-ADDRESS>'.
+    /// using Awe Browser using a URL like 'awx://<XOR-ADDRESS>'.
     Update {
         /// The root directory containing the new website content to be uploaded
         #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
         website_root: PathBuf,
         /// Xor address of website to be updated
-        #[clap(long, value_parser = str_to_xor_name)]
-        update_xor: XorName,
+        #[clap(long, value_parser = str_to_register_address)]
+        update_xor: RegisterAddress,
         // TODO when NRS, re-instate the following (and 'conflicts_with = "update"' above)
         // /// Update the website at given awe NRS name
         // #[clap(

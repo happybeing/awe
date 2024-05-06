@@ -25,47 +25,33 @@ use self_encryption::MAX_CHUNK_SIZE;
 use sn_client::{Client, ClientEventsBroadcaster, FilesApi, UploadCfg, BATCH_SIZE};
 use sn_protocol::storage::Chunk;
 
-use crate::awe_website_metadata::osstr_to_string;
-
-use super::awe_website_metadata::WebsiteMetadata;
+use crate::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};
 
 /// Upload the website content and website metadata to Autonomi
 /// TODO returns the xor address for the metadata used to access the website
 pub async fn publish_website(
     website_root: &PathBuf,
-    website_config: Option<PathBuf>,
+    website_config_path: Option<PathBuf>,
     make_public: bool,
     client: &Client,
     root_dir: &Path,
     upload_config: &UploadCfg,
-) {
-    let website_settings = None;
-    if let Some(website_config) = website_config {
-        match load_website_config(&website_config) {
-            Ok(result) => {
-                let mut website_settings = None;
-                let ws;
-                if result.is_some() {
-                    ws = result.unwrap();
-                    website_settings = Some(&ws)
-                }
-            }
+) -> Result<XorName> {
+    let mut website_config = if let Some(website_config_path) = website_config_path {
+        match JsonSettings::load_json_file(&website_config_path) {
+            Ok(config) => Some(config),
             Err(e) => {
-                println!("Failed to load website config: {e:?}");
-                return;
+                return Err(eyre!(
+                    "Failed to load website config from {website_config_path:?}. {}",
+                    e.root_cause()
+                ));
             }
         }
-    }
+    } else {
+        None
+    };
 
-    match publish_website_content(
-        client,
-        root_dir,
-        website_root,
-        make_public,
-        website_settings,
-        &upload_config,
-    )
-    .await
+    match publish_website_content(client, root_dir, website_root, make_public, &upload_config).await
     {
         Ok(site_upload_summary) => {
             match publish_website_metadata(
@@ -74,28 +60,20 @@ pub async fn publish_website(
                 website_root,
                 &site_upload_summary,
                 make_public,
-                website_settings,
+                website_config,
                 &upload_config,
             )
             .await
             {
-                Ok(metadata_summary) => {}
-                Err(e) => {
-                    println!("Failed to store metadata for website: {e:?}")
-                }
+                Ok(website_metadata) => Ok(website_metadata),
+                Err(e) => Err(eyre!(
+                    "Failed to store metadata for website: {}",
+                    e.root_cause()
+                )),
             }
         }
-        Err(e) => {
-            println!("Failed to store website content: {e:?}")
-        }
-    };
-}
-
-/// Reads a JSON website configuration and returns a JSON query object
-/// TODO replace return type with a JSON query object holding settings
-pub fn load_website_config(website_config: &PathBuf) -> Result<Option<WebsiteMetadata>> {
-    // TODO load_website_config()
-    Ok(None)
+        Err(e) => Err(eyre!("Failed to store website content. {}", e.root_cause())),
+    }
 }
 
 /// Uploads the tree of website content at website_root
@@ -105,24 +83,21 @@ pub async fn publish_website_content(
     root_dir: &Path,
     website_root: &PathBuf,
     make_public: bool,
-    website_settings: Option<&WebsiteMetadata>,
     upload_cfg: &UploadCfg,
 ) -> Result<FilesUploadSummary> {
     if !website_root.is_dir() {
-        return Err(eyre!("Website path must be a directory"));
+        return Err(eyre!("Website path must be a directory: {website_root:?}"));
     }
 
     if !website_root.exists() {
-        return Err(eyre!("Website path not found"));
+        return Err(eyre!("Website path not found: {website_root:?}"));
     }
 
     if !website_root.read_dir().iter().len() == 0 {
-        return Err(eyre!("Website path is empty"));
+        return Err(eyre!("Website path is empty: {website_root:?}"));
     }
 
-    // TODO load website_config and use to:
-    // TODO   override defaults (such as make_public)
-    // TODO   provide settings for website
+    println!("Uploading website from: {website_root:?}");
     let files_uploader = FilesUploader::new(client.clone(), root_dir.to_path_buf())
         .set_make_data_public(make_public)
         .set_upload_cfg(*upload_cfg)
@@ -130,7 +105,6 @@ pub async fn publish_website_content(
 
     let files_upload_summary = files_uploader.start_upload().await?;
 
-    // TODO replace this with code to store website metadata and print its XorAddress
     println!(
         "web publish completed files: {:?}",
         files_upload_summary.completed_files
@@ -157,10 +131,13 @@ pub async fn publish_website_metadata(
     website_root: &PathBuf,
     site_upload_summary: &FilesUploadSummary,
     make_public: bool,
-    website_settings: Option<&WebsiteMetadata>, // TODO change to the JSON query object when implemented
+    website_config: Option<JsonSettings>,
     upload_cfg: &UploadCfg,
 ) -> Result<XorName> {
     let mut metadata = WebsiteMetadata::new();
+    if let Some(website_config) = website_config {
+        metadata.website_config = website_config;
+    };
 
     if let Some(website_root_string) = osstr_to_string(website_root.as_os_str()) {
         println!("DEBUG publish_website_metadata() website_root '{website_root_string}'");
@@ -183,7 +160,7 @@ pub async fn publish_website_metadata(
         let xor_name = metadata
             .put_website_metadata_to_network(client.clone(), root_dir, upload_cfg)
             .await?;
-        println!("WEBSITE METADATA UPLOADED:\n{xor_name:64x}");
+        println!("WEBSITE METADATA UPLOADED:\namx://{xor_name:64x}");
 
         return Ok(xor_name);
     }
