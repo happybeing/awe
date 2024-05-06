@@ -35,7 +35,7 @@ lazy_static::lazy_static! {
     pub static ref STATIC_CLI_URL: Mutex<String> =
         Mutex::<String>::new(String::from(""));
 
-    static ref STATIC_VERSION_REQUESTED: Mutex<u64> = Mutex::<u64>::new(99);
+    static ref STATIC_VERSION_REQUESTED: Mutex<u64> = Mutex::<u64>::new(0);
     static ref STATIC_VERSION_LOADED: Mutex<u64> = Mutex::<u64>::new(0);
     static ref STATIC_VERSION_MAX: Mutex<u64> = Mutex::<u64>::new(0);
 }
