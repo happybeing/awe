@@ -3,6 +3,10 @@ import {onMount} from 'svelte';
 import logo from '../images/icon.png';
 import { invoke } from '@tauri-apps/api/tauri'; // For calling Rust
 
+
+import {builtinsPublic} from '../generated/builtins-public.js';
+import {builtinsLocal} from '../generated/builtins-local.js';
+
 let webViewTitle="Autonomi Browser Webview";
 let webViewContent = "<HTML><HEAD></HEAD><BODY><h1>Default</h1> content</BODY></HTML>";
 let webViewUrl = '';
@@ -16,11 +20,23 @@ let versionInput = 0;  // 0 implies load the default/most recent version
 let firstVersion = 1;
 let maxVersion = 1;
 let viewLoaded = false;
+let builtins;
 
 // $maxVersion: if (versionInput > maxVersion) { versionInput = maxVersion};
 
 onMount(() => {
   console.log("onMount()");
+
+  load_builtins().then((result) => {
+    console.log("load_builtins() returned");
+    console.log(result);
+    builtins = result;
+    if (builtins.awe == null) {
+      builtinsVisibility = 'hidden';
+    } else {
+      builtinsVisibility = 'visible';
+    }
+  });
 
   // Before website loaded, this will be the CLI provided version if present
   invoke('on_get_version_requested').then((version_requested) => {
@@ -169,6 +185,29 @@ function handleForwardButton() {
   webframe.contentWindow?.history.forward();
 }
 
+async function load_builtins() {
+  console.log("load_builtins()");
+  if (await invoke('on_is_local_network')) {
+    console.log("on_is_local_network() returned true");
+    return builtinsLocal;
+  } else {
+    console.log("on_is_local_network() returned false");
+    return builtinsPublic;
+  }
+}
+
+let builtinsVisibility = 'visible';
+
+function handleBuiltinsButton() {
+  console.log("handleBuiltinsButton()")
+  if (builtins != null) {
+    let url = builtins.aweSomeSites.url;
+    console.log("   loading url:", url);
+    addressBar = url;
+    loadNewPage();
+  }
+}
+
 </script>
 
 <style>
@@ -179,6 +218,10 @@ function handleForwardButton() {
   overflow: hidden;
 }
 
+.builtins-button {
+  height: 4ch;
+  /* width: 4ch; */
+}
 .button {
   visibility: hidden; /* TODO implement tracking of history and use to set iframe.src */
   height: 4ch;
@@ -216,6 +259,7 @@ input[type="text"] {
 </style>
 
 <div class="container">
+  <button class="builtins-button" style="visibility: {builtinsVisibility}" on:click={handleBuiltinsButton}>Click Me!</button>
   <button class="button" on:click={handleBackButton}>&lt;</button>
   <button class="button" on:click={handleBackButton}>&gt;</button>
     Type awx:// URL and press enter:<input class="input" type=text bind:value={addressBar} placeholder="autonomi address"  on:keypress={onAddressBarKeypress} />

@@ -77,6 +77,25 @@ const PROTOCOL_AMX: &str = "amx://";
 
 //// JavaScript interface
 
+#[cfg(not(feature = "local-discovery"))]
+fn is_local_dicovery() -> bool {
+    false
+}
+
+#[cfg(feature = "local-discovery")]
+fn is_local_dicovery() -> bool {
+    true
+}
+
+// Obtain any URL provided to the CLI
+#[tauri::command]
+fn on_is_local_network() -> bool {
+    let is_local_network = is_local_dicovery();
+
+    println!("TTTTTTTT tauri::cmd on_is_local_network() returning: {is_local_network}");
+    is_local_network
+}
+
 // Obtain any URL provided to the CLI
 #[tauri::command]
 fn on_start_get_cli_url() -> String {
@@ -193,6 +212,7 @@ pub async fn register_protocols(cli_url: Option<String>, cli_website_version: Op
         // Rust functions available to JavaScript
         // TODO these handlers are flakey. Work, then don't for no obvious reason. Not sure how to debug
         .invoke_handler(tauri::generate_handler![
+            on_is_local_network,
             on_start_get_cli_url,
             on_frontend_set_version,
             on_get_version_loaded,
