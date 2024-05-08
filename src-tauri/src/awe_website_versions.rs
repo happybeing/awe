@@ -363,7 +363,10 @@ impl VersionsRegister {
         &mut self,
         wallet_client: &mut WalletClient,
     ) -> Result<(NanoTokens, NanoTokens)> {
-        Ok(self.register.sync(wallet_client, true, None).await?)
+        println!("VersionsRegister::sync() - this can take a while...");
+        let result = Ok(self.register.sync(wallet_client, true, None).await?);
+        println!("VersionsRegister::sync() - ...done.");
+        result
     }
 
     // TODO add_register_address() will not be possible if Register entries can
