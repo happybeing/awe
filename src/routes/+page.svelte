@@ -201,7 +201,7 @@ let builtinsVisibility = 'visible';
 function handleBuiltinsButton() {
   console.log("handleBuiltinsButton()")
   if (builtins != null) {
-    let url = builtins.aweSomeSites.url;
+    let url = builtins.awe.aweSomeSites.url;
     console.log("   loading url:", url);
     addressBar = url;
     loadNewPage();
