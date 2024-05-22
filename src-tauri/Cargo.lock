@@ -6238,9 +6238,9 @@ dependencies = [
 
 [[package]]
 name = "sn_cli"
-version = "0.91.1"
+version = "0.91.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d7b93c8cfa70c14b6fe1142d67bb8be4f42da539bc0626186e6c2bf6fcb063a"
+checksum = "de7697d9118d9be0111a8824421e497f6e7b2ff6a6aaaa63abb17760f2de2f6f"
 dependencies = [
  "aes 0.7.5",
  "block-modes",
@@ -6278,9 +6278,9 @@ dependencies = [
 
 [[package]]
 name = "sn_client"
-version = "0.106.1"
+version = "0.106.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b40266e88199805affaee4ece4245308b76a721a72f8bf902bc1127e2be99546"
+checksum = "60b17841602ecf14b041f5817c79a5fded99d151c3285b721a2b3fc35d830d67"
 dependencies = [
  "async-trait",
  "backoff",
@@ -6377,9 +6377,9 @@ dependencies = [
 
 [[package]]
 name = "sn_networking"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3c9032fd73d8d6f0b01f92ad3e0fc1b4c98174b0ca2961b0f4a8bfd777a1a50"
+checksum = "d117438c3db330832f6e9b20b777ed3279efcd3fb0854dfca63476c26a87c40e"
 dependencies = [
  "aes-gcm-siv",
  "async-trait",
