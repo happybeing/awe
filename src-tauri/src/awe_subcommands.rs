@@ -80,7 +80,6 @@ pub async fn cli_commands() -> Result<()> {
 
     // default to verifying storage
     let verify_store = !opt.no_verify;
-    let website_version = opt.website_version;
 
     match opt.cmd {
         Some(Subcommands::Estimate {
@@ -133,7 +132,7 @@ pub async fn cli_commands() -> Result<()> {
                 .publish_new_version(&website_address, &mut wallet_client)
                 .await
             {
-                Ok((version, storage_cost, royalties)) => {
+                Ok((version, _storage_cost, _royalties)) => {
                     println!(
                         "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawx://{}",
                         website_versions.versions_address().to_hex()
@@ -193,7 +192,7 @@ pub async fn cli_commands() -> Result<()> {
                 .publish_new_version(&website_address, &mut wallet_client)
                 .await
             {
-                Ok((version, storage_cost, royalties)) => {
+                Ok((version, _storage_cost, _royalties)) => {
                     println!(
                         "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawx://{}",
                         website_versions.versions_address().to_hex()

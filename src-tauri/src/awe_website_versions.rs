@@ -20,7 +20,7 @@ use xor_name::XorName;
 
 use sn_client::{Client, ClientRegister, FilesApi, WalletClient};
 use sn_registers::{Entry, RegisterAddress};
-use sn_transfers::{NanoTokens};
+use sn_transfers::NanoTokens;
 
 use crate::awe_client;
 use crate::awe_protocols::{set_version_loaded, set_version_max};
@@ -248,22 +248,10 @@ impl WebsiteVersions {
         };
         self.versions_register.get_version_entry(version)
     }
-
-    // Private helpers
-
-    async fn get_website_metadata_from_network(
-        &self,
-        metadata_address: XorName,
-        files_api: &FilesApi,
-    ) -> Result<WebsiteMetadata> {
-        get_website_metadata_from_network(metadata_address, files_api).await
-    }
 }
 
 struct VersionsRegister {
     register: ClientRegister,
-
-    client: Client, // TODO ?remove and get from register
 }
 
 impl VersionsRegister {
@@ -279,7 +267,7 @@ impl VersionsRegister {
             ClientRegister::create(client.clone(), XorName::random(&mut rng))
         };
 
-        Ok(VersionsRegister { register, client })
+        Ok(VersionsRegister { register })
     }
 
     pub fn address(&self) -> &RegisterAddress {

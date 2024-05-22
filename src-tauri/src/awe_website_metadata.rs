@@ -77,7 +77,7 @@ impl JsonSettings {
 
     /// Reads a JSON website configuration and returns a JSON query object
     /// TODO replace return type with a JSON query object holding settings
-    pub fn load_json_file(website_config: &PathBuf) -> Result<JsonSettings> {
+    pub fn load_json_file(_website_config: &PathBuf) -> Result<JsonSettings> {
         // TODO load_json_file()
         Ok(JsonSettings::new())
     }
@@ -232,29 +232,6 @@ impl WebsiteMetadata {
 
         Ok(metadata_xorname)
     }
-
-    // TODO rationalise this with above get_website_metadata_from_network()
-    pub async fn get_website_metadata(
-        metadata_address: XorName,
-        client: Client,
-        root_dir: &Path,
-        upload_cfg: &UploadCfg,
-    ) -> Result<WebsiteMetadata> {
-        // retrieve metadata Chunk from network
-        let chunk = client
-            .get_chunk(ChunkAddress::new(metadata_address), false, None)
-            .await?;
-
-        // Assumes chunk is not encrypted or obfuscated.
-        // Note: later, to handle metadata larger than one chunk this would be self-encrypted
-        let metadata: WebsiteMetadata = match rmp_serde::from_slice(chunk.value()) {
-            Ok(metadata) => metadata,
-            // Note:
-            Err(err) => return Err(eyre!(err)),
-        };
-
-        Ok(metadata)
-    }
 }
 
 /// A map of paths to files used to access xor addresses of content
@@ -301,16 +278,16 @@ impl WebsitePathMap {
     }
 
     // Replace OS path separators with '/'
-    fn webify_path(path: &Path) -> String {
-        match path.to_str() {
-            Some(path_string) => {
-                return Self::webify_string(&path_string.to_string());
-            }
-            None => {}
-        }
+    // fn webify_path(path: &Path) -> String {
+    //     match path.to_str() {
+    //         Some(path_string) => {
+    //             return Self::webify_string(&path_string.to_string());
+    //         }
+    //         None => {}
+    //     }
 
-        String::from("")
-    }
+    //     String::from("")
+    // }
 
     // Replace OS path separators with '/'
     fn webify_string(path_string: &String) -> String {
@@ -326,11 +303,11 @@ pub fn osstr_to_string(file_name: &std::ffi::OsStr) -> Option<String> {
     None
 }
 
-pub fn option_osstr_to_string(file_name: Option<&std::ffi::OsStr>) -> Option<String> {
-    if file_name.is_some() {
-        if let Some(str) = file_name.unwrap().to_str() {
-            return Some(String::from(str));
-        }
-    }
-    None
-}
+// pub fn option_osstr_to_string(file_name: Option<&std::ffi::OsStr>) -> Option<String> {
+//     if file_name.is_some() {
+//         if let Some(str) = file_name.unwrap().to_str() {
+//             return Some(String::from(str));
+//         }
+//     }
+//     None
+// }

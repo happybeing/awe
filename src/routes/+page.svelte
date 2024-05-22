@@ -227,18 +227,13 @@ function handleBuiltinsButton() {
   height: 4ch;
   width: 4ch;
 }
-.button,
-.input-form {
+.button {
   display: inline-block;
   height: 32px;
   margin-top: 4px;
   margin-bottom: 4px;
   margin-left: 4px;
   line-height: 3ch;
-}
-
-.input-form {
-  position: relative;
 }
 
 input[type="text"] {
@@ -248,9 +243,7 @@ input[type="text"] {
   margin-left: 8px;
 }
 
-.iframe-wrapper iframe,
-.iframe-wrapper object,
-.iframe-wrapper embed {
+.iframe-wrapper iframe {
   height: calc(100vh - 50px); /* Prevent vertical scrolling of everything inside body */
   width: 100%;
   border: 0;

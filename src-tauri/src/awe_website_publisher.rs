@@ -126,7 +126,7 @@ pub async fn publish_website_metadata(
     root_dir: &Path,
     website_root: &PathBuf,
     site_upload_summary: &FilesUploadSummary,
-    make_public: bool,
+    _make_public: bool,
     website_config: Option<JsonSettings>,
     upload_cfg: &UploadCfg,
 ) -> Result<XorName> {
