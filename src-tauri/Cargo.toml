@@ -12,21 +12,27 @@ rust-version = "1.60"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.5.1", features = [] }
+tauri-build = { version = "2.0.0-beta", features = [] }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.6.1", features = [] }
-#aweb_client = { version = "0.1.0", path = "../../aweb-client" }
+# Tauri v2 dependencies
+tauri = { version = "2.0.0-beta", features = [] }
+tauri-plugin-shell = "2.0.0-beta"
+tauri-plugin-http = "2.0.0-beta"
+http = "1.1.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
+## Dependencies for an Autonomi client:
+#
+# Update using 'awe-dependencies'
 sn_cli = { version = "0.91.1" }
 sn_client = { version = "0.106.1" }
 sn_peers_acquisition = "0.2.12"
 sn_registers = "0.3.13"
 sn_transfers = "0.18.0"
 sn_protocol = "0.16.6"
-
+# Update using 'awe-dependencies --sn-path RELATIVE-PATH'
 # sn_cli = { version = "0.90.2", path = "../../safe_network/sn_cli" }
 # sn_build_info = { path="../../safe_network/sn_build_info", version = "0.1.5" }
 # sn_client = { path = "../../safe_network/sn_client", version = "0.105.2" }
@@ -36,19 +42,7 @@ sn_protocol = "0.16.6"
 # sn_registers = { path = "../../safe_network/sn_registers", version = "0.3.12" }
 # sn_transfers = { path = "../../safe_network/sn_transfers", version = "0.17.1" }
 
-# Earlier:
-#sn_build_info = { path="../../safe_network/sn_build_info", version = "0.1.5" }
-#sn_logging = { path = "../../safe_network/sn_logging", version = "0.2.25" }
-#sn_peers_acquisition= { path="../../safe_network/sn_peers_acquisition", version = "0.2.8" }
-#sn_protocol = { path = "../../safe_network/sn_protocol", version = "0.16.1" }
-#sn_registers = { path = "../../safe_network/sn_registers", version = "0.3.12" }
-#sn_transfers = { path = "../../safe_network/sn_transfers", version = "0.17.1" }
-
-# From traktion...
-# sn_client = "=0.106.0-alpha.4"
-# sn_peers_acquisition = "=0.2.11-alpha.0"
-# sn_transfers = "=0.18.0-alpha.0"
-
+## Everything else
 rand = { version = "~0.8.5", features = ["small_rng"] }
 anyhow = "1.0.81"
 async-stream = "0.3.5"
@@ -78,7 +72,7 @@ url = "2.5.0"
 default = ["network-contacts"]
 local-discovery = ["sn_client/local-discovery", "sn_peers_acquisition/local-discovery"]
 network-contacts = ["sn_peers_acquisition/network-contacts"]
-# this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
+# This feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
 # DO NOT REMOVE!!
 custom-protocol = [ "tauri/custom-protocol" ]

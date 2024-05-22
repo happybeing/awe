@@ -1,7 +1,7 @@
 <script>
 import {onMount} from 'svelte';
 import logo from '../images/icon.png';
-import { invoke } from '@tauri-apps/api/tauri'; // For calling Rust
+import { invoke } from '@tauri-apps/api/core'; // For calling Rust
 
 
 import {builtinsPublic} from '../generated/builtins-public.js';
@@ -115,7 +115,7 @@ function setUrlVersion(v) {
  * @returns {Number} or 0 if parameter not present
  */
 function getVersionFromAddressBar() {
-  console.log("getUrlVersion()");
+  console.log("getVersionFromAddressBar()");
   console.log("    addressBar: " + addressBar);
 
   let value = 0;

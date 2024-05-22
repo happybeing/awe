@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use clap::Parser;
 use sn_protocol::version;
-use tauri::http::{status::StatusCode, Request, Response};
+use http::{status::StatusCode, Request, Response};
 
 use sn_client::{
     networking::{GetRecordError, NetworkError},
@@ -198,6 +198,7 @@ fn parse_url_string(
 // TODO ASKED Stack Overflow:https://stackoverflow.com/questions/78255320/what-is-the-recommended-technique-for-calling-an-async-function-within-a-tauri-p
 // TODO Notes: Discord solution re Tauri 2.0 - thought I was using v2.0?
 // TODO Notes: Discord solution suggests I can use spawn after all, worth trying as this blocks for ages
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u64>) {
     if cli_url.is_some() {
         *STATIC_CLI_URL.lock().unwrap() = cli_url.unwrap().clone();
@@ -219,6 +220,14 @@ pub async fn register_protocols(cli_url: Option<String>, cli_website_version: Op
             on_get_version_requested,
             on_get_version_max,
         ])
+        .register_uri_scheme_protocol("test", |_app, req| {
+            let url = req.uri();
+            let content = format!("<HTML><HEAD></HEAD><BODY><h1>{url:?}</h1> content</BODY></HTML>");
+            http::Response::builder()
+                .header("Content-Type", "text/html")
+                .body(content.into_bytes())
+                .unwrap()
+        })
         // Protocol for a file
         .register_uri_scheme_protocol("xor", move |_app, req| {
             let handle = tokio::runtime::Handle::current();
@@ -303,7 +312,7 @@ pub async fn register_protocols(cli_url: Option<String>, cli_website_version: Op
         // TODO try using CSP to block other protocols. Review this: https://stackoverflow.com/questions/77806138/what-is-the-correct-way-to-configure-csp-in-tauri-when-using-css-in-js-libraries
         .register_uri_scheme_protocol("http", |_app, req| {
             println!("http-scheme: {req:?}");
-            tauri::http::ResponseBuilder::new().body(Vec::new())
+            http::Response::builder().body(Vec::new()).expect("http::Response::builder() failed")
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -317,31 +326,39 @@ use xor_name::XorName;
 /// Fetch using a webname URL for website versions (awe://)
 /// Returns content as an http Response
 async fn handle_protocol_awe(
-    req: &Request,
+    req: &Request<Vec<u8>>,
     website_version: Option<u64>,
     _files_api: &FilesApi,
-) -> Result<Response, Box<dyn std::error::Error>> {
+) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_awe() website_version {website_version:?}");
     let url = req.uri();
     let content =
         format!("<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{url:?}</BODY></HTML>");
-    tauri::http::ResponseBuilder::new().body(content.into_bytes())
+    http::Response::builder().body(content.into_bytes()).expect("http::Response::builder() failed")
 }
 
 /// Fetch using xor URL for website versions (awx://)
 /// Returns content as an http Response
 async fn handle_protocol_awx(
-    req: &Request,
+    req: &Request<Vec<u8>>,
     website_version: Option<u64>,
     client: &Client,
     files_api: &FilesApi,
-) -> Result<Response, Box<dyn std::error::Error>> {
+) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_awx() website_version {website_version:?}");
     let url = req.uri();
     println!("DEBUG url '{url}'");
 
     let (_protocol, host_xor_string, resource_path, url_params) =
-        parse_url_string(req.uri().to_string())?;
+        match parse_url_string(req.uri().to_string()) {
+            Ok((_protocol, host_xor_string, resource_path, url_params)) => (_protocol, host_xor_string, resource_path, url_params),
+            Err(e) => {
+                return http::Response::builder()
+                    .status(StatusCode::BAD_REQUEST)
+                    .body(format!("Failed to parse URL, error: {:?}", e).into_bytes())
+                    .unwrap()
+            }
+        };
 
     // If the URL specifies a version use that instead
     let mut website_version = website_version;
@@ -360,9 +377,9 @@ async fn handle_protocol_awx(
         Err(err) => {
             let message = format!("Failed to parse RegisterAddress address [{:?}]", err);
             println!("{message}");
-            return tauri::http::ResponseBuilder::new()
+            return http::Response::builder()
                 .status(StatusCode::BAD_REQUEST)
-                .body(message.into_bytes());
+                .body(message.into_bytes()).unwrap();
         }
     };
 
@@ -379,9 +396,9 @@ async fn handle_protocol_awx(
         Err(status_code) => {
             let message = format!("Resource not found at {resource_path}");
             println!("{message}");
-            return tauri::http::ResponseBuilder::new()
+            return http::Response::builder()
                 .status(status_code)
-                .body(message.into_bytes());
+                .body(message.into_bytes()).unwrap()    ;
         }
     };
 
@@ -391,11 +408,11 @@ async fn handle_protocol_awx(
 // /// Fetch using xor URL for website versions (awx://)
 // /// Returns content as an http Response
 // async fn handle_protocol_awx(
-//     req: &Request,
+//     req: &Request<Vec<u8>>,
 //     website_version: Option<u64>,
 //     client: &Client,
 //     files_api: &FilesApi,
-// ) -> Result<Response, Box<dyn std::error::Error>> {
+// ) -> http::Response<Vec<u8>> {
 //     println!("DEBUG Hello from handle_protocol_awx() website_version {website_version:?}");
 //     let url = req.uri();
 //     println!("DEBUG url '{url}'");
@@ -423,7 +440,7 @@ async fn handle_protocol_awx(
 //         Err(err) => {
 //             let message = format!("Failed to parse RegisterAddress address [{:?}]", err);
 //             println!("{message}");
-//             return tauri::http::ResponseBuilder::new()
+//             return http::Response::builder()
 //                 .status(StatusCode::BAD_REQUEST)
 //                 .body(message.into_bytes());
 //         }
@@ -442,7 +459,7 @@ async fn handle_protocol_awx(
 //         Err(status_code) => {
 //             let message = format!("Resource not found at {resource_path}");
 //             println!("{message}");
-//             return tauri::http::ResponseBuilder::new()
+//             return http::Response::builder()
 //                 .status(status_code)
 //                 .body(message.into_bytes());
 //         }
@@ -454,17 +471,17 @@ async fn handle_protocol_awx(
 /// Fetch using an xor URL for a website (WebsiteMetadata) (amx://)
 /// Returns content as an http Response
 async fn handle_protocol_amx(
-    req: &Request,
+    req: &Request<Vec<u8>>,
     files_api: &FilesApi,
-) -> Result<Response, Box<dyn std::error::Error>> {
+) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_amx()");
 
-    let url = req.uri();
+    let url = req.uri().to_string();
     println!("DEBUG url '{url}'");
     let (_, remainder) = if url.starts_with(PROTOCOL_AMX) {
         url.split_at(PROTOCOL_AMX.len())
     } else {
-        ("", url)
+        ("", url.as_str())
     };
 
     let mut remainder = remainder.to_string();
@@ -482,9 +499,9 @@ async fn handle_protocol_amx(
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
             println!("{message}");
-            return tauri::http::ResponseBuilder::new()
+            return http::Response::builder()
                 .status(StatusCode::BAD_REQUEST)
-                .body(message.into_bytes());
+                .body(message.into_bytes()).unwrap();
         }
     };
 
@@ -497,9 +514,9 @@ async fn handle_protocol_amx(
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
             println!("{message}");
-            return tauri::http::ResponseBuilder::new()
+            return http::Response::builder()
                 .status(StatusCode::BAD_REQUEST)
-                .body(message.into_bytes());
+                .body(message.into_bytes()).unwrap();
         }
     };
 
@@ -508,9 +525,9 @@ async fn handle_protocol_amx(
         Err(status_code) => {
             let message = format!("Resource not found at {resource_path}");
             println!("{message}");
-            return tauri::http::ResponseBuilder::new()
+            return http::Response::builder()
                 .status(status_code)
-                .body(message.into_bytes());
+                .body(message.into_bytes()).unwrap();
         }
     };
 
@@ -520,21 +537,21 @@ async fn handle_protocol_amx(
 /// Fetch a file using just an xor address (xor://)
 /// Returns content as an http Response
 async fn handle_protocol_xor(
-    req: &Request,
+    req: &Request<Vec<u8>>,
     files_api: &FilesApi,
-) -> Result<Response, Box<dyn std::error::Error>> {
+) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_xor()");
 
     // TODO test if need to handle trailing slash
-    let autonomi_url = String::from(req.uri());
+    let autonomi_url = req.uri().to_string();
     let xor_name = match awe_client::str_to_xor_name(&autonomi_url.as_str()) {
         Ok(xor_name) => xor_name,
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
             println!("{message}");
-            return tauri::http::ResponseBuilder::new()
+            return http::Response::builder()
                 .status(StatusCode::BAD_REQUEST)
-                .body(message.into_bytes());
+                .body(message.into_bytes()).unwrap();
         }
     };
 
@@ -545,13 +562,20 @@ async fn handle_protocol_xor(
 async fn awe_fetch_xor_data(
     xor_name: XorName,
     files_api: &FilesApi,
-) -> Result<Response, Box<dyn std::error::Error>> {
+) -> http::Response<Vec<u8>> {
     println!("Fetching xor data: {xor_name:64x}");
 
+    // TODO since Tauri v2, the iframe won't load content from
+    // TODO a URI unless the response has a Content-Type header
+    // TODO Investigate options, such as saving content type in the site map
     match awe_client::autonomi_get_file(xor_name, files_api).await {
         Ok(content) => {
             println!("Retrieved {} bytes", content.len());
-            return tauri::http::ResponseBuilder::new().body(content.to_vec());
+            // println!("THIS: {:?} bytes", content);
+            return http::Response::builder()
+            .header(http::header::CONTENT_TYPE, "text/html")    // TODO needed since Tauri switched to using http::Response from tauri::http::ResponseBuilder
+            .body(content.to_vec())
+            .unwrap();
         }
         Err(e) => {
             let (status, status_message) = tauri_http_status_from_network_error(&e);
@@ -560,9 +584,9 @@ async fn awe_fetch_xor_data(
                 format!("Failed to retrieve data at [{xor_name:64x}]: {error_message}");
             println!("{body_message}\n{status_message}");
 
-            return tauri::http::ResponseBuilder::new()
+            return http::Response::builder()
                 .status(status)
-                .body(body_message.into_bytes());
+                .body(body_message.into_bytes()).unwrap();
         }
     }
 }
