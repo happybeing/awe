@@ -15,13 +15,12 @@
  along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 use color_eyre::eyre::{eyre, Result};
-use crdts::merkle_reg::Node;
 use tauri::http::status::StatusCode;
 use xor_name::XorName;
 
 use sn_client::{Client, ClientRegister, FilesApi, WalletClient};
-use sn_registers::{Entry, Permissions, RegisterAddress};
-use sn_transfers::{NanoTokens, Payment};
+use sn_registers::{Entry, RegisterAddress};
+use sn_transfers::{NanoTokens};
 
 use crate::awe_client;
 use crate::awe_protocols::{set_version_loaded, set_version_max};

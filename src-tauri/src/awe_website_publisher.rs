@@ -15,15 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 use color_eyre::eyre::{eyre, Result};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use xor_name::XorName;
 
 use autonomi::{FilesUploadSummary, FilesUploader};
-use self_encryption::MAX_CHUNK_SIZE;
-use sn_client::{Client, ClientEventsBroadcaster, FilesApi, UploadCfg, BATCH_SIZE};
-use sn_protocol::storage::Chunk;
+use sn_client::{Client, UploadCfg};
 
 use crate::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};
 
@@ -37,7 +33,7 @@ pub async fn publish_website(
     root_dir: &Path,
     upload_config: &UploadCfg,
 ) -> Result<XorName> {
-    let mut website_config = if let Some(website_config_path) = website_config_path {
+    let website_config = if let Some(website_config_path) = website_config_path {
         match JsonSettings::load_json_file(&website_config_path) {
             Ok(config) => Some(config),
             Err(e) => {

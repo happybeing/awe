@@ -16,8 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use clap::Parser;
-use sn_protocol::version;
-use http::{status::StatusCode, Request, Response};
+use http::{status::StatusCode, Request};
 
 use sn_client::{
     networking::{GetRecordError, NetworkError},

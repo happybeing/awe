@@ -120,7 +120,7 @@ impl WebsiteMetadata {
             return Err(StatusCode::BAD_REQUEST);
         }
 
-        let mut original_resource_path = resource_path.clone();
+        let original_resource_path = resource_path.clone();
         let mut resource_path = resource_path.clone();
         let last_separator = last_separator_result.unwrap();
         println!("Splitting path '{}'", resource_path);
@@ -128,7 +128,7 @@ impl WebsiteMetadata {
         println!("...into '{}' and '{}'", resource_path, second_part);
 
         println!("Looking for resource at '{resource_path}'");
-        if let Some(mut resources) = self.path_map.paths_to_files_map.get(&resource_path) {
+        if let Some(resources) = self.path_map.paths_to_files_map.get(&resource_path) {
             if second_part.len() > 0 {
                 println!("DEBUG WebsiteMetadata looking up '{}'", second_part);
                 match Self::lookup_name_in_vec(&second_part, &resources) {
@@ -139,7 +139,7 @@ impl WebsiteMetadata {
         };
 
         // Assume the second part is a directory name, so remake the path for that
-        let mut new_resource_path = if original_resource_path.ends_with(PATH_SEPARATOR) {
+        let new_resource_path = if original_resource_path.ends_with(PATH_SEPARATOR) {
             original_resource_path.clone()
         } else {
             original_resource_path.clone() + PATH_SEPARATOR.to_string().as_str()
@@ -314,7 +314,7 @@ impl WebsitePathMap {
 
     // Replace OS path separators with '/'
     fn webify_string(path_string: &String) -> String {
-        let mut path_string = path_string.clone();
+        let path_string = path_string.clone();
         return path_string.replace(std::path::MAIN_SEPARATOR_STR, "/");
     }
 }

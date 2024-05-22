@@ -26,7 +26,6 @@ use sn_client::{
     transfers::HotWallet, Client, ClientEventsBroadcaster, FilesApi, UploadCfg, WalletClient,
 };
 
-use crate::awe_website_metadata::JsonSettings;
 use crate::awe_website_publisher::publish_website;
 use crate::awe_website_versions::WebsiteVersions;
 

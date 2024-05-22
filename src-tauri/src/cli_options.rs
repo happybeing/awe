@@ -21,12 +21,11 @@ use color_eyre::Result;
 use core::time::Duration;
 use sn_registers::RegisterAddress;
 use std::path::PathBuf;
-use xor_name::XorName;
 
 use sn_peers_acquisition::PeersArgs;
 use sn_protocol::storage::RetryStrategy;
 
-use crate::awe_client::{str_to_register_address, str_to_xor_name};
+use crate::awe_client::{str_to_register_address};
 
 // TODO add example to each CLI subcommand
 
