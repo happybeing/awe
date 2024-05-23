@@ -29,11 +29,11 @@ It demonstrates:
 
 Using `awe` you can publish static HTML websites to the public Autonomi network. The approach used allows you to use any web building framework without modification, and shows access to websites built with a range of tooling including Svelte, React Static and Publii. Literally any approach that generates static HTML will work, and you can view and debug your websites locally before publishing, just as you would when building websites at the moment.
 
-Then `awe` can be used as a browser allowing anyone to view your websites on Autonomi. Also, if you publish updates to your sites, earlier versions remain available to be viewed by telling `awe` which version you want to access.
+Then `awe` can be used as a browser allowing anyone to view your websites on Autonomi. The browser functionality is very basic, but the data structures provide a template for others wanting to use or implement similar features.
 
-This demonstrates a unique capability of Autonomi called *the perpetual web* where all public data, including public websites will remain accessible so long as you know where it resides. No more link rot!
+### The Perpetual Web
+If you publish updates to your sites, earlier versions remain available to be viewed by telling `awe` which version you want to access. This demonstrates a unique capability of Autonomi called *the perpetual web* where all public data, including public websites will remain accessible so long as you know where it resides. No more link rot!
 
-The browser functionality is very basic, but the data structures provide a template for others wanting to use or implement similar features.
 
 ## Implementation
 
@@ -62,7 +62,7 @@ Note:
 - type `awe <COMMAND> --help` for details of a command.
 
 ## Installation
-**Linux:** for Linux, a `.deb` package and an `.AppImage` are available in the releases section. The Debian image is built on Ubuntu 22.04 LTS and so should support that and later version of Ubuntu. Please report any attempts to run other distros in an issue.
+**Linux:** for Linux, `.deb` and `.rpm` packages and an `.AppImage` are available at https://downloads.happybeing.com. The Debian image is built on Ubuntu 24.04 LTS and has been shown to work on Ubuntu 22, 23 and 24, and Mint. Please report any attempts to run other distros in an issue.
 
 **Other:** I plan support for Android, Windows and MacOS so if you would like to test these please get in touch via github or the [community forum](https://forum.autonomi.community). You'll find me as `@happybeing` on both.
 
@@ -79,7 +79,7 @@ To deliver cross platform support along with the ability to access the Autonomi 
 
 This is a Tauri app built using the Svelte web framework and uses Rust for the backend.
 
-Visit the Tauri v1 website ([tauri.app](https://tauri.app)) for details of pre-requisites you may beed to install. Then clone this repository and run the following command in the cloned directory.
+Visit the Tauri v2 (beta) section of ([tauri.app](https://tauri.app)) for details of pre-requisites you may need to install. Then clone this repository and run the following command in the cloned directory.
 ```bash
 cargo tauri dev
 ```
