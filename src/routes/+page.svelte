@@ -1,6 +1,8 @@
 <script>
+// @ts-nocheck
+
 import {onMount} from 'svelte';
-import logo from '../images/icon.png';
+import logo from '../../src-tauri/icons/icon-orig.png';
 import { invoke } from '@tauri-apps/api/core'; // For calling Rust
 
 
