@@ -97,11 +97,10 @@ impl WebsiteVersions {
     /// Load a versions register and return wrapped in WebsiteVersions
     pub async fn load_register(
         register_address: RegisterAddress,
-        client: &Client,
         files_api: &FilesApi,
     ) -> Result<WebsiteVersions> {
         let versions_register =
-            match VersionsRegister::new(client.clone(), Some(register_address)).await {
+            match VersionsRegister::new(files_api.client().clone(), Some(register_address)).await {
                 Ok(mut versions_register) => {
                     versions_register.sync(&mut files_api.wallet()?).await?;
                     versions_register
@@ -482,11 +481,10 @@ pub async fn lookup_resource_for_website_version(
     resource_path: &String,
     versions_xor_name: RegisterAddress,
     version: Option<u64>,
-    client: &Client,
     files_api: &FilesApi,
 ) -> Result<XorName, StatusCode> {
     println!("DEBUG lookup_resource_for_website_version() version {version:?}");
-    match WebsiteVersions::load_register(versions_xor_name, client, files_api).await {
+    match WebsiteVersions::load_register(versions_xor_name, files_api).await {
         Ok(mut website_versions) => {
             return website_versions
                 .lookup_resource(resource_path, version, files_api)

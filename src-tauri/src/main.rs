@@ -15,42 +15,8 @@
 *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
-mod awe_client;
-mod awe_protocols;
-mod awe_subcommands;
-mod awe_website_metadata;
-mod awe_website_publisher;
-mod awe_website_versions;
-mod cli_options;
-
-use color_eyre::Result;
-
-// TODO fix messed up cursor keys. Only happens if I close window manually. Ctrl-C in terminal or CLI commands are fine
 #[tokio::main]
-async fn main() -> Result<()> {
-    // color_eyre::install()?;
-    if std::env::var("RUST_SPANTRACE").is_err() {
-        std::env::set_var("RUST_SPANTRACE", "0");
-    }
-
-    // Windows doesn't attach a GUI application to the console so we
-    // do it manually. This method doesn't cause the terminal input
-    // to be blocked and so new commands can be entered while awe
-    // sends output to the console. A blocking method is available,
-    // but would require creation of a new terminal, which is not
-    // suitable because awe is also a command line app.
-    //
-    // See: https://github.com/tauri-apps/tauri/issues/8305#issuecomment-1826871949
-    //
-    #[cfg(windows)]
-    {
-        use windows::Win32::System::Console::AllocConsole;
-        let _ = unsafe { AllocConsole() };
-    }
-
-    let _ = awe_subcommands::cli_commands().await;
-    Ok(())
+async fn main() {
+    awe_lib::run().await;
 }

@@ -42,41 +42,7 @@ pub async fn cli_commands() -> Result<()> {
     // even though it is not used, and the handlers do this for each request.
     // TODO rationalise these steps and minimise repeats across requests.
     let client_data_dir_path = awe_client::get_client_data_dir_path()?;
-    let root_dir = client_data_dir_path.clone(); // TODO make this an optional "wallet_dir" parameter
-
-    println!("Initialising Autonomi client...");
-    let secret_key = awe_client::get_client_secret_key(&client_data_dir_path)?;
-
-    let bootstrap_peers = get_peers_from_args(opt.peers).await?;
-
-    println!(
-        "Connecting to the network with {} peers",
-        bootstrap_peers.len(),
-    );
-
-    let bootstrap_peers = if bootstrap_peers.is_empty() {
-        // empty vec is returned if `local-discovery` flag is provided
-        None
-    } else {
-        Some(bootstrap_peers)
-    };
-
-    // get the broadcaster as we want to have our own progress bar.
-    let broadcaster = ClientEventsBroadcaster::default();
-    let progress_bar_handler = awe_client::spawn_connection_progress_bar(broadcaster.subscribe());
-
-    let result = Client::new(
-        secret_key,
-        bootstrap_peers,
-        opt.connection_timeout,
-        Some(broadcaster),
-    )
-    .await;
-
-    // await on the progress bar to complete before handling the client result. If client errors out, we would
-    // want to make the progress bar clean up gracefully.
-    progress_bar_handler.await?;
-    let client = result?;
+    let root_dir = client_data_dir_path.clone(); // TODO ? make this an optional "wallet_dir" parameter
 
     // default to verifying storage
     let verify_store = !opt.no_verify;
@@ -86,11 +52,14 @@ pub async fn cli_commands() -> Result<()> {
             website_root,
             make_public,
         }) => {
-            let files_api = FilesApi::build(client.clone(), root_dir.clone())?;
+            let files_api = awe_client::connect_to_autonomi()
+                .await
+                .expect("Failed to connect to Autonomi Network");
             let chunk_manager = ChunkManager::new(root_dir.as_path());
             Estimator::new(chunk_manager, files_api)
                 .estimate_cost(website_root, make_public, root_dir.as_path())
-                .await?;
+                .await
+                .expect("Failed to estimate cost");
             return Ok(());
         }
         Some(Subcommands::Publish {
@@ -111,11 +80,15 @@ pub async fn cli_commands() -> Result<()> {
                 ..Default::default()
             };
 
+            let files_api = awe_client::connect_to_autonomi()
+                .await
+                .expect("Failed to connect to Autonomi Network");
+
             let website_address = publish_website(
                 &website_root,
                 website_config,
                 make_public,
-                &client,
+                &files_api.client().clone(),
                 root_dir.as_path(),
                 &upload_config,
             )
@@ -124,10 +97,11 @@ pub async fn cli_commands() -> Result<()> {
 
             println!("Creating versions register, please wait...");
             let mut wallet_client =
-                WalletClient::new(client.clone(), HotWallet::load_from(&root_dir)?);
-            let mut website_versions = WebsiteVersions::new_register(&client, &mut wallet_client)
-                .await
-                .inspect_err(|e| println!("{}", e))?;
+                WalletClient::new(files_api.client().clone(), HotWallet::load_from(&root_dir)?);
+            let mut website_versions =
+                WebsiteVersions::new_register(&files_api.client().clone(), &mut wallet_client)
+                    .await
+                    .inspect_err(|e| println!("{}", e))?;
             match website_versions
                 .publish_new_version(&website_address, &mut wallet_client)
                 .await
@@ -155,7 +129,6 @@ pub async fn cli_commands() -> Result<()> {
             batch_size,
             retry_strategy,
         }) => {
-            // TODO move this code into a function which handles both Publish and Update
             let _ = check_website_path(&website_root);
 
             let upload_config = UploadCfg {
@@ -165,11 +138,15 @@ pub async fn cli_commands() -> Result<()> {
                 ..Default::default()
             };
 
+            let files_api = awe_client::connect_to_autonomi()
+                .await
+                .expect("Failed to connect to Autonomi Network");
+
             let website_address = publish_website(
                 &website_root,
                 website_config,
                 make_public,
-                &client,
+                &files_api.client().clone(),
                 root_dir.as_path(),
                 &upload_config,
             )
@@ -177,10 +154,9 @@ pub async fn cli_commands() -> Result<()> {
 
             println!("Updating versions register...");
             let mut wallet_client =
-                WalletClient::new(client.clone(), HotWallet::load_from(&root_dir)?);
-            let files_api = FilesApi::build(client.clone(), root_dir.clone())?;
+                WalletClient::new(files_api.client().clone(), HotWallet::load_from(&root_dir)?);
             let mut website_versions =
-                match WebsiteVersions::load_register(update_xor, &client, &files_api).await {
+                match WebsiteVersions::load_register(update_xor, &files_api).await {
                     Ok(website_versions) => website_versions,
                     Err(e) => {
                         println!("Failed to access website versions. {}", e.root_cause());
@@ -214,13 +190,13 @@ pub async fn cli_commands() -> Result<()> {
             website_version,
         }) => {
             // Register protocols and open the browser
-            crate::awe_protocols::register_protocols(url, website_version).await;
+            crate::awe_protocols::register_protocols(url, website_version);
         }
 
         // Default is not to return, but open the browser by continuing
         None {} => {
             // Register protocols and open the browser
-            crate::awe_protocols::register_protocols(opt.url, opt.website_version).await;
+            crate::awe_protocols::register_protocols(opt.url, opt.website_version);
         }
     }
     Ok(())

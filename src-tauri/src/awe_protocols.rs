@@ -196,8 +196,8 @@ fn parse_url_string(
 // TODO ASKED Stack Overflow:https://stackoverflow.com/questions/78255320/what-is-the-recommended-technique-for-calling-an-async-function-within-a-tauri-p
 // TODO Notes: Discord solution re Tauri 2.0 - thought I was using v2.0?
 // TODO Notes: Discord solution suggests I can use spawn after all, worth trying as this blocks for ages
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub async fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u64>) {
+//#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u64>) {
     if cli_url.is_some() {
         *STATIC_CLI_URL.lock().unwrap() = cli_url.unwrap().clone();
     };
@@ -231,41 +231,14 @@ pub async fn register_protocols(cli_url: Option<String>, cli_website_version: Op
         .register_uri_scheme_protocol("xor", move |_app, req| {
             let handle = tokio::runtime::Handle::current();
             let _guard = handle.enter();
-            // initialise safe network connection and files api
-            let client = futures::executor::block_on(async move {
-                let opt = Opt::parse();
-                let peers = get_peers_from_args(opt.peers).await?;
-                let timeout = opt.connection_timeout;
-                awe_client::connect_to_autonomi(peers, timeout).await
-            })
-            .expect("Failed to connect to Autonomi Network");
-            let wallet_dir =
-                awe_client::get_client_data_dir_path().expect("Failed to get client data dir path");
-            let files_api = FilesApi::build(client.clone(), wallet_dir)
-                .expect("Failed to instantiate FilesApi");
-            futures::executor::block_on(async move {
-                handle_protocol_xor(&req, &files_api.clone()).await
-            })
+            futures::executor::block_on(async move { handle_protocol_xor(&req).await })
         })
         // Protocol for a website (WebsiteMetadata)
         .register_uri_scheme_protocol("amx", move |_app, req| {
             set_version_loaded(0);
             let handle = tokio::runtime::Handle::current();
             let _guard = handle.enter();
-            let client = futures::executor::block_on(async move {
-                let opt = Opt::parse();
-                let peers = get_peers_from_args(opt.peers).await?;
-                let timeout = opt.connection_timeout;
-                awe_client::connect_to_autonomi(peers, timeout).await
-            })
-            .expect("Failed to connect to Autonomi Network");
-            let wallet_dir =
-                awe_client::get_client_data_dir_path().expect("Failed to get client data dir path");
-            let files_api = FilesApi::build(client.clone(), wallet_dir)
-                .expect("Failed to instantiate FilesApi");
-            futures::executor::block_on(async move {
-                handle_protocol_amx(&req, &files_api.clone()).await
-            })
+            futures::executor::block_on(async move { handle_protocol_amx(&req).await })
         })
         // Protocol for a versioned website (WebsiteVersions)
         .register_uri_scheme_protocol("awx", move |_app, req| {
@@ -273,39 +246,17 @@ pub async fn register_protocols(cli_url: Option<String>, cli_website_version: Op
             let website_version = Some(get_version_requested());
             let handle = tokio::runtime::Handle::current();
             let _guard = handle.enter();
-            let client = futures::executor::block_on(async move {
-                let opt = Opt::parse();
-                let peers = get_peers_from_args(opt.peers).await?;
-                let timeout = opt.connection_timeout;
-                awe_client::connect_to_autonomi(peers, timeout).await
-            })
-            .expect("Failed to connect to Autonomi Network");
-            let wallet_dir =
-                awe_client::get_client_data_dir_path().expect("Failed to get client data dir path");
-            let files_api = FilesApi::build(client.clone(), wallet_dir)
-                .expect("Failed to instantiate FilesApi");
-            futures::executor::block_on(async move {
-                handle_protocol_awx(&req, website_version, &client, &files_api.clone()).await
-            })
+            futures::executor::block_on(
+                async move { handle_protocol_awx(&req, website_version).await },
+            )
         })
         .register_uri_scheme_protocol("awe", move |_app, req| {
             let website_version = Some(get_version_requested());
             let handle = tokio::runtime::Handle::current();
             let _guard = handle.enter();
-            let client = futures::executor::block_on(async move {
-                let opt = Opt::parse();
-                let peers = get_peers_from_args(opt.peers).await?;
-                let timeout = opt.connection_timeout;
-                awe_client::connect_to_autonomi(peers, timeout).await
-            })
-            .expect("Failed to connect to Autonomi Network");
-            let wallet_dir =
-                awe_client::get_client_data_dir_path().expect("Failed to get client data dir path");
-            let files_api = FilesApi::build(client.clone(), wallet_dir)
-                .expect("Failed to instantiate FilesApi");
-            futures::executor::block_on(async move {
-                handle_protocol_awe(&req, website_version, &files_api.clone()).await
-            })
+            futures::executor::block_on(
+                async move { handle_protocol_awe(&req, website_version).await },
+            )
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -321,7 +272,6 @@ use xor_name::XorName;
 async fn handle_protocol_awe(
     req: &Request<Vec<u8>>,
     website_version: Option<u64>,
-    _files_api: &FilesApi,
 ) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_awe() website_version {website_version:?}");
     let url = req.uri();
@@ -337,8 +287,6 @@ async fn handle_protocol_awe(
 async fn handle_protocol_awx(
     req: &Request<Vec<u8>>,
     website_version: Option<u64>,
-    client: &Client,
-    files_api: &FilesApi,
 ) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_awx() website_version {website_version:?}");
     let url = req.uri();
@@ -381,12 +329,16 @@ async fn handle_protocol_awx(
         }
     };
 
+    // Initialise network connection, client and files api
+    let files_api = awe_client::connect_to_autonomi()
+        .await
+        .expect("Failed to connect to Autonomi Network");
+
     let xor_name = match lookup_resource_for_website_version(
         &resource_path,
         versions_register_address,
         website_version,
-        client,
-        files_api,
+        &files_api,
     )
     .await
     {
@@ -401,15 +353,12 @@ async fn handle_protocol_awx(
         }
     };
 
-    awe_fetch_xor_data(xor_name, files_api).await
+    awe_fetch_xor_data(xor_name, Some(&files_api)).await
 }
 
 /// Fetch using an xor URL for a website (WebsiteMetadata) (amx://)
 /// Returns content as an http Response
-async fn handle_protocol_amx(
-    req: &Request<Vec<u8>>,
-    files_api: &FilesApi,
-) -> http::Response<Vec<u8>> {
+async fn handle_protocol_amx(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_amx()");
 
     let url = req.uri().to_string();
@@ -442,8 +391,13 @@ async fn handle_protocol_amx(
         }
     };
 
+    // Initialise network connection, client and files api
+    let files_api = awe_client::connect_to_autonomi()
+        .await
+        .expect("Failed to connect to Autonomi Network");
+
     println!("DEBUG calling get_website_metadata_from_network()");
-    let metadata = match get_website_metadata_from_network(xor_name, files_api).await {
+    let metadata = match get_website_metadata_from_network(xor_name, &files_api).await {
         Ok(metadata) => {
             println!("DEBUG got metadata");
             metadata
@@ -470,16 +424,18 @@ async fn handle_protocol_amx(
         }
     };
 
-    awe_fetch_xor_data(xor_name, files_api).await
+    awe_fetch_xor_data(xor_name, Some(&files_api)).await
 }
 
 /// Fetch a file using just an xor address (xor://)
 /// Returns content as an http Response
-async fn handle_protocol_xor(
-    req: &Request<Vec<u8>>,
-    files_api: &FilesApi,
-) -> http::Response<Vec<u8>> {
+async fn handle_protocol_xor(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_xor()");
+
+    // Initialise network connection, client and files api
+    let files_api = awe_client::connect_to_autonomi()
+        .await
+        .expect("Failed to connect to Autonomi Network");
 
     // TODO test if need to handle trailing slash
     let autonomi_url = req.uri().to_string();
@@ -495,17 +451,32 @@ async fn handle_protocol_xor(
         }
     };
 
-    return awe_fetch_xor_data(xor_name, files_api).await;
+    return awe_fetch_xor_data(xor_name, Some(&files_api)).await;
 }
 
 /// Fetch data from network and return as an http Response
-async fn awe_fetch_xor_data(xor_name: XorName, files_api: &FilesApi) -> http::Response<Vec<u8>> {
+async fn awe_fetch_xor_data(
+    xor_name: XorName,
+    files_api_opt: Option<&FilesApi>,
+) -> http::Response<Vec<u8>> {
     println!("Fetching xor data: {xor_name:64x}");
+
+    // Initialise network connection, client and files api
+    let api;
+    let files_api_ref;
+    if let Some(api_ref) = files_api_opt {
+        files_api_ref = api_ref;
+    } else {
+        api = awe_client::connect_to_autonomi()
+            .await
+            .expect("Failed to connect to Autonomi Network");
+        files_api_ref = &api;
+    }
 
     // TODO since Tauri v2, the iframe won't load content from
     // TODO a URI unless the response has a Content-Type header
     // TODO Investigate options, such as saving content type in the site map
-    match awe_client::autonomi_get_file(xor_name, files_api).await {
+    match awe_client::autonomi_get_file(xor_name, files_api_ref).await {
         Ok(content) => {
             println!("Retrieved {} bytes", content.len());
             // println!("THIS: {:?} bytes", content);

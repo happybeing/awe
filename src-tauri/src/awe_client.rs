@@ -15,13 +15,20 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use clap::Parser;
+use std::convert::TryInto;
+use std::path::{Path, PathBuf};
+use tokio::{sync::broadcast::error::RecvError, task::JoinHandle};
+
 use bytes::Bytes;
 use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
 use indicatif::ProgressBar;
 use log::info;
+use xor_name::XorName;
+
+use sn_peers_acquisition::get_peers_from_args;
 use sn_registers::RegisterAddress;
-use tokio::{sync::broadcast::error::RecvError, task::JoinHandle};
 
 use multiaddr::Multiaddr;
 use sn_client::protocol::storage::ChunkAddress;
@@ -30,20 +37,19 @@ use sn_client::transfers::bls_secret_from_hex;
 use sn_client::{
     Client, ClientEvent, ClientEventsBroadcaster, ClientEventsReceiver, FilesApi, FilesDownload,
 };
-use std::convert::TryInto;
-use std::path::{Path, PathBuf};
-use xor_name::XorName;
+
+use crate::awe_client;
+use crate::cli_options::Opt;
 
 const CLIENT_KEY: &str = "clientkey";
 
-pub async fn connect_to_autonomi(
-    peers: Vec<Multiaddr>,
-    timeout: Option<Duration>,
-) -> Result<Client> {
+pub async fn connect_to_autonomi() -> Result<FilesApi> {
     println!("Autonomi client initialising...");
     let secret_key = get_client_secret_key(&get_client_data_dir_path()?)?;
 
-    // let bootstrap_peers = get_peers_from_args(opt.peers).await?;
+    let opt = Opt::parse();
+    let peers = get_peers_from_args(opt.peers).await?;
+    let timeout = opt.connection_timeout;
 
     println!("Connecting to the network using {} peers", peers.len(),);
 
@@ -57,15 +63,19 @@ pub async fn connect_to_autonomi(
     // get the broadcaster as we want to have our own progress bar.
     let broadcaster = ClientEventsBroadcaster::default();
 
-    let result = Client::new(
+    let client = Client::new(
         secret_key,
         bootstrap_peers,
         timeout,
         Some(broadcaster), // TODO try None
     )
-    .await;
+    .await?;
 
-    Ok(result?)
+    let wallet_dir =
+        awe_client::get_client_data_dir_path().expect("Failed to get client data dir path");
+    let files_api =
+        FilesApi::build(client.clone(), wallet_dir).expect("Failed to instantiate FilesApi");
+    Ok(files_api)
 }
 
 pub async fn autonomi_get_file(
