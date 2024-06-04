@@ -16,7 +16,6 @@
 */
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-#[tokio::main]
-async fn main() {
-    awe_lib::run().await;
+fn main() {
+    awe_lib::run();
 }

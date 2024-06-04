@@ -29,7 +29,7 @@ mod cli_options;
 // TODO fix messed up cursor keys in terminal after running CLI command.
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub async fn run() {
+pub fn run() {
     // color_eyre::install()?;
     if std::env::var("RUST_SPANTRACE").is_err() {
         std::env::set_var("RUST_SPANTRACE", "0");
@@ -52,5 +52,19 @@ pub async fn run() {
         let _ = unsafe { AllocConsole() };
     }
 
-    let _ = awe_subcommands::cli_commands().await;
+    use crate::cli_options::Opt;
+    use clap::Parser;
+
+    let opt = Opt::parse();
+    let url = opt.url.clone();
+    let website_version = opt.website_version.clone();
+
+    if tauri::async_runtime::block_on(async move {
+        awe_subcommands::cli_commands(opt)
+            .await
+            .is_ok_and(|complete| !complete)
+    }) {
+        // No command complete, so register protocols and open the browser
+        crate::awe_protocols::register_protocols(url, website_version);
+    };
 }

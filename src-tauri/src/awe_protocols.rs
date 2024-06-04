@@ -76,19 +76,19 @@ const PROTOCOL_AMX: &str = "amx://";
 //// JavaScript interface
 
 #[cfg(not(feature = "local-discovery"))]
-fn is_local_dicovery() -> bool {
+fn is_local_discovery() -> bool {
     false
 }
 
 #[cfg(feature = "local-discovery")]
-fn is_local_dicovery() -> bool {
+fn is_local_discovery() -> bool {
     true
 }
 
 // Obtain any URL provided to the CLI
 #[tauri::command]
 fn on_is_local_network() -> bool {
-    let is_local_network = is_local_dicovery();
+    let is_local_network = is_local_discovery();
 
     println!("TTTTTTTT tauri::cmd on_is_local_network() returning: {is_local_network}");
     is_local_network
@@ -209,7 +209,6 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
 
     tauri::Builder::default()
         // Rust functions available to JavaScript
-        // TODO these handlers are flakey. Work, then don't for no obvious reason. Not sure how to debug
         .invoke_handler(tauri::generate_handler![
             on_is_local_network,
             on_start_get_cli_url,
@@ -229,34 +228,26 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
         })
         // Protocol for a file
         .register_uri_scheme_protocol("xor", move |_app, req| {
-            let handle = tokio::runtime::Handle::current();
-            let _guard = handle.enter();
-            futures::executor::block_on(async move { handle_protocol_xor(&req).await })
+            tauri::async_runtime::block_on(async move { handle_protocol_xor(&req).await })
         })
         // Protocol for a website (WebsiteMetadata)
         .register_uri_scheme_protocol("amx", move |_app, req| {
             set_version_loaded(0);
-            let handle = tokio::runtime::Handle::current();
-            let _guard = handle.enter();
-            futures::executor::block_on(async move { handle_protocol_amx(&req).await })
+            tauri::async_runtime::block_on(async move { handle_protocol_amx(&req).await })
         })
         // Protocol for a versioned website (WebsiteVersions)
         .register_uri_scheme_protocol("awx", move |_app, req| {
             set_version_loaded(0);
             let website_version = Some(get_version_requested());
-            let handle = tokio::runtime::Handle::current();
-            let _guard = handle.enter();
-            futures::executor::block_on(
-                async move { handle_protocol_awx(&req, website_version).await },
-            )
+            tauri::async_runtime::block_on(async move {
+                handle_protocol_awx(&req, website_version).await
+            })
         })
         .register_uri_scheme_protocol("awe", move |_app, req| {
             let website_version = Some(get_version_requested());
-            let handle = tokio::runtime::Handle::current();
-            let _guard = handle.enter();
-            futures::executor::block_on(
-                async move { handle_protocol_awe(&req, website_version).await },
-            )
+            tauri::async_runtime::block_on(async move {
+                handle_protocol_awe(&req, website_version).await
+            })
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

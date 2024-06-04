@@ -443,7 +443,6 @@ dependencies = [
  "tauri-plugin-http",
  "tauri-plugin-shell",
  "tempfile",
- "tokio",
  "url",
  "walkdir",
  "windows 0.56.0",
@@ -6442,8 +6441,6 @@ dependencies = [
 [[package]]
 name = "sn_build_info"
 version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b8a3a098cc6fdd0a49e2de921634c84a2cf083a84d89c3cc33ae9bcc1b28e6d"
 dependencies = [
  "vergen",
 ]
@@ -6451,8 +6448,6 @@ dependencies = [
 [[package]]
 name = "sn_cli"
 version = "0.91.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de7697d9118d9be0111a8824421e497f6e7b2ff6a6aaaa63abb17760f2de2f6f"
 dependencies = [
  "aes 0.7.5",
  "block-modes",
@@ -6490,9 +6485,7 @@ dependencies = [
 
 [[package]]
 name = "sn_client"
-version = "0.106.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6412883b0a908c92112d64a78b05fb736f828c6021e9fdc15264eb261560e7af"
+version = "0.106.2"
 dependencies = [
  "async-trait",
  "backoff",
@@ -6569,9 +6562,7 @@ dependencies = [
 
 [[package]]
 name = "sn_logging"
-version = "0.2.27"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6118ae5c707c889c7c5836ff0090ed997805a2a4e8b7cd11773a7efb9f6331f"
+version = "0.2.26"
 dependencies = [
  "chrono",
  "dirs-next",
@@ -6589,9 +6580,7 @@ dependencies = [
 
 [[package]]
 name = "sn_networking"
-version = "0.15.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da47931ff3f17ee236d9418f9b01e7e7b8769e35fab8543d03d880007cdc817b"
+version = "0.15.2"
 dependencies = [
  "aes-gcm-siv",
  "async-trait",
@@ -6624,8 +6613,6 @@ dependencies = [
 [[package]]
 name = "sn_peers_acquisition"
 version = "0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f479135f494c15cde1f540fbb8e114a95d078c8f2b9a43d6de8912e30de34793"
 dependencies = [
  "clap 4.5.4",
  "lazy_static",
@@ -6641,9 +6628,7 @@ dependencies = [
 
 [[package]]
 name = "sn_protocol"
-version = "0.16.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ecf7c856f68c84f012e2e601694318135f12caeb4a425584f53cd047e6f405d"
+version = "0.16.6"
 dependencies = [
  "blsttc",
  "bytes",
@@ -6671,8 +6656,6 @@ dependencies = [
 [[package]]
 name = "sn_registers"
 version = "0.3.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52df960337a47cd3eae36d5ed0ad3639c67fdab9ac43be589f0d2a50628a3f50"
 dependencies = [
  "blsttc",
  "crdts",
@@ -6686,9 +6669,7 @@ dependencies = [
 
 [[package]]
 name = "sn_transfers"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c63e4f73d9c703caec16f16767206fe6e1d8f6932ef036281cf4a3e98455041"
+version = "0.18.0"
 dependencies = [
  "blsttc",
  "custom_debug",
@@ -6701,7 +6682,6 @@ dependencies = [
  "rayon",
  "rmp-serde",
  "serde",
- "serde_bytes",
  "serde_json",
  "thiserror",
  "tiny-keccak",

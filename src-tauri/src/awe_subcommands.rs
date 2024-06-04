@@ -34,10 +34,8 @@ use sn_peers_acquisition::get_peers_from_args;
 use crate::awe_client;
 use crate::cli_options::{Opt, Subcommands};
 
-// Returns true if command completed
-pub async fn cli_commands() -> Result<()> {
-    let opt = Opt::parse();
-
+// Returns true if command complete, false to start the browser
+pub async fn cli_commands(opt: Opt) -> Result<bool> {
     // Leave this here for now as a way to show if connecting is not working,
     // even though it is not used, and the handlers do this for each request.
     // TODO rationalise these steps and minimise repeats across requests.
@@ -60,7 +58,6 @@ pub async fn cli_commands() -> Result<()> {
                 .estimate_cost(website_root, make_public, root_dir.as_path())
                 .await
                 .expect("Failed to estimate cost");
-            return Ok(());
         }
         Some(Subcommands::Publish {
             website_root,
@@ -184,22 +181,19 @@ pub async fn cli_commands() -> Result<()> {
             }
         }
 
-        // Default is not to return, but open the browser by continuing
         Some(Subcommands::Browse {
-            url,
-            website_version,
+            url: _,
+            website_version: _,
         }) => {
-            // Register protocols and open the browser
-            crate::awe_protocols::register_protocols(url, website_version);
+            return Ok(false); // Command not yet complete, is the signal to start browser
         }
 
         // Default is not to return, but open the browser by continuing
         None {} => {
-            // Register protocols and open the browser
-            crate::awe_protocols::register_protocols(opt.url, opt.website_version);
+            return Ok(false); // Command not yet complete, is the signal to start browser
         }
     }
-    Ok(())
+    Ok(true)
 }
 
 fn check_website_path(website_root: &PathBuf) -> Result<()> {
