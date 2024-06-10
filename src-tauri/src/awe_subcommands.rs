@@ -16,20 +16,15 @@
 */
 use std::path::PathBuf;
 
-use clap::Parser;
 use color_eyre::{eyre::bail, eyre::eyre, Result};
 use walkdir::WalkDir;
 
 use autonomi::{ChunkManager, Estimator};
 
-use sn_client::{
-    transfers::HotWallet, Client, ClientEventsBroadcaster, FilesApi, UploadCfg, WalletClient,
-};
+use sn_client::{transfers::HotWallet, UploadCfg, WalletClient};
 
 use crate::awe_website_publisher::publish_website;
 use crate::awe_website_versions::WebsiteVersions;
-
-use sn_peers_acquisition::get_peers_from_args;
 
 use crate::awe_client;
 use crate::cli_options::{Opt, Subcommands};

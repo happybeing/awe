@@ -15,28 +15,39 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use clap::Parser;
 use http::{status::StatusCode, Request};
 
 use sn_client::{
     networking::{GetRecordError, NetworkError},
-    Client, FilesApi,
+    FilesApi,
 };
-use sn_peers_acquisition::get_peers_from_args;
 use sn_registers::RegisterAddress;
 
 use crate::awe_client;
 use crate::awe_website_versions::lookup_resource_for_website_version;
-use crate::cli_options::Opt;
 
 use std::sync::Mutex;
 lazy_static::lazy_static! {
     pub static ref STATIC_CLI_URL: Mutex<String> =
         Mutex::<String>::new(String::from(""));
 
+    static ref STATIC_SAVE_NEXT_ADDRESS: Mutex<bool> = Mutex::<bool>::new(true);
+    static ref STATIC_LAST_SITE_ADDRESS: Mutex<String> = Mutex::<String>::new(String::from(""));
     static ref STATIC_VERSION_REQUESTED: Mutex<u64> = Mutex::<u64>::new(0);
     static ref STATIC_VERSION_LOADED: Mutex<u64> = Mutex::<u64>::new(0);
     static ref STATIC_VERSION_MAX: Mutex<u64> = Mutex::<u64>::new(0);
+}
+
+pub fn get_save_next_site_address() -> bool {
+    let save_next = *STATIC_SAVE_NEXT_ADDRESS.lock().unwrap();
+    println!("get_save_next_site_address() returning {}", save_next);
+    save_next
+}
+
+pub fn get_last_site_address() -> String {
+    let site_address = STATIC_LAST_SITE_ADDRESS.lock().unwrap();
+    println!("get_last_site_address() returning {}", site_address);
+    site_address.clone()
 }
 
 pub fn get_version_requested() -> u64 {
@@ -55,6 +66,19 @@ pub fn get_version_max() -> u64 {
     let version = *STATIC_VERSION_MAX.lock().unwrap();
     println!("get_version_max() returning {}", version);
     version
+}
+
+pub fn set_save_next_site_address(save_next_address: bool) {
+    println!("set_save_next_site_address() set to {}", save_next_address);
+    *STATIC_SAVE_NEXT_ADDRESS.lock().unwrap() = save_next_address.clone();
+}
+
+pub fn set_last_site_address(site_address: &String) {
+    if get_save_next_site_address() {
+        set_save_next_site_address(false);
+        println!("set_last_site_address() set to {}", site_address);
+        *STATIC_LAST_SITE_ADDRESS.lock().unwrap() = site_address.clone();
+    }
 }
 
 pub fn set_version_requested(version: u64) {
@@ -85,7 +109,23 @@ fn is_local_discovery() -> bool {
     true
 }
 
+#[tauri::command]
+fn on_set_save_next_site_address(save_next_address: bool) {
+    println!(
+        "TTTTTTTT on_set_save_next_site_address() setting save_next_address: {save_next_address}"
+    );
+    set_save_next_site_address(save_next_address);
+}
+
 // Obtain any URL provided to the CLI
+#[tauri::command]
+fn on_get_last_site_address() -> String {
+    let last_site_address = get_last_site_address();
+
+    println!("TTTTTTTT tauri::cmd on_get_last_site_address() returning: {last_site_address}");
+    last_site_address
+}
+
 #[tauri::command]
 fn on_is_local_network() -> bool {
     let is_local_network = is_local_discovery();
@@ -210,6 +250,8 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
     tauri::Builder::default()
         // Rust functions available to JavaScript
         .invoke_handler(tauri::generate_handler![
+            on_set_save_next_site_address,
+            on_get_last_site_address,
             on_is_local_network,
             on_start_get_cli_url,
             on_frontend_set_version,
@@ -300,7 +342,7 @@ async fn handle_protocol_awx(
     let mut website_version = website_version;
     if let Some(param_version) = url_params.get(URL_PARAM_VERSION) {
         match param_version.parse() {
-            Ok(version_numner) => website_version = Some(version_numner),
+            Ok(version_number) => website_version = Some(version_number),
             Err(_e) => {
                 println!("DEBUG number expected for URL parameter '{URL_PARAM_VERSION}'='{param_version}'")
             }
@@ -344,7 +386,11 @@ async fn handle_protocol_awx(
         }
     };
 
-    awe_fetch_xor_data(xor_name, Some(&files_api)).await
+    let response = awe_fetch_xor_data(xor_name, Some(&files_api)).await;
+    if response.status() == StatusCode::OK {
+        set_last_site_address(&url.to_string());
+    }
+    response
 }
 
 /// Fetch using an xor URL for a website (WebsiteMetadata) (amx://)
@@ -415,7 +461,11 @@ async fn handle_protocol_amx(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    awe_fetch_xor_data(xor_name, Some(&files_api)).await
+    let response = awe_fetch_xor_data(xor_name, Some(&files_api)).await;
+    if response.status() == StatusCode::OK {
+        set_last_site_address(&url.to_string());
+    }
+    response
 }
 
 /// Fetch a file using just an xor address (xor://)

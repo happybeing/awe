@@ -21,21 +21,16 @@ use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 use color_eyre::{eyre::eyre, Result};
-use core::time::Duration;
-use indicatif::ProgressBar;
 use log::info;
 use xor_name::XorName;
 
 use sn_peers_acquisition::get_peers_from_args;
 use sn_registers::RegisterAddress;
 
-use multiaddr::Multiaddr;
 use sn_client::protocol::storage::ChunkAddress;
 use sn_client::transfers::bls::SecretKey;
 use sn_client::transfers::bls_secret_from_hex;
-use sn_client::{
-    Client, ClientEvent, ClientEventsBroadcaster, ClientEventsReceiver, FilesApi, FilesDownload,
-};
+use sn_client::{Client, ClientEventsBroadcaster, FilesApi, FilesDownload};
 
 use crate::awe_client;
 use crate::cli_options::Opt;

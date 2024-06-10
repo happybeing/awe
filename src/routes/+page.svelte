@@ -161,9 +161,15 @@ function onViewLoaded() {
   console.log("onViewLoaded()");
   console.log("    webViewUrl: " + webViewUrl);
   console.log("    addressBar: " + addressBar);
+
   invoke('on_get_version_max').then((result) => {
     console.log('    on_get_version_max() returned ' + result);
     maxVersion = result;
+  });
+
+  invoke('on_get_last_site_address').then((address) => {
+    addressBar = address;
+    console.log("    addressBar: " + addressBar);
   });
 
   invoke('on_get_version_loaded').then((result) => {
@@ -172,6 +178,9 @@ function onViewLoaded() {
     viewLoaded = true;
     setUrlVersion(versionInput.toString());
   });
+
+  // Prime to catch next site address for versioning
+  invoke('on_set_save_next_site_address', { saveNextAddress: true }).then({});
 }
 
 // TODO fix cross-origin block using CSP: SecurityError: Blocked a frame with origin "http://localhost:5173" from accessing a cross-origin frame. Protocols, domains, and ports must match.
