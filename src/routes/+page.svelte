@@ -247,9 +247,14 @@ function handleBuiltinsButton() {
   line-height: 3ch;
 }
 
+.version {
+  width: 5em;
+}
+
 input[type="text"] {
-  height: 34px;
+  height: 26px;
   font-size: 1.2em;
+  margin-top: 6px;
   padding-left: 8px;
   margin-left: 8px;
 }
@@ -264,10 +269,10 @@ input[type="text"] {
 
 <div class="container">
   <button class="builtins-button" style="visibility: {builtinsVisibility}" on:click={handleBuiltinsButton}>Click Me!</button>
-  <button class="button" on:click={handleBackButton}>&lt;</button>
-  <button class="button" on:click={handleBackButton}>&gt;</button>
-    Type awx:// URL and press enter:<input class="input" type=text bind:value={addressBar} placeholder="autonomi address"  on:keypress={onAddressBarKeypress} />
-  Site version:<input disabled={!viewLoaded} class="" type=number bind:value={versionInput} on:change={onVersionChange} on:keypress={onVersionNumberKeypress}/>
+  <!-- <button class="button" on:click={handleBackButton}>&lt;</button>
+  <button class="button" on:click={handleBackButton}>&gt;</button> -->
+  &nbsp;&nbsp;Enter an 'awx://'' URL:<input class="input" type=text bind:value={addressBar} placeholder="autonomi address"  on:keypress={onAddressBarKeypress} />
+  &nbsp;&nbsp;&nbsp;Site version:&nbsp;<input disabled={!viewLoaded} class="version" type=number bind:value={versionInput} on:change={onVersionChange} on:keypress={onVersionNumberKeypress}/>
 </div>
 
 <div class="row-view iframe-wrapper" >
