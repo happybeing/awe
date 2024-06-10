@@ -260,7 +260,7 @@ input[type="text"] {
 }
 
 .iframe-wrapper iframe {
-  height: calc(100vh - 50px); /* Prevent vertical scrolling of everything inside body */
+  height: calc(100vh - 64px); /* Prevent vertical scrolling of everything inside body */
   width: 100%;
   border: 0;
 }
