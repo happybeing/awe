@@ -36,7 +36,7 @@ pub async fn get_website_metadata_from_network(
     metadata_xor_name: XorName,
     files_api: &FilesApi,
 ) -> Result<WebsiteMetadata> {
-    println!("DEBUG Getting website metadata at {metadata_xor_name:64x}");
+    println!("DEBUG get_website_metadata_from_network() at {metadata_xor_name:64x}");
     match awe_client::autonomi_get_file(metadata_xor_name, files_api).await {
         Ok(content) => {
             println!("Retrieved {} bytes", content.len());

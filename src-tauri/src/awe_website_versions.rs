@@ -188,6 +188,10 @@ impl WebsiteVersions {
         files_api: &FilesApi,
         version: Option<u64>,
     ) -> Result<()> {
+        println!(
+            "DEBUG fetch_version_metadata() self.site_version.is_some(): {}",
+            self.site_version.is_some()
+        );
         let mut version = if version.is_some() {
             version.unwrap()
         } else {
@@ -242,6 +246,7 @@ impl WebsiteVersions {
         // Use cached site value if available
         if let Some(site) = &self.site_version {
             if site.version == version {
+                println!("DEBUG XXXXXX get_metadata_address_from_register() returning cached metadata address: {}", &site.metadata_address);
                 return Ok(site.metadata_address.clone());
             }
         };
@@ -484,6 +489,9 @@ pub async fn lookup_resource_for_website_version(
     files_api: &FilesApi,
 ) -> Result<XorName, StatusCode> {
     println!("DEBUG lookup_resource_for_website_version() version {version:?}");
+    println!("DEBUG versions_xor_name: {versions_xor_name}");
+    println!("DEBUG resource_path    : {resource_path}");
+
     match WebsiteVersions::load_register(versions_xor_name, files_api).await {
         Ok(mut website_versions) => {
             return website_versions

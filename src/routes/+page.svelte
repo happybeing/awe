@@ -67,6 +67,8 @@ function onAddressBarKeypress(e) {
     let v = getVersionFromAddressBar();
     if (v > 0) {
       versionInput = v;
+    } else {
+      versionInput = 0;
     }
 
     loadNewPage();
@@ -144,14 +146,15 @@ function loadNewPage() {
   console.log('    versionInput: ' + versionInput);
   console.log('    newVersion: ' + newVersion);
   webViewUrl = '';
-  invoke('on_frontend_set_version', { frontendVersion: newVersion }).then((versionApplied) => {
-    console.log('    on_frontend_set_version() returned ' + versionApplied)
+  invoke('on_prep_to_load_from_address_bar', { frontendVersion: newVersion }).then((versionApplied) => {
+    console.log('    on_prep_to_load_from_address_bar() returned ' + versionApplied)
     if (versionInput != versionApplied) {versionInput = versionApplied; }
     if (addressBar.indexOf("://") == -1 ){
       addressBar = DEFAULT_PROTOCOL + addressBar;
     }
     setUrlVersion(versionInput.toString());
     webframe.src = '/';
+
     console.log("    loading... " + addressBar);
     webframe.src = addressBar;
   });
@@ -180,7 +183,7 @@ function onViewLoaded() {
   });
 
   // Prime to catch next site address for versioning
-  invoke('on_set_save_next_site_address', { saveNextAddress: true }).then({});
+  invoke('on_set_save_next_site_address', { flag: true }).then({});
 }
 
 // TODO fix cross-origin block using CSP: SecurityError: Blocked a frame with origin "http://localhost:5173" from accessing a cross-origin frame. Protocols, domains, and ports must match.
@@ -215,6 +218,7 @@ function handleBuiltinsButton() {
     let url = builtins.awe.aweSomeSites.url;
     console.log("   loading url:", url);
     addressBar = url;
+    versionInput = 0; // Load latest index
     loadNewPage();
   }
 }

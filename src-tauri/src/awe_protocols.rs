@@ -31,17 +31,30 @@ lazy_static::lazy_static! {
     pub static ref STATIC_CLI_URL: Mutex<String> =
         Mutex::<String>::new(String::from(""));
 
+    // Set true by UI when it is about to navigate by setting the source URI
+    static ref STATIC_NEXT_LOAD_IS_ADDRESS_BAR: Mutex<bool> = Mutex::<bool>::new(true);
+
+    // Set true by UI after a page loads, so we can know the next load is not a page resource, but is a new page
     static ref STATIC_SAVE_NEXT_ADDRESS: Mutex<bool> = Mutex::<bool>::new(true);
+
+    // Address of the last site loaded via address bar or user clicking a link
     static ref STATIC_LAST_SITE_ADDRESS: Mutex<String> = Mutex::<String>::new(String::from(""));
+
     static ref STATIC_VERSION_REQUESTED: Mutex<u64> = Mutex::<u64>::new(0);
     static ref STATIC_VERSION_LOADED: Mutex<u64> = Mutex::<u64>::new(0);
     static ref STATIC_VERSION_MAX: Mutex<u64> = Mutex::<u64>::new(0);
 }
 
+pub fn get_next_load_is_address_bar() -> bool {
+    let flag = *STATIC_NEXT_LOAD_IS_ADDRESS_BAR.lock().unwrap();
+    println!("get_next_load_is_address_bar() returning {}", flag);
+    flag
+}
+
 pub fn get_save_next_site_address() -> bool {
-    let save_next = *STATIC_SAVE_NEXT_ADDRESS.lock().unwrap();
-    println!("get_save_next_site_address() returning {}", save_next);
-    save_next
+    let flag = *STATIC_SAVE_NEXT_ADDRESS.lock().unwrap();
+    println!("get_save_next_site_address() returning {}", flag);
+    flag
 }
 
 pub fn get_last_site_address() -> String {
@@ -68,9 +81,14 @@ pub fn get_version_max() -> u64 {
     version
 }
 
-pub fn set_save_next_site_address(save_next_address: bool) {
-    println!("set_save_next_site_address() set to {}", save_next_address);
-    *STATIC_SAVE_NEXT_ADDRESS.lock().unwrap() = save_next_address.clone();
+pub fn set_next_load_is_address_bar(flag: bool) {
+    println!("set_next_load_is_address_bar() set to {}", flag);
+    *STATIC_NEXT_LOAD_IS_ADDRESS_BAR.lock().unwrap() = flag;
+}
+
+pub fn set_save_next_site_address(flag: bool) {
+    println!("set_save_next_site_address() set to {}", flag);
+    *STATIC_SAVE_NEXT_ADDRESS.lock().unwrap() = flag;
 }
 
 pub fn set_last_site_address(site_address: &String) {
@@ -110,11 +128,9 @@ fn is_local_discovery() -> bool {
 }
 
 #[tauri::command]
-fn on_set_save_next_site_address(save_next_address: bool) {
-    println!(
-        "TTTTTTTT on_set_save_next_site_address() setting save_next_address: {save_next_address}"
-    );
-    set_save_next_site_address(save_next_address);
+fn on_set_save_next_site_address(flag: bool) {
+    println!("TTTTTTTT on_set_save_next_site_address() setting save_next_address: {flag}");
+    set_save_next_site_address(flag);
 }
 
 // Obtain any URL provided to the CLI
@@ -166,9 +182,9 @@ fn on_get_version_max() -> usize {
 }
 
 // Called by frontend before setting a new version URL parameter
-// Returns value truncated to the range 1..max version) or ZERO if no website loaded
+// Returns value truncated to the range 0..max version) or ZERO if no website loaded
 #[tauri::command]
-fn on_frontend_set_version(frontend_version: usize) -> usize {
+fn on_prep_to_load_from_address_bar(frontend_version: usize) -> usize {
     let mut version = frontend_version as u64;
 
     let max_version = get_version_max();
@@ -177,8 +193,9 @@ fn on_frontend_set_version(frontend_version: usize) -> usize {
             version = max_version;
         }
     }
+    set_next_load_is_address_bar(true);
 
-    println!("TTTTTTTT on_frontend_set_version({frontend_version}) returning version: {version}");
+    println!("TTTTTTTT on_prep_to_load_from_address_bar({frontend_version}) returning version: {version}");
     set_version_requested(version);
     version as usize
 }
@@ -254,7 +271,7 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
             on_get_last_site_address,
             on_is_local_network,
             on_start_get_cli_url,
-            on_frontend_set_version,
+            on_prep_to_load_from_address_bar,
             on_get_version_loaded,
             on_get_version_requested,
             on_get_version_max,
@@ -274,12 +291,10 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
         })
         // Protocol for a website (WebsiteMetadata)
         .register_uri_scheme_protocol("amx", move |_app, req| {
-            set_version_loaded(0);
             tauri::async_runtime::block_on(async move { handle_protocol_amx(&req).await })
         })
         // Protocol for a versioned website (WebsiteVersions)
         .register_uri_scheme_protocol("awx", move |_app, req| {
-            set_version_loaded(0);
             let website_version = Some(get_version_requested());
             tauri::async_runtime::block_on(async move {
                 handle_protocol_awx(&req, website_version).await
@@ -291,6 +306,9 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
                 handle_protocol_awe(&req, website_version).await
             })
         })
+        // The following macro may give the following 'cargo check' error which can be ignored.
+        //      `frontendDist` configuration is set to `"../build"` but this path
+        // More here: https://github.com/tauri-apps/tauri/issues/3142
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -304,9 +322,9 @@ use xor_name::XorName;
 /// Returns content as an http Response
 async fn handle_protocol_awe(
     req: &Request<Vec<u8>>,
-    website_version: Option<u64>,
+    version_requested: Option<u64>,
 ) -> http::Response<Vec<u8>> {
-    println!("DEBUG Hello from handle_protocol_awe() website_version {website_version:?}");
+    println!("DEBUG Hello from handle_protocol_awe() version_requested {version_requested:?}");
     let url = req.uri();
     let content =
         format!("<HTML><HEAD></HEAD><BODY><h1>Handling Autonomi Request</h1>{url:?}</BODY></HTML>");
@@ -319,9 +337,9 @@ async fn handle_protocol_awe(
 /// Returns content as an http Response
 async fn handle_protocol_awx(
     req: &Request<Vec<u8>>,
-    website_version: Option<u64>,
+    version_requested: Option<u64>,
 ) -> http::Response<Vec<u8>> {
-    println!("DEBUG Hello from handle_protocol_awx() website_version {website_version:?}");
+    println!("DEBUG Hello from handle_protocol_awx() version_requested {version_requested:?}");
     let url = req.uri();
     println!("DEBUG url '{url}'");
 
@@ -338,14 +356,54 @@ async fn handle_protocol_awx(
             }
         };
 
+    // Loading URI via address bar:
+    let loading_new_page_via_address_bar = get_next_load_is_address_bar();
+    set_next_load_is_address_bar(false);
+
+    // Loading due to click on link, or in page JavaScript:
+    let loading_new_page_via_page =
+        get_save_next_site_address() && !loading_new_page_via_address_bar;
+
+    // Loading into current page:
+    let loading_resource = !loading_new_page_via_address_bar && !loading_new_page_via_page;
+
+    let mut xor_host_differs_from_page = false;
+    let last_site_address = get_last_site_address();
+    if let Some(position) = last_site_address.find(host_xor_string.as_str()) {
+        if position != "awx://".len() {
+            xor_host_differs_from_page = true;
+        };
+    } else {
+        xor_host_differs_from_page = true;
+    }
+
+    let mut website_version = version_requested;
+
+    println!("DEBUG loading_new_page_via_address_bar: {loading_new_page_via_address_bar}");
+    println!("DEBUG loading_new_page_via_page       : {loading_new_page_via_page}");
+    println!("DEBUG loading_resource                : {loading_resource}");
+    println!("DEBUG xor_host_differs_from_page      : {xor_host_differs_from_page}");
+    println!("DEBUG version_requested               : {version_requested:?}");
+
     // If the URL specifies a version use that instead
-    let mut website_version = website_version;
     if let Some(param_version) = url_params.get(URL_PARAM_VERSION) {
         match param_version.parse() {
             Ok(version_number) => website_version = Some(version_number),
             Err(_e) => {
                 println!("DEBUG number expected for URL parameter '{URL_PARAM_VERSION}'='{param_version}'")
             }
+        }
+    }
+
+    if loading_resource && !xor_host_differs_from_page && website_version.is_none() {
+        if get_version_loaded() > 0 {
+            website_version = Some(get_version_loaded());
+        }
+    }
+
+    if loading_new_page_via_page && !xor_host_differs_from_page && website_version.is_none() {
+        if get_version_loaded() > 0 {
+            website_version = Some(get_version_loaded());
         }
     }
 
@@ -366,6 +424,9 @@ async fn handle_protocol_awx(
     let files_api = awe_client::connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
+
+    // Save in case we don't want site version changed
+    let current_site_version = get_version_loaded();
 
     let xor_name = match lookup_resource_for_website_version(
         &resource_path,
@@ -388,7 +449,17 @@ async fn handle_protocol_awx(
 
     let response = awe_fetch_xor_data(xor_name, Some(&files_api)).await;
     if response.status() == StatusCode::OK {
-        set_last_site_address(&url.to_string());
+        // Keep site version unchanged when loading a resource
+        if loading_resource {
+            set_version_loaded(current_site_version);
+        }
+
+        // After loading a new page update the site address
+        if loading_new_page_via_address_bar
+            || loading_new_page_via_page && xor_host_differs_from_page
+        {
+            set_last_site_address(&url.to_string());
+        }
     }
     response
 }

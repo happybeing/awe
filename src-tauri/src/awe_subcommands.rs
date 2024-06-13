@@ -99,12 +99,19 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 .await
             {
                 Ok((version, _storage_cost, _royalties)) => {
+                    let xor_address = website_versions.versions_address().to_hex();
+                    let website_root = website_root.to_str();
+                    let website_root = if website_root.is_some() {
+                        website_root.unwrap()
+                    } else {
+                        "<WEBSITE-ROOT>"
+                    };
                     println!(
-                        "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawx://{}",
-                        website_versions.versions_address().to_hex()
+                        "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawx://{}", &xor_address
                     );
-                    println!("\nNOTE:\n- to update this website, use 'awe update --update-xor' followed by the above xor address, and add '--website-root' followed by the path to the updated website content.");
-                    println!("- you can browse this website using 'awe awx://<XOR-ADDRESS>' where <XOR-ADDRESS> is the above xor address.");
+                    println!("\nNOTE:\n- to update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
+                    println!("- to browse the website use 'awe awx://<XOR-ADDRESS>' as follows:\n\n   awe awx://{}\n", &xor_address);
+                    println!("- for help use 'awe --help'\n");
                 }
                 Err(e) => {
                     println!("Failed to publish new website version: {}", e.root_cause());
@@ -161,12 +168,19 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 .await
             {
                 Ok((version, _storage_cost, _royalties)) => {
+                    let xor_address = website_versions.versions_address().to_hex();
+                    let website_root = website_root.to_str();
+                    let website_root = if website_root.is_some() {
+                        website_root.unwrap()
+                    } else {
+                        "<WEBSITE-ROOT>"
+                    };
                     println!(
-                        "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawx://{}",
-                        website_versions.versions_address().to_hex()
+                        "\nWEBSITE UPDATED (version {version}). All versions available at XOR-URL:\nawx://{}", &xor_address
                     );
-                    println!("\nNOTE:\n- to update this website, use 'awe update --update-xor' followed by the above xor address, and add '--website-root' followed by the path to the updated website content.");
-                    println!("- you can browse this website using 'awe awx://<XOR-ADDRESS>' where <XOR-ADDRESS> is the above xor address.");
+                    println!("\nNOTE:\n- to update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
+                    println!("- to browse the website use 'awe awx://<XOR-ADDRESS>' as follows:\n\n   awe awx://{}\n", &xor_address);
+                    println!("- for help use 'awe --help'\n");
                 }
                 Err(e) => {
                     let message = format!("Failed to update website version: {e:?}");
