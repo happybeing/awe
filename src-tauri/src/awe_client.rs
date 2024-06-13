@@ -24,7 +24,6 @@ use color_eyre::{eyre::eyre, Result};
 use log::info;
 use xor_name::XorName;
 
-use sn_peers_acquisition::get_peers_from_args;
 use sn_registers::RegisterAddress;
 
 use sn_client::protocol::storage::ChunkAddress;
@@ -42,7 +41,7 @@ pub async fn connect_to_autonomi() -> Result<FilesApi> {
     let secret_key = get_client_secret_key(&get_client_data_dir_path()?)?;
 
     let opt = Opt::parse();
-    let peers = get_peers_from_args(opt.peers).await?;
+    let peers = opt.peers.get_peers().await?;
     let timeout = opt.connection_timeout;
 
     println!("Connecting to the network using {} peers", peers.len(),);
