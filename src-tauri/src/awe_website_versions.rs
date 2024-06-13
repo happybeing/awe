@@ -99,16 +99,17 @@ impl WebsiteVersions {
         register_address: RegisterAddress,
         files_api: &FilesApi,
     ) -> Result<WebsiteVersions> {
-        let versions_register =
-            match VersionsRegister::new(files_api.client().clone(), Some(register_address)).await {
-                Ok(mut versions_register) => {
-                    versions_register.sync(&mut files_api.wallet()?).await?;
-                    versions_register
-                }
-                Err(e) => {
-                    return Err(eyre!("{e:?}"));
-                }
-            };
+        // Check it exists to avoid accidental creation (and payment)
+        let result = files_api.client().get_register(register_address).await;
+        let mut versions_register = if result.is_ok() {
+            VersionsRegister::from_client_register(result.unwrap())
+        } else {
+            println!("DEBUG: load_register() error:");
+            return Err(eyre!("Error: register not found on network"));
+        };
+
+        versions_register.sync(&mut files_api.wallet()?).await?;
+
         let default_version = versions_register.num_versions();
         Ok(WebsiteVersions {
             default_version: Some(default_version),
@@ -272,6 +273,12 @@ impl VersionsRegister {
         };
 
         Ok(VersionsRegister { register })
+    }
+
+    pub fn from_client_register(client_register: ClientRegister) -> VersionsRegister {
+        VersionsRegister {
+            register: client_register,
+        }
     }
 
     pub fn address(&self) -> &RegisterAddress {
