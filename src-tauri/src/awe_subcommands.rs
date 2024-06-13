@@ -109,9 +109,9 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                     println!(
                         "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawx://{}", &xor_address
                     );
-                    println!("\nNOTE:\n- to update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
-                    println!("- to browse the website use 'awe awx://<XOR-ADDRESS>' as follows:\n\n   awe awx://{}\n", &xor_address);
-                    println!("- for help use 'awe --help'\n");
+                    println!("\nNOTE:\n- To update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
+                    println!("- To browse the website use 'awe awx://<XOR-ADDRESS>' as follows:\n\n   awe awx://{}\n", &xor_address);
+                    println!("- For help use 'awe --help'\n");
                 }
                 Err(e) => {
                     println!("Failed to publish new website version: {}", e.root_cause());
@@ -178,9 +178,9 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                     println!(
                         "\nWEBSITE UPDATED (version {version}). All versions available at XOR-URL:\nawx://{}", &xor_address
                     );
-                    println!("\nNOTE:\n- to update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
-                    println!("- to browse the website use 'awe awx://<XOR-ADDRESS>' as follows:\n\n   awe awx://{}\n", &xor_address);
-                    println!("- for help use 'awe --help'\n");
+                    println!("\nNOTE:\n- To update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
+                    println!("- To browse the website use 'awe awx://<XOR-ADDRESS>' as follows:\n\n   awe awx://{}\n", &xor_address);
+                    println!("- For help use 'awe --help'\n");
                 }
                 Err(e) => {
                     let message = format!("Failed to update website version: {e:?}");
