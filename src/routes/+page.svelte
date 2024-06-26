@@ -106,8 +106,10 @@ function setUrlVersion(v) {
 
   try {
     let url = new URL(addressBar);
-    url.searchParams.set('v', v);
-    addressBar = url.toString();
+    if (url.toString().startsWith(DEFAULT_PROTOCOL) ) {
+      url.searchParams.set('v', v);
+      addressBar = url.toString();
+    }
   } catch (error) {console.log(error);}
 
   console.log("    AFTER: " + addressBar);
