@@ -25,7 +25,7 @@ use std::path::PathBuf;
 use sn_peers_acquisition::PeersArgs;
 use sn_protocol::storage::RetryStrategy;
 
-use crate::awe_client::{str_to_register_address};
+use crate::awe_client::str_to_register_address;
 
 // TODO add example to each CLI subcommand
 
@@ -160,6 +160,10 @@ pub enum Subcommands {
         /// to 'persistent' (most effort).
         #[clap(long, default_value_t = RetryStrategy::Balanced, short = 'r', help = "Sets the retry strategy on upload failure. Options: 'quick' for minimal effort, 'balanced' for moderate effort, or 'persistent' for maximum effort.")]
         retry_strategy: RetryStrategy,
+        ///
+        /// Disable the AWV check when publishing a new website to allow for init of a new Autonomi network (during beta)
+        #[clap(long, name = "is-new-network", hide = true, default_value = "false")]
+        is_new_network: bool,
     },
 
     /// Update an existing website while preserving old versions on Autonomi

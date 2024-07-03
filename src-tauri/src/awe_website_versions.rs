@@ -22,15 +22,41 @@ use sn_client::{Client, ClientRegister, FilesApi, WalletClient};
 use sn_registers::{Entry, RegisterAddress};
 use sn_transfers::NanoTokens;
 
-use crate::awe_client;
+use crate::awe_client::{self, str_to_xor_name};
 use crate::awe_protocols::{set_version_loaded, set_version_max};
 use crate::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 
-/// First register entry (version 0) to identify as WebsiteVersions register
-// TODO regenerate and update once there's a stable network
-// TODO then implement a check when loading a VersionsRegister against Entry 0 (optional override param)
-pub const ZEROTH_VERSION_ADDRESS: &str =
-    "9012f2422030ed6d63bd7f6d2aafc0e12e205bce93fe075eedfdf5bd6e186531";
+use crate::generated_rs::{builtins_local, builtins_public};
+
+const LARGEST_VERSION: u64 = 9007199254740991; // JavaScript Number.MAX_SAFE_INTEGER
+
+// Used until a valid AWV_REG_TYPE_PUBLIC (or _LOCAL) has been hardcoded.
+pub const AWV_REG_TYPE_DUMMY: &str =
+    "ee383f084cffaab845617b1c43ffaee8b5c17e8fbbb3ad3d379c96b5b844f24e";
+
+/// Check if this build of awe is compatible with the current network
+pub async fn is_compatible_network(files_api: &FilesApi) -> bool {
+    let xor_string = hard_coded_awv_type_string();
+    if xor_string.len() == 0 {
+        println!("ERROR: is_compatible_network() - no hard coded AWV type set.");
+        return false;
+    }
+
+    let metadata_address =
+        str_to_xor_name(xor_string.as_str()).expect("Failed to decode awv type string");
+
+    get_website_metadata_from_network(metadata_address, files_api)
+        .await
+        .is_ok()
+}
+
+fn hard_coded_awv_type_string() -> String {
+    if builtins_local::AWV_REG_TYPE_LOCAL.len() > 0 {
+        builtins_local::AWV_REG_TYPE_LOCAL.to_string()
+    } else {
+        builtins_public::AWV_REG_TYPE_PUBLIC.to_string()
+    }
+}
 
 /// Store for a given website version (used for caching)
 struct SiteVersion {
@@ -84,7 +110,9 @@ impl WebsiteVersions {
             })?;
 
         versions_register
-            .add_xor_name(&awe_client::str_to_xor_name(ZEROTH_VERSION_ADDRESS)?)
+            .add_xor_name(&awe_client::str_to_xor_name(
+                versions_register.awv_register_type_string().as_str(),
+            )?)
             .await?;
 
         Ok(WebsiteVersions {
@@ -183,7 +211,7 @@ impl WebsiteVersions {
     /// After success, the WebsiteMetadata can be accessed using current metadata.
     /// If it fails, the selected version will be unchanged and any cached data retained.
     // Version 0 is hidden (and used to id WebsiteMetadata) but can be accessed by
-    // specifying a version of u64::MAX
+    // specifying a version of LARGEST_VERSION
     async fn fetch_version_metadata(
         &mut self,
         files_api: &FilesApi,
@@ -209,7 +237,11 @@ impl WebsiteVersions {
         };
 
         // Allow access to the zeroth version
-        let version = if version == u64::MAX { 0 } else { version };
+        let version = if version == LARGEST_VERSION {
+            0
+        } else {
+            version
+        };
 
         // Return if already cached
         if let Some(site) = &self.site_version {
@@ -244,6 +276,7 @@ impl WebsiteVersions {
 
     // Operations which will be applied to the currently selected version
     pub async fn get_metadata_address_from_register(&self, version: u64) -> Result<XorName> {
+        println!("DEBUG XXXXXX get_metadata_address_from_register(version: {version})");
         // Use cached site value if available
         if let Some(site) = &self.site_version {
             if site.version == version {
@@ -289,6 +322,7 @@ impl VersionsRegister {
     /// The first entry in the register is version 0, but that is reserved so the
     /// first version of a website is 1 and the last is the number of entries - 1
     pub fn get_version_entry(&self, version: u64) -> Result<XorName> {
+        println!("DEBUG XXXXXX get_version_entry(version: {version})");
         let entries_vec = self.node_entries_as_vec();
         let num_entries = entries_vec.len();
 
@@ -365,6 +399,37 @@ impl VersionsRegister {
         let result = Ok(self.register.sync(wallet_client, true, None).await?);
         println!("VersionsRegister::sync() - ...done.");
         result
+    }
+
+    // Returns the value that indicates a register is an AWE versions register
+    //
+    // After Autonomi network launch this becomes fixed in code by setting the value of
+    // the value of AWV_REG_TYPE_PUBLIC which needs updating after each network reset.
+    //
+    // For local testing, the value of AWV_REG_TYPE_LOCAL can be set as a first default.
+    //
+    // AWV_REG_TYPE_PUBLIC is initially set to "" which, if AWV_REG_TYPE_LOCAL is also "" will
+    // return a dummy value kept constant for reference (AWV_REG_TYPE_DUMMY).
+    //
+    // A script is used to pick up this first site address and regenerate the code for AWV_REG_TYPE_PUBLIC
+    // and commit the change, so that subsequent builds of awe will have this register address
+    // hard coded.
+    //
+    // So the first site published by AWE will be special in that its register address is also used
+    // to indicate the AWE versions register type. Currently this value is not checked by AWE, but
+    // TODO: could be used in future to differentiate AWE versions registers from all other registers.
+    fn awv_register_type_string(&self) -> String {
+        let awv_string = hard_coded_awv_type_string();
+        if awv_string.len() > 0 {
+            awv_string.to_string()
+        } else {
+            let awv_type = AWV_REG_TYPE_DUMMY.to_string();
+            println!("===================================================================================");
+            println!("AWV_REG_TYPE_DUMMY: {}", &awv_type);
+            println!("WARNING: this should not appear when using an awe build configured for this network");
+            println!("===================================================================================");
+            awv_type
+        }
     }
 
     // TODO add_register_address() will not be possible if Register entries can

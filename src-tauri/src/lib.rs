@@ -19,12 +19,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod awe_client;
+mod awe_const;
 mod awe_protocols;
 mod awe_subcommands;
 mod awe_website_metadata;
 mod awe_website_publisher;
 mod awe_website_versions;
 mod cli_options;
+mod generated_rs;
 
 // TODO fix messed up cursor keys in terminal after running CLI command.
 

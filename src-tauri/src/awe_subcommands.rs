@@ -23,8 +23,9 @@ use autonomi::{ChunkManager, Estimator};
 
 use sn_client::{transfers::HotWallet, UploadCfg, WalletClient};
 
+use crate::awe_const::MAIN_REPOSITORY;
 use crate::awe_website_publisher::publish_website;
-use crate::awe_website_versions::WebsiteVersions;
+use crate::awe_website_versions::{is_compatible_network, WebsiteVersions};
 
 use crate::awe_client;
 use crate::cli_options::{Opt, Subcommands};
@@ -61,6 +62,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             website_config,
             batch_size,
             retry_strategy,
+            is_new_network,
         }) => {
             // TODO move this code into a function which handles both Publish and Update
             let _ = check_website_path(&website_root);
@@ -75,6 +77,16 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             let files_api = awe_client::connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
+
+            if !is_new_network && !is_compatible_network(&files_api).await {
+                let message = format!(
+                    "ERROR: This version of awe cannot publish to this Autonomi network\
+                \nERROR: Please update awe and try again. See {MAIN_REPOSITORY}"
+                )
+                .clone();
+                println!("{message}");
+                return Err(eyre!(message));
+            }
 
             let website_address = publish_website(
                 &website_root,
