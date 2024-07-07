@@ -58,6 +58,43 @@ fn hard_coded_awv_type_string() -> String {
     }
 }
 
+// Returns the value that indicates a register is an AWE versions register
+//
+// After Autonomi network launch this becomes fixed in code by setting the value of
+// the value of AWV_REG_TYPE_PUBLIC which needs updating after each network reset.
+//
+// For local testing, the value of AWV_REG_TYPE_LOCAL can be set as a first default.
+//
+// AWV_REG_TYPE_PUBLIC is initially set to "" which, if AWV_REG_TYPE_LOCAL is also "" will
+// return a dummy value kept constant for reference (AWV_REG_TYPE_DUMMY).
+//
+// A script is used to pick up this first site address and regenerate the code for AWV_REG_TYPE_PUBLIC
+// and commit the change, so that subsequent builds of awe will have this register address
+// hard coded.
+//
+// So the first site published by AWE will be special in that its register address is also used
+// to indicate the AWE versions register type. Currently this value is not checked by AWE, but
+// TODO: could be used in future to differentiate AWE versions registers from all other registers.
+pub fn awv_register_type_string() -> String {
+    let awv_string = hard_coded_awv_type_string();
+    if awv_string.len() > 0 {
+        awv_string.to_string()
+    } else {
+        let awv_type = AWV_REG_TYPE_DUMMY.to_string();
+        println!(
+            "==================================================================================="
+        );
+        println!("AWV_REG_TYPE_DUMMY: {}", &awv_type);
+        println!(
+            "WARNING: this should not appear when using an awe build configured for this network"
+        );
+        println!(
+            "==================================================================================="
+        );
+        awv_type
+    }
+}
+
 /// Store for a given website version (used for caching)
 struct SiteVersion {
     version: u64,
@@ -94,6 +131,7 @@ impl WebsiteVersions {
     pub async fn new_register(
         client: &Client,
         wallet_client: &mut WalletClient,
+        register_type: &XorName,
     ) -> Result<WebsiteVersions> {
         let mut versions_register = match VersionsRegister::new(client.clone(), None).await {
             Ok(versions_register) => versions_register,
@@ -109,11 +147,7 @@ impl WebsiteVersions {
                 println!("Failed to create website versions register online. {:?}", e);
             })?;
 
-        versions_register
-            .add_xor_name(&awe_client::str_to_xor_name(
-                versions_register.awv_register_type_string().as_str(),
-            )?)
-            .await?;
+        versions_register.add_xor_name(&register_type).await?;
 
         Ok(WebsiteVersions {
             default_version: None,
@@ -399,37 +433,6 @@ impl VersionsRegister {
         let result = Ok(self.register.sync(wallet_client, true, None).await?);
         println!("VersionsRegister::sync() - ...done.");
         result
-    }
-
-    // Returns the value that indicates a register is an AWE versions register
-    //
-    // After Autonomi network launch this becomes fixed in code by setting the value of
-    // the value of AWV_REG_TYPE_PUBLIC which needs updating after each network reset.
-    //
-    // For local testing, the value of AWV_REG_TYPE_LOCAL can be set as a first default.
-    //
-    // AWV_REG_TYPE_PUBLIC is initially set to "" which, if AWV_REG_TYPE_LOCAL is also "" will
-    // return a dummy value kept constant for reference (AWV_REG_TYPE_DUMMY).
-    //
-    // A script is used to pick up this first site address and regenerate the code for AWV_REG_TYPE_PUBLIC
-    // and commit the change, so that subsequent builds of awe will have this register address
-    // hard coded.
-    //
-    // So the first site published by AWE will be special in that its register address is also used
-    // to indicate the AWE versions register type. Currently this value is not checked by AWE, but
-    // TODO: could be used in future to differentiate AWE versions registers from all other registers.
-    fn awv_register_type_string(&self) -> String {
-        let awv_string = hard_coded_awv_type_string();
-        if awv_string.len() > 0 {
-            awv_string.to_string()
-        } else {
-            let awv_type = AWV_REG_TYPE_DUMMY.to_string();
-            println!("===================================================================================");
-            println!("AWV_REG_TYPE_DUMMY: {}", &awv_type);
-            println!("WARNING: this should not appear when using an awe build configured for this network");
-            println!("===================================================================================");
-            awv_type
-        }
     }
 
     // TODO add_register_address() will not be possible if Register entries can

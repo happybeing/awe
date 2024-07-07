@@ -25,7 +25,7 @@ use sn_client::{transfers::HotWallet, UploadCfg, WalletClient};
 
 use crate::awe_const::MAIN_REPOSITORY;
 use crate::awe_website_publisher::publish_website;
-use crate::awe_website_versions::{is_compatible_network, WebsiteVersions};
+use crate::awe_website_versions::{self, is_compatible_network, WebsiteVersions};
 
 use crate::awe_client;
 use crate::cli_options::{Opt, Subcommands};
@@ -99,13 +99,24 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             .await
             .inspect_err(|e| println!("{}", e))?;
 
+            let register_type = if is_new_network {
+                website_address
+            } else {
+                awe_client::str_to_xor_name(
+                    awe_website_versions::awv_register_type_string().as_str(),
+                )?
+            };
+
             println!("Creating versions register, please wait...");
             let mut wallet_client =
                 WalletClient::new(files_api.client().clone(), HotWallet::load_from(&root_dir)?);
-            let mut website_versions =
-                WebsiteVersions::new_register(&files_api.client().clone(), &mut wallet_client)
-                    .await
-                    .inspect_err(|e| println!("{}", e))?;
+            let mut website_versions = WebsiteVersions::new_register(
+                &files_api.client().clone(),
+                &mut wallet_client,
+                &register_type,
+            )
+            .await
+            .inspect_err(|e| println!("{}", e))?;
             match website_versions
                 .publish_new_version(&website_address, &mut wallet_client)
                 .await
