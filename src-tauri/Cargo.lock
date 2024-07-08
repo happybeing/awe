@@ -6440,14 +6440,14 @@ dependencies = [
 
 [[package]]
 name = "sn_build_info"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "vergen",
 ]
 
 [[package]]
 name = "sn_cli"
-version = "0.93.8"
+version = "0.93.9"
 dependencies = [
  "aes 0.7.5",
  "block-modes",
@@ -6484,7 +6484,7 @@ dependencies = [
 
 [[package]]
 name = "sn_client"
-version = "0.107.9"
+version = "0.108.0"
 dependencies = [
  "async-trait",
  "backoff",
@@ -6561,7 +6561,7 @@ dependencies = [
 
 [[package]]
 name = "sn_logging"
-version = "0.2.29"
+version = "0.2.30"
 dependencies = [
  "chrono",
  "dirs-next",
@@ -6579,7 +6579,7 @@ dependencies = [
 
 [[package]]
 name = "sn_networking"
-version = "0.16.6"
+version = "0.17.0"
 dependencies = [
  "aes-gcm-siv",
  "async-trait",
@@ -6613,7 +6613,7 @@ dependencies = [
 
 [[package]]
 name = "sn_peers_acquisition"
-version = "0.3.5"
+version = "0.4.0"
 dependencies = [
  "clap 4.5.4",
  "lazy_static",
@@ -6629,7 +6629,7 @@ dependencies = [
 
 [[package]]
 name = "sn_protocol"
-version = "0.17.4"
+version = "0.17.5"
 dependencies = [
  "blsttc",
  "bytes",
@@ -6654,7 +6654,7 @@ dependencies = [
 
 [[package]]
 name = "sn_registers"
-version = "0.3.14"
+version = "0.3.15"
 dependencies = [
  "blsttc",
  "crdts",
@@ -6668,7 +6668,7 @@ dependencies = [
 
 [[package]]
 name = "sn_transfers"
-version = "0.18.7"
+version = "0.18.8"
 dependencies = [
  "blsttc",
  "custom_debug",
