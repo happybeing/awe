@@ -40,10 +40,10 @@ use crate::awe_client::str_to_register_address;
 pub struct Opt {
     /// Optional awe URL to browse.
     ///
-    /// Use amx://<XOR-ADDRESS> to browse a website (use --website-version to specify a version).
+    /// Use awm://<XOR-ADDRESS> to browse a website (use --website-version to specify a version).
     ///
-    /// Use xor://<XOR-ADDRESS> to load or fetch to a file rather than a website.
-    // TODO mention awx://name
+    /// Use awx://<XOR-ADDRESS> to load or fetch to a file rather than a website.
+    // TODO mention awv://name
     // TODO implement fetch subcommand
     pub url: Option<String>,
 
@@ -95,10 +95,10 @@ pub enum Subcommands {
     Browse {
         /// Optional awe URL to browse.
         ///
-        /// Use amx://<XOR-ADDRESS> to browse a website (use --website-version to specify a version).
+        /// Use awm://<XOR-ADDRESS> to browse a website (use --website-version to specify a version).
         ///
-        /// Use xor://<XOR-ADDRESS> to load or fetch to a file rather than a website.
-        // TODO mention awx://name
+        /// Use awx://<XOR-ADDRESS> to load or fetch to a file rather than a website.
+        // TODO mention awv://name
         // TODO implement fetch subcommand
         url: Option<String>,
 
@@ -127,7 +127,7 @@ pub enum Subcommands {
     /// Uploads a tree of website files to Autonomi and pays using the default wallet
     ///
     /// If successful, prints the xor address of the website, accessible
-    /// using Awe Browser using a URL like 'awx://<XOR-ADDRESS>'.
+    /// using Awe Browser using a URL like 'awv://<XOR-ADDRESS>'.
     Publish {
         /// The root directory containing the website content to be published
         #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
@@ -172,7 +172,7 @@ pub enum Subcommands {
     /// default version. Pays using the default wallet.
     ///
     /// If successful upload prints the xor address of the website, accessible
-    /// using Awe Browser using a URL like 'awx://<XOR-ADDRESS>'.
+    /// using Awe Browser using a URL like 'awv://<XOR-ADDRESS>'.
     Update {
         /// The root directory containing the new website content to be uploaded
         #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]

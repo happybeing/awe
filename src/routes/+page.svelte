@@ -15,7 +15,7 @@ let webViewUrl = '';
 
 let rowNavigationHeight = "20px";
 
-const DEFAULT_PROTOCOL = "awx://";
+const DEFAULT_PROTOCOL = "awv://";
 
 let addressBar = '';
 let versionInput = 0;  // 0 implies load the default/most recent version
@@ -277,7 +277,7 @@ input[type="text"] {
   <button class="builtins-button" style="visibility: {builtinsVisibility}" on:click={handleBuiltinsButton}>Click Me!</button>
   <!-- <button class="button" on:click={handleBackButton}>&lt;</button>
   <button class="button" on:click={handleBackButton}>&gt;</button> -->
-  &nbsp;&nbsp;Enter an 'awx://'' URL:<input class="input" type=text bind:value={addressBar} placeholder="autonomi address"  on:keypress={onAddressBarKeypress} />
+  &nbsp;&nbsp;Enter an 'awv://'' URL:<input class="input" type=text bind:value={addressBar} placeholder="autonomi address"  on:keypress={onAddressBarKeypress} />
   &nbsp;&nbsp;&nbsp;Site version:&nbsp;<input disabled={!viewLoaded} class="version" type=number bind:value={versionInput} on:change={onVersionChange} on:keypress={onVersionNumberKeypress}/>
 </div>
 

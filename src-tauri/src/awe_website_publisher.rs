@@ -156,7 +156,7 @@ pub async fn publish_website_metadata(
         let xor_name = metadata
             .put_website_metadata_to_network(client.clone(), root_dir, upload_cfg)
             .await?;
-        println!("WEBSITE METADATA UPLOADED:\namx://{xor_name:64x}");
+        println!("WEBSITE METADATA UPLOADED:\nawm://{xor_name:64x}");
 
         return Ok(xor_name);
     }

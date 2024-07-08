@@ -113,7 +113,7 @@ pub fn set_version_max(version: u64) {
     *STATIC_VERSION_MAX.lock().unwrap() = version;
 }
 
-const PROTOCOL_AMX: &str = "amx://";
+const PROTOCOL_AWM: &str = "awm://";
 
 //// JavaScript interface
 
@@ -207,7 +207,7 @@ const PROTOCOL_END_STR: &str = "://";
 const URL_PARAM_VERSION: &str = "v";
 
 /// Parse an awe compatible URL into a tuple of:
-///   String protocol (e.g. "awx://")
+///   String protocol (e.g. "awv://")
 ///   String XOR-ADDRESS or NRS host (including subdomains)
 ///   String of the path part
 ///   HashMap of query parameters to values
@@ -286,18 +286,18 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
                 .unwrap()
         })
         // Protocol for a file
-        .register_uri_scheme_protocol("xor", move |_app, req| {
-            tauri::async_runtime::block_on(async move { handle_protocol_xor(&req).await })
+        .register_uri_scheme_protocol("awf", move |_app, req| {
+            tauri::async_runtime::block_on(async move { handle_protocol_awf(&req).await })
         })
         // Protocol for a website (WebsiteMetadata)
-        .register_uri_scheme_protocol("amx", move |_app, req| {
-            tauri::async_runtime::block_on(async move { handle_protocol_amx(&req).await })
+        .register_uri_scheme_protocol("awm", move |_app, req| {
+            tauri::async_runtime::block_on(async move { handle_protocol_awm(&req).await })
         })
         // Protocol for a versioned website (WebsiteVersions)
-        .register_uri_scheme_protocol("awx", move |_app, req| {
+        .register_uri_scheme_protocol("awv", move |_app, req| {
             let website_version = Some(get_version_requested());
             tauri::async_runtime::block_on(async move {
-                handle_protocol_awx(&req, website_version).await
+                handle_protocol_awv(&req, website_version).await
             })
         })
         .register_uri_scheme_protocol("awe", move |_app, req| {
@@ -333,13 +333,13 @@ async fn handle_protocol_awe(
         .expect("http::Response::builder() failed")
 }
 
-/// Fetch using xor URL for website versions (awx://)
+/// Fetch using xor URL for website versions (awv://)
 /// Returns content as an http Response
-async fn handle_protocol_awx(
+async fn handle_protocol_awv(
     req: &Request<Vec<u8>>,
     version_requested: Option<u64>,
 ) -> http::Response<Vec<u8>> {
-    println!("DEBUG Hello from handle_protocol_awx() version_requested {version_requested:?}");
+    println!("DEBUG Hello from handle_protocol_awv() version_requested {version_requested:?}");
     let url = req.uri();
     println!("DEBUG url '{url}'");
 
@@ -370,7 +370,7 @@ async fn handle_protocol_awx(
     let mut xor_host_differs_from_page = false;
     let last_site_address = get_last_site_address();
     if let Some(position) = last_site_address.find(host_xor_string.as_str()) {
-        if position != "awx://".len() {
+        if position != "awv://".len() {
             xor_host_differs_from_page = true;
         };
     } else {
@@ -464,15 +464,15 @@ async fn handle_protocol_awx(
     response
 }
 
-/// Fetch using an xor URL for a website (WebsiteMetadata) (amx://)
+/// Fetch using an xor URL for a website (WebsiteMetadata) (awm://)
 /// Returns content as an http Response
-async fn handle_protocol_amx(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> {
-    println!("DEBUG Hello from handle_protocol_amx()");
+async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> {
+    println!("DEBUG Hello from handle_protocol_awm()");
 
     let url = req.uri().to_string();
     println!("DEBUG url '{url}'");
-    let (_, remainder) = if url.starts_with(PROTOCOL_AMX) {
-        url.split_at(PROTOCOL_AMX.len())
+    let (_, remainder) = if url.starts_with(PROTOCOL_AWM) {
+        url.split_at(PROTOCOL_AWM.len())
     } else {
         ("", url.as_str())
     };
@@ -539,10 +539,10 @@ async fn handle_protocol_amx(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     response
 }
 
-/// Fetch a file using just an xor address (xor://)
+/// Fetch a file using just an xor address (awf://)
 /// Returns content as an http Response
-async fn handle_protocol_xor(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> {
-    println!("DEBUG Hello from handle_protocol_xor()");
+async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> {
+    println!("DEBUG Hello from handle_protocol_awf()");
 
     // Initialise network connection, client and files api
     let files_api = awe_client::connect_to_autonomi()

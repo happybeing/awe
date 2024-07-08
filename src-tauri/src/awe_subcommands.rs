@@ -130,10 +130,10 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                         "<WEBSITE-ROOT>"
                     };
                     println!(
-                        "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawx://{}", &xor_address
+                        "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawv://{}", &xor_address
                     );
                     println!("\nNOTE:\n- To update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
-                    println!("- To browse the website use 'awe awx://<XOR-ADDRESS>' as follows:\n\n   awe awx://{}\n", &xor_address);
+                    println!("- To browse the website use 'awe awv://<XOR-ADDRESS>' as follows:\n\n   awe awv://{}\n", &xor_address);
                     println!("- For help use 'awe --help'\n");
                 }
                 Err(e) => {
@@ -199,10 +199,10 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                         "<WEBSITE-ROOT>"
                     };
                     println!(
-                        "\nWEBSITE UPDATED (version {version}). All versions available at XOR-URL:\nawx://{}", &xor_address
+                        "\nWEBSITE UPDATED (version {version}). All versions available at XOR-URL:\nawv://{}", &xor_address
                     );
                     println!("\nNOTE:\n- To update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
-                    println!("- To browse the website use 'awe awx://<XOR-ADDRESS>' as follows:\n\n   awe awx://{}\n", &xor_address);
+                    println!("- To browse the website use 'awe awv://<XOR-ADDRESS>' as follows:\n\n   awe awv://{}\n", &xor_address);
                     println!("- For help use 'awe --help'\n");
                 }
                 Err(e) => {
