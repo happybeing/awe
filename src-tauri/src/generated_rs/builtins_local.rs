@@ -15,9 +15,7 @@
  along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-// This will be overwritten with a temporary value for local testing.
-//
-// NEVER COMMIT THIS WITH A NON-EMPTY STRING VALUE.
+// First register entry (version 0) to identify as WebsiteVersions register
 //
 // DO NOT CHANGE THIS COMMENT OR THE AUTOMATICALLY GENERATED LINES WHICH FOLLOW.
 pub const AWV_REG_TYPE_LOCAL: &str = "";
