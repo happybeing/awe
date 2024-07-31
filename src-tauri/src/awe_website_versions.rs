@@ -197,6 +197,7 @@ impl WebsiteVersions {
         self.versions_register
             .add_xor_name(website_metadata)
             .await?;
+        println!("website_metadata added to register: {website_metadata:64x}");
         let (version, storage_cost, royalties) = self.sync_versions(wallet_client).await?;
         self.site_version = Some(SiteVersion::new(version, website_metadata.clone(), None));
         self.default_version = Some(version);

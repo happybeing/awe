@@ -219,16 +219,24 @@ impl WebsiteMetadata {
         // Note: even if the website content is unchanged, the metadata will be paid again as
         // it contains the publishing date. So payment is needed every time.
         println!(
-            "Paid {} to store Website metadata",
-            storage_payment_results.storage_cost
+            "Paid {}+{} to store Website metadata, now uploading...",
+            storage_payment_results.storage_cost, storage_payment_results.royalty_fees
         );
-        files_api
+        match files_api
             .get_local_payment_and_upload_chunk(
                 metadata_chunk,
                 upload_cfg.verify_store,
                 Some(upload_cfg.retry_strategy),
             )
-            .await?;
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                let message = format!("Failed to upload website metadata - {e}");
+                println!("{}", &message);
+                return Err(eyre!(message.clone()));
+            }
+        };
 
         Ok(metadata_xorname)
     }
