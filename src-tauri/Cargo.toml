@@ -45,13 +45,21 @@ serde_json = "1"
 # sn_transfers = { version = "0.18.8", path = "../../safe_network/sn_transfers" }
 # sn_protocol = { version = "0.17.5", path = "../../safe_network/sn_protocol" }
 
+# Generated using: awe-dependencies --branch stable (2024-07-25)
+sn_cli = { version = "0.94.0" }
+sn_client = { version = "0.109.0" }
+sn_peers_acquisition = { version = "0.4.1" }
+sn_registers = { version = "0.3.16" }
+sn_transfers = { version = "0.18.9" }
+sn_protocol = { version = "0.17.6" }
+
 # Generated using: awe-dependencies --branch stable-2024-07-08
-sn_cli = { version = "0.93.9" }
-sn_client = { version = "0.108.0" }
-sn_peers_acquisition = { version = "0.4.0" }
-sn_registers = { version = "0.3.15" }
-sn_transfers = { version = "0.18.8" }
-sn_protocol = { version = "0.17.5" }
+# sn_cli = { version = "0.93.9" }
+# sn_client = { version = "0.108.0" }
+# sn_peers_acquisition = { version = "0.4.0" }
+# sn_registers = { version = "0.3.15" }
+# sn_transfers = { version = "0.18.8" }
+# sn_protocol = { version = "0.17.5" }
 
 # Generated using: awe-dependencies (branch: stable)
 # sn_cli = { version = "0.91.4" }
@@ -60,6 +68,7 @@ sn_protocol = { version = "0.17.5" }
 # sn_registers = { version = "0.3.13" }
 # sn_transfers = { version = "0.18.0" }
 # sn_protocol = { version = "0.16.6" }
+
 
 ## Everything else
 rand = { version = "~0.8.5", features = ["small_rng"] }
