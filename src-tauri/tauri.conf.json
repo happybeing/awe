@@ -1,6 +1,6 @@
 {
   "productName": "awe",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "identifier": "happybeing.awe",
   "build": {
     "beforeDevCommand": "npm run dev",
