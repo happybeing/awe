@@ -19,10 +19,10 @@ use tauri::http::status::StatusCode;
 use xor_name::XorName;
 
 use sn_client::{Client, ClientRegister, FilesApi, WalletClient};
-use sn_registers::{Entry, RegisterAddress};
+use sn_registers::RegisterAddress;
 use sn_transfers::NanoTokens;
 
-use crate::awe_client::{self, str_to_xor_name};
+use crate::awe_client::str_to_xor_name;
 use crate::awe_protocols::{set_version_loaded, set_version_max};
 use crate::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 
@@ -358,7 +358,7 @@ impl VersionsRegister {
     /// first version of a website is 1 and the last is the number of entries - 1
     pub fn get_version_entry(&self, version: u64) -> Result<XorName> {
         println!("DEBUG XXXXXX get_version_entry(version: {version})");
-        let entries_vec = self.node_entries_as_vec();
+        let entries_vec = crate::commands::helpers::node_entries_as_vec(&self.register);
         let num_entries = entries_vec.len();
 
         // This is used to hold a value for use by the Svelte frontend
@@ -366,8 +366,8 @@ impl VersionsRegister {
 
         // Note the first node is a marker, and not used so max version is length - 1
         if version < num_entries as u64 {
-            let entry = &entries_vec[entries_vec.len() - (version as usize) - 1];
-            Ok(xorname_from_entry(&entry))
+            let entry = &entries_vec[version as usize];
+            Ok(crate::commands::helpers::xorname_from_entry(&entry))
         } else {
             Err(eyre!(
                 "Version {version} too large. Maximum is {}",
@@ -380,33 +380,7 @@ impl VersionsRegister {
     /// or an error if no versions are available.
     /// The first version is 1 last version is num_versions()
     pub fn num_versions(&self) -> u64 {
-        // println!(
-        //     "self.node_entries_as_vec().len() is {}",
-        //     self.node_entries_as_vec().len()
-        // );
-        return self.node_entries_as_vec().len() as u64 - 1;
-    }
-
-    // Make a vector of node Entry with vector[0] being most recently added node
-    // in the history.
-    // We take the first 'root' node and the first child of the root, the first child
-    // of that child and so on.
-    // So if there were multiple children (i.e. conflicting versions) only one is included
-    pub fn node_entries_as_vec(&self) -> Vec<Entry> {
-        let merkle_reg = self.register.merkle_reg();
-        let content = merkle_reg.read();
-        let mut entries_vec: Vec<Entry> = Vec::new();
-        let mut node = content.nodes().nth(0);
-        while node.is_some() {
-            let node_ref = node.unwrap();
-            entries_vec.push(node_ref.value.clone());
-            node = if let Some(first_child_hash) = node_ref.children.clone().into_iter().nth(0) {
-                merkle_reg.node(first_child_hash)
-            } else {
-                None
-            };
-        }
-        entries_vec
+        return crate::commands::helpers::node_entries_as_vec(&self.register).len() as u64 - 1;
     }
 
     /// Adds an XorName to the register, merging any branches
@@ -579,12 +553,4 @@ pub async fn lookup_resource_for_website_version(
             return Err(StatusCode::NOT_FOUND);
         }
     };
-}
-
-// From FoldersApi
-// Helper to convert a Register/Folder entry into a XorName
-fn xorname_from_entry(entry: &Entry) -> XorName {
-    let mut xorname = [0; xor_name::XOR_NAME_LEN];
-    xorname.copy_from_slice(entry);
-    XorName(xorname)
 }

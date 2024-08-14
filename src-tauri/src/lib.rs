@@ -21,12 +21,14 @@
 mod awe_client;
 mod awe_const;
 mod awe_protocols;
-mod awe_subcommands;
 mod awe_website_metadata;
 mod awe_website_publisher;
 mod awe_website_versions;
 mod cli_options;
+mod commands;
 mod generated_rs;
+
+use crate::commands::awe_subcommands;
 
 // TODO fix messed up cursor keys in terminal after running CLI command.
 
@@ -36,8 +38,6 @@ pub fn run() {
     if std::env::var("RUST_SPANTRACE").is_err() {
         std::env::set_var("RUST_SPANTRACE", "0");
     }
-
-    println!("DEBUG Hello from run()");
 
     // Windows doesn't attach a GUI application to the console so we
     // do it manually. This method doesn't cause the terminal input

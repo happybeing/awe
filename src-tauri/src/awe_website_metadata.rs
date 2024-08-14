@@ -85,7 +85,7 @@ impl JsonSettings {
 #[derive(Serialize, Deserialize)]
 pub struct WebsiteMetadata {
     /// System time of device publishing to Autonomi
-    date_published: DateTime<Utc>,
+    pub date_published: DateTime<Utc>,
     // TODO use website_config to implement web server like configuration such as redirects
     pub website_config: JsonSettings,
     // TODO document usage of third_party_settings JSON for metadata created by and accessible
@@ -245,7 +245,8 @@ impl WebsiteMetadata {
 /// A map of paths to files used to access xor addresses of content
 #[derive(Serialize, Deserialize)]
 pub struct WebsitePathMap {
-    paths_to_files_map: HashMap<String, Vec<(String, ChunkAddress)>>,
+    // TODO add file metadata (size, date modified) using a struct: FileMeta {filename, size, date_modified, chunk_address}
+    pub paths_to_files_map: HashMap<String, Vec<(String, ChunkAddress)>>,
 }
 
 // TODO replace OS path separator with '/' when storing web paths

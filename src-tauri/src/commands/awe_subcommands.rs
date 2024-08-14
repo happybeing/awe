@@ -1,4 +1,5 @@
 /*
+
  Copyright (c) 2024-2025 Mark Hughes
 
  This program is free software: you can redistribute it and/or modify
@@ -218,6 +219,50 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             website_version: _,
         }) => {
             return Ok(false); // Command not yet complete, is the signal to start browser
+        }
+
+        Some(Subcommands::Inspect_register {
+            register_address,
+            print_register_summary,
+            print_type,
+            print_size,
+            entries_range,
+            include_files,
+            files_args,
+        }) => {
+            match crate::commands::cmd_inspect_register::handle_inspect_register(
+                register_address,
+                print_register_summary,
+                print_type,
+                print_size,
+                entries_range,
+                include_files,
+                files_args,
+            )
+            .await
+            {
+                Ok(_) => return Ok(true),
+                Err(e) => {
+                    println!("{e:?}");
+                    return Err(e);
+                }
+            }
+        }
+
+        Some(Subcommands::Inspect_files {
+            files_metadata_address: _,
+            files_args: _,
+        }) => {
+            println!("TODO: implement subcommand inspect-files");
+        }
+
+        Some(Subcommands::Download {
+            awe_url: _,
+            filesystem_path: _,
+            entries_range: _,
+            files_args: _,
+        }) => {
+            println!("TODO: implement subcommand download");
         }
 
         // Default is not to return, but open the browser by continuing
