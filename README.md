@@ -84,6 +84,11 @@ Visit the Tauri v2 (beta) section of ([tauri.app](https://tauri.app)) for detail
 cargo tauri dev
 ```
 
+### Build on MacOS
+There following forum topic shows how to build on MacOS, but note that the public key values mentioned there change when the Autonomi beta network is reset, so they may be out of date.
+
+- [MacOS build of awe](https://forum.autonomi.community/t/macos-build-of-awe-web-publisher-browser-demo-app/40202?u=happybeing)
+
 ## LICENSE
 
 Everything is AGPL3.0 unless otherwise stated. Any contributions are accepted on the condition they conform to this license.
