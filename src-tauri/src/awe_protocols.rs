@@ -26,6 +26,12 @@ use sn_registers::RegisterAddress;
 use crate::awe_client;
 use crate::awe_website_versions::lookup_resource_for_website_version;
 
+pub const AWE_PROTOCOL_REGISTER: &str = "awv://";
+#[allow(dead_code)]
+pub const AWE_PROTOCOL_METADATA: &str = "awm://";
+#[allow(dead_code)]
+pub const AWE_PROTOCOL_FILE: &str = "awx://";
+
 use std::sync::Mutex;
 lazy_static::lazy_static! {
     pub static ref STATIC_CLI_URL: Mutex<String> =
@@ -370,7 +376,7 @@ async fn handle_protocol_awv(
     let mut xor_host_differs_from_page = false;
     let last_site_address = get_last_site_address();
     if let Some(position) = last_site_address.find(host_xor_string.as_str()) {
-        if position != "awv://".len() {
+        if position != AWE_PROTOCOL_REGISTER.len() {
             xor_host_differs_from_page = true;
         };
     } else {

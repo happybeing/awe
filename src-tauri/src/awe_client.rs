@@ -32,6 +32,7 @@ use sn_client::transfers::bls_secret_from_hex;
 use sn_client::{Client, ClientEventsBroadcaster, FilesApi, FilesDownload};
 
 use crate::awe_client;
+use crate::awe_protocols::AWE_PROTOCOL_REGISTER;
 use crate::cli_options::Opt;
 
 const CLIENT_KEY: &str = "clientkey";
@@ -110,8 +111,14 @@ pub fn get_client_data_dir_path() -> Result<PathBuf> {
     Ok(home_dir)
 }
 
-// TODO return error rather than panic
+/// Parse a register xor address with optional URL scheme
 pub fn str_to_register_address(str: &str) -> Result<RegisterAddress> {
+    let str = if str.starts_with(AWE_PROTOCOL_REGISTER) {
+        &str[AWE_PROTOCOL_REGISTER.len()..]
+    } else {
+        &str
+    };
+
     match RegisterAddress::from_hex(str) {
         Ok(register_address) => Ok(register_address),
         Err(e) => Err(eyre!("Invalid register address string '{str}':\n{e:?}")),
