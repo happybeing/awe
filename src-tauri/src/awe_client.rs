@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use clap::Parser;
 use std::convert::TryInto;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use bytes::Bytes;
 use color_eyre::{eyre::eyre, Result};
@@ -32,7 +32,7 @@ use sn_client::transfers::bls_secret_from_hex;
 use sn_client::{Client, ClientEventsBroadcaster, FilesApi, FilesDownload};
 
 use crate::awe_client;
-use crate::awe_protocols::AWE_PROTOCOL_REGISTER;
+use crate::awe_protocols::{AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
 use crate::cli_options::Opt;
 
 const CLIENT_KEY: &str = "clientkey";
@@ -111,7 +111,7 @@ pub fn get_client_data_dir_path() -> Result<PathBuf> {
     Ok(home_dir)
 }
 
-/// Parse a register xor address with optional URL scheme
+/// Parse a hex register address with optional URL scheme
 pub fn str_to_register_address(str: &str) -> Result<RegisterAddress> {
     let str = if str.starts_with(AWE_PROTOCOL_REGISTER) {
         &str[AWE_PROTOCOL_REGISTER.len()..]
@@ -125,19 +125,23 @@ pub fn str_to_register_address(str: &str) -> Result<RegisterAddress> {
     }
 }
 
-// TODO return error rather than panic
+/// Parse a hex xor address with optional URL scheme
 pub fn str_to_xor_name(str: &str) -> Result<XorName> {
-    let path = Path::new(str);
-    let hex_xorname = path
-        .file_name()
-        .expect("Uploaded file to have name")
-        .to_str()
-        .expect("Failed to convert path to string");
-    let bytes = hex::decode(hex_xorname)?;
-    let xor_name_bytes: [u8; 32] = bytes
-        .try_into()
-        .expect("Failed to parse XorName from hex string");
-    Ok(XorName(xor_name_bytes))
+    let str = if str.starts_with(AWE_PROTOCOL_METADATA) {
+        &str[AWE_PROTOCOL_METADATA.len()..]
+    } else {
+        &str
+    };
+
+    match hex::decode(str) {
+        Ok(bytes) => {
+            match bytes.try_into() {
+                Ok(xor_name_bytes) => Ok(XorName(xor_name_bytes)),
+                Err(e) => Err(eyre!("XorName not valid due to {e:?}")),
+            }
+        }
+        Err(e) => Err(eyre!("XorName not valid due to {e:?}")),
+    }
 }
 
 // Based on sn_cli
