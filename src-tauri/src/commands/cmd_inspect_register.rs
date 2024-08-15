@@ -140,11 +140,11 @@ pub async fn do_print_entries(
     }
 
     // As entries_vec[] is in reverse order we adjust the start and end and count backwards
-    println!("Entries {first} to {last}:");
+    println!("entries {first} to {last}:");
     for index in first..=last {
         let xor_name = helpers::xorname_from_entry(&entries_vec[index]);
         if include_files {
-            println!("Fetching metadata at {xor_name}");
+            println!("entry {index} - fetching metadata at {xor_name:64x}");
             match get_website_metadata_from_network(xor_name, &files_api).await {
                 Ok(metadata) => {
                     let _ = do_print_files(&metadata, &files_args);
@@ -163,14 +163,14 @@ pub async fn do_print_entries(
 }
 
 pub fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<bool> {
-    let metadata_stats = if files_args.print_files_summary || files_args.print_count_files {
+    let metadata_stats = if files_args.print_metadata_summary || files_args.print_count_files {
         metadata_stats(metadata)?
     } else {
         (0 as usize, 0 as u64)
     };
 
-    if files_args.print_files_summary {
-        let _ = do_print_files_summary(metadata, metadata_stats);
+    if files_args.print_metadata_summary {
+        let _ = do_print_metadata_summary(metadata, metadata_stats);
     } else {
         if files_args.print_count_directories {
             let _ = do_print_count_directories(metadata);
@@ -181,10 +181,10 @@ pub fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Res
         }
     }
 
-    if files_args.print_paths || files_args.print_details {
+    if files_args.print_paths || files_args.print_all_details {
         for (path_string, path_map) in metadata.path_map.paths_to_files_map.iter() {
             for (file_name, chunk_address) in path_map.iter() {
-                if files_args.print_details {
+                if files_args.print_all_details {
                     // TODO add file metadata for 'details'
                     println!(
                         "{:64x} \"{path_string}{file_name}\"",
@@ -213,11 +213,11 @@ pub fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
     Ok((files_count, total_bytes))
 }
 
-pub fn do_print_files_summary(
+pub fn do_print_metadata_summary(
     metadata: &WebsiteMetadata,
     metadata_stats: (usize, u64),
 ) -> Result<bool> {
-    println!("Published {}", metadata.date_published);
+    println!("published   :{}", metadata.date_published);
     let _ = do_print_count_directories(metadata);
     let _ = do_print_count_files(metadata_stats.0);
     Ok(true)

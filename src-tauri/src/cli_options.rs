@@ -259,15 +259,15 @@ pub enum Subcommands {
         register_address: RegisterAddress,
 
         /// Print a summary of the register including type (the value of entry 0) and number of entries
-        #[clap(long, name = "register-summary", default_value = "false")]
+        #[clap(long = "register-summary", short = 'r', default_value = "false")]
         print_register_summary: bool,
 
         /// Print the type of metadata recorded in the register (the value of entry 0)
-        #[clap(long, name = "type", default_value = "false")]
+        #[clap(long = "type", short = 't', default_value = "false")]
         print_type: bool,
 
         /// Print the number of entries
-        #[clap(long, name = "size", default_value = "false")]
+        #[clap(long = "size", short = 's', default_value = "false")]
         print_size: bool,
 
         /// Print information about each entry in RANGE, which can be
@@ -281,8 +281,7 @@ pub enum Subcommands {
         /// the network, as recorded by the metadata pointed to by the entry. Enables
         /// the following 'print' options for files metadata entries in RANGE
         #[clap(
-            long,
-            name = "include-files",
+            long = "include-files",
             default_value = "false",
             requires = "entries_range"
         )]
@@ -308,28 +307,33 @@ pub enum Subcommands {
 #[derive(Args, Debug)]
 pub struct FilesArgs {
     /// Print summary information about files based on files metadata
-    #[clap(long, name = "files-summary", default_value = "false")]
-    pub print_files_summary: bool,
+    #[clap(long = "metadata-summary", short = 'm', default_value = "false")]
+    pub print_metadata_summary: bool,
 
     /// Print the number of directories
-    #[clap(long, name = "count-directories", default_value = "false")]
+    #[clap(long = "count-directories", short = 'd', default_value = "false")]
     pub print_count_directories: bool,
 
     /// Print the number of files
-    #[clap(long, name = "count-files", default_value = "false")]
+    #[clap(long = "count-files", short = 'f', default_value = "false")]
     pub print_count_files: bool,
 
     /// TODO Print the total number of bytes for all files
-    #[clap(long, hide = true, name = "total-bytes", default_value = "false")]
+    #[clap(
+        long = "total-bytes",
+        short = 'b',
+        hide = true,
+        default_value = "false"
+    )]
     pub print_total_bytes: bool,
 
     /// Print the path of each file
-    #[clap(long, name = "paths", default_value = "false")]
+    #[clap(long = "paths", short = 'p', default_value = "false")]
     pub print_paths: bool,
 
     /// TODO Print detailed information about each file including path and size in bytes
-    #[clap(long, hide = true, name = "details", default_value = "false")]
-    pub print_details: bool,
+    #[clap(long = "all", short = 'a', hide = true, default_value = "false")]
+    pub print_all_details: bool,
 }
 
 use regex::Regex;
