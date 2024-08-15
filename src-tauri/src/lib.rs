@@ -39,25 +39,28 @@ pub fn run() {
         std::env::set_var("RUST_SPANTRACE", "0");
     }
 
+    use crate::cli_options::Opt;
+    use clap::Parser;
+    let opt = Opt::parse();
+
     // Windows doesn't attach a GUI application to the console so we
-    // do it manually. This method doesn't cause the terminal input
-    // to be blocked and so new commands can be entered while awe
-    // sends output to the console. A blocking method is available,
-    // but would require creation of a new terminal, which is not
+    // do it manually - but only when the GUI is to be activated.
+    //
+    // This method doesn't cause the terminal input to be blocked
+    // and so new commands can be entered while the awe GUI sends
+    // output to the console. A blocking method is available, but
+    // would require creation of a new terminal, which is not
     // suitable because awe is also a command line app.
     //
     // See: https://github.com/tauri-apps/tauri/issues/8305#issuecomment-1826871949
     //
     #[cfg(windows)]
     {
-        use windows::Win32::System::Console::AllocConsole;
-        let _ = unsafe { AllocConsole() };
-    }
+        if opt.cmd.is_none() || opt.cmd.unwrap() == Subcommands::Browse {
+            let _ = unsafe { windows::Win32::System::Console::AllocConsole() };
+        }
+    };
 
-    use crate::cli_options::Opt;
-    use clap::Parser;
-
-    let opt = Opt::parse();
     let url = opt.url.clone();
     let website_version = opt.website_version.clone();
 
