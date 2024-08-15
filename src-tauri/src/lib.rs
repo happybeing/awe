@@ -56,7 +56,14 @@ pub fn run() {
     //
     #[cfg(windows)]
     {
-        if opt.cmd.is_none() || opt.cmd.unwrap() == Subcommands::Browse {
+        if match opt.cmd {
+            Some(cli_options::Subcommands::Browse {
+                url: _,
+                website_version: _,
+            }) => true,
+            Some(_) => false,
+            None => true,
+        } {
             let _ = unsafe { windows::Win32::System::Console::AllocConsole() };
         }
     };
