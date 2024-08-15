@@ -53,69 +53,69 @@ lazy_static::lazy_static! {
 
 pub fn get_next_load_is_address_bar() -> bool {
     let flag = *STATIC_NEXT_LOAD_IS_ADDRESS_BAR.lock().unwrap();
-    println!("get_next_load_is_address_bar() returning {}", flag);
+    println!("DEBUG get_next_load_is_address_bar() returning {}", flag);
     flag
 }
 
 pub fn get_save_next_site_address() -> bool {
     let flag = *STATIC_SAVE_NEXT_ADDRESS.lock().unwrap();
-    println!("get_save_next_site_address() returning {}", flag);
+    println!("DEBUG get_save_next_site_address() returning {}", flag);
     flag
 }
 
 pub fn get_last_site_address() -> String {
     let site_address = STATIC_LAST_SITE_ADDRESS.lock().unwrap();
-    println!("get_last_site_address() returning {}", site_address);
+    println!("DEBUG get_last_site_address() returning {}", site_address);
     site_address.clone()
 }
 
 pub fn get_version_requested() -> u64 {
     let version = *STATIC_VERSION_REQUESTED.lock().unwrap();
-    println!("get_version_requested() returning {}", version);
+    println!("DEBUG get_version_requested() returning {}", version);
     version
 }
 
 pub fn get_version_loaded() -> u64 {
     let version = *STATIC_VERSION_LOADED.lock().unwrap();
-    println!("get_version_loaded() returning {}", version);
+    println!("DEBUG get_version_loaded() returning {}", version);
     version
 }
 
 pub fn get_version_max() -> u64 {
     let version = *STATIC_VERSION_MAX.lock().unwrap();
-    println!("get_version_max() returning {}", version);
+    println!("DEBUG get_version_max() returning {}", version);
     version
 }
 
 pub fn set_next_load_is_address_bar(flag: bool) {
-    println!("set_next_load_is_address_bar() set to {}", flag);
+    println!("DEBUG set_next_load_is_address_bar() set to {}", flag);
     *STATIC_NEXT_LOAD_IS_ADDRESS_BAR.lock().unwrap() = flag;
 }
 
 pub fn set_save_next_site_address(flag: bool) {
-    println!("set_save_next_site_address() set to {}", flag);
+    println!("DEBUG set_save_next_site_address() set to {}", flag);
     *STATIC_SAVE_NEXT_ADDRESS.lock().unwrap() = flag;
 }
 
 pub fn set_last_site_address(site_address: &String) {
     if get_save_next_site_address() {
         set_save_next_site_address(false);
-        println!("set_last_site_address() set to {}", site_address);
+        println!("DEBUG set_last_site_address() set to {}", site_address);
         *STATIC_LAST_SITE_ADDRESS.lock().unwrap() = site_address.clone();
     }
 }
 
 pub fn set_version_requested(version: u64) {
-    println!("set_version_requested() set to {}", version);
+    println!("DEBUG set_version_requested() set to {}", version);
     *STATIC_VERSION_REQUESTED.lock().unwrap() = version;
 }
 
 pub fn set_version_loaded(version: u64) {
-    println!("set_version_loaded() set to {}", version);
+    println!("DEBUG set_version_loaded() set to {}", version);
     *STATIC_VERSION_LOADED.lock().unwrap() = version;
 }
 pub fn set_version_max(version: u64) {
-    println!("set_version_max() set to {}", version);
+    println!("DEBUG set_version_max() set to {}", version);
     *STATIC_VERSION_MAX.lock().unwrap() = version;
 }
 
@@ -135,7 +135,7 @@ fn is_local_discovery() -> bool {
 
 #[tauri::command]
 fn on_set_save_next_site_address(flag: bool) {
-    println!("TTTTTTTT on_set_save_next_site_address() setting save_next_address: {flag}");
+    println!("DEBUG TT on_set_save_next_site_address() setting save_next_address: {flag}");
     set_save_next_site_address(flag);
 }
 
@@ -144,7 +144,7 @@ fn on_set_save_next_site_address(flag: bool) {
 fn on_get_last_site_address() -> String {
     let last_site_address = get_last_site_address();
 
-    println!("TTTTTTTT tauri::cmd on_get_last_site_address() returning: {last_site_address}");
+    println!("DEBUG TT tauri::cmd on_get_last_site_address() returning: {last_site_address}");
     last_site_address
 }
 
@@ -152,7 +152,7 @@ fn on_get_last_site_address() -> String {
 fn on_is_local_network() -> bool {
     let is_local_network = is_local_discovery();
 
-    println!("TTTTTTTT tauri::cmd on_is_local_network() returning: {is_local_network}");
+    println!("DEBUG TT tauri::cmd on_is_local_network() returning: {is_local_network}");
     is_local_network
 }
 
@@ -160,7 +160,7 @@ fn on_is_local_network() -> bool {
 #[tauri::command]
 fn on_start_get_cli_url() -> String {
     let cli_url = STATIC_CLI_URL.lock().unwrap();
-    println!("TTTTTTTT tauri::cmd on_start_get_cli_url() returning: {cli_url}");
+    println!("DEBUG TT tauri::cmd on_start_get_cli_url() returning: {cli_url}");
     cli_url.to_string()
 }
 
@@ -168,7 +168,7 @@ fn on_start_get_cli_url() -> String {
 #[tauri::command]
 fn on_get_version_requested() -> usize {
     let version = get_version_requested() as usize;
-    println!("TTTTTTTT tauri::cmd on_get_version_requested() returning {version}");
+    println!("DEBUG TT tauri::cmd on_get_version_requested() returning {version}");
     version as usize
 }
 
@@ -176,14 +176,14 @@ fn on_get_version_requested() -> usize {
 #[tauri::command]
 fn on_get_version_loaded() -> usize {
     let version = get_version_loaded() as usize;
-    println!("TTTTTTTT tauri::cmd on_get_version_loaded() returning {version}");
+    println!("DEBUG TT tauri::cmd on_get_version_loaded() returning {version}");
     version as usize
 }
 
 #[tauri::command]
 fn on_get_version_max() -> usize {
     let version = get_version_max() as usize;
-    println!("TTTTTTTT tauri::cmd on_get_version_max() called from JS, returning {version}",);
+    println!("DEBUG TT tauri::cmd on_get_version_max() called from JS, returning {version}",);
     version
 }
 
@@ -201,7 +201,7 @@ fn on_prep_to_load_from_address_bar(frontend_version: usize) -> usize {
     }
     set_next_load_is_address_bar(true);
 
-    println!("TTTTTTTT on_prep_to_load_from_address_bar({frontend_version}) returning version: {version}");
+    println!("DEBUG TT on_prep_to_load_from_address_bar({frontend_version}) returning version: {version}");
     set_version_requested(version);
     version as usize
 }
@@ -265,7 +265,10 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
         *STATIC_CLI_URL.lock().unwrap() = cli_url.unwrap().clone();
     };
 
-    println!("CLI specified --website-version {:?}", cli_website_version);
+    println!(
+        "DEBUG CLI specified --website-version {:?}",
+        cli_website_version
+    );
     if cli_website_version.is_some() {
         set_version_requested(cli_website_version.unwrap());
     };
@@ -577,7 +580,7 @@ async fn awe_fetch_xor_data(
     xor_name: XorName,
     files_api_opt: Option<&FilesApi>,
 ) -> http::Response<Vec<u8>> {
-    println!("Fetching xor data: {xor_name:64x}");
+    println!("DEBUG fetching xor data: {xor_name:64x}");
 
     // Initialise network connection, client and files api
     let api;
@@ -596,8 +599,7 @@ async fn awe_fetch_xor_data(
     // TODO Investigate options, such as saving content type in the site map
     match awe_client::autonomi_get_file(xor_name, files_api_ref).await {
         Ok(content) => {
-            println!("Retrieved {} bytes", content.len());
-            // println!("THIS: {:?} bytes", content);
+            println!("DEBUG retrieved {} bytes", content.len());
             return http::Response::builder()
                 .header(http::header::CONTENT_TYPE, "text/html") // TODO needed since Tauri switched to using http::Response from tauri::http::ResponseBuilder
                 .body(content.to_vec())
