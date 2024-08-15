@@ -230,7 +230,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             include_files,
             files_args,
         }) => {
-            match crate::commands::cmd_inspect_register::handle_inspect_register(
+            match crate::commands::cmd_inspect::handle_inspect_register(
                 register_address,
                 print_register_summary,
                 print_type,
@@ -250,10 +250,21 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
         }
 
         Some(Subcommands::Inspect_files {
-            files_metadata_address: _,
-            files_args: _,
+            files_metadata_address,
+            files_args,
         }) => {
-            println!("TODO: implement subcommand inspect-files");
+            match crate::commands::cmd_inspect::handle_inspect_files(
+                files_metadata_address,
+                files_args,
+            )
+            .await
+            {
+                Ok(_) => return Ok(true),
+                Err(e) => {
+                    println!("{e:?}");
+                    return Err(e);
+                }
+            }
         }
 
         Some(Subcommands::Download {

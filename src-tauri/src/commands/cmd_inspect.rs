@@ -22,12 +22,13 @@ use crate::commands::helpers;
 use color_eyre::{eyre::eyre, Result};
 use sn_client::FilesApi;
 use sn_registers::{Entry, RegisterAddress};
+use xor_name::XorName;
 
 /// Implement 'inspect-register' subcommand
 ///
 /// Treats a register as a vector of nodes with one Entry per element, so branches are treated as a single node
 ///
-/// TODO extend treatment to more complex register structures (post stabilisation of the Autonomi API)
+/// TODO extend treatment to handle register with branches etc (post stabilisation of the Autonomi API)
 pub async fn handle_inspect_register(
     register_address: RegisterAddress,
     print_summary: bool,
@@ -217,7 +218,7 @@ pub fn do_print_metadata_summary(
     metadata: &WebsiteMetadata,
     metadata_stats: (usize, u64),
 ) -> Result<bool> {
-    println!("published   :{}", metadata.date_published);
+    println!("published  : {}", metadata.date_published);
     let _ = do_print_count_directories(metadata);
     let _ = do_print_count_files(metadata_stats.0);
     Ok(true)
@@ -233,5 +234,31 @@ pub fn do_print_count_directories(metadata: &WebsiteMetadata) -> Result<bool> {
 
 pub fn do_print_count_files(count_files: usize) -> Result<bool> {
     println!("files      : {count_files}");
+    Ok(true)
+}
+
+/// Implement 'inspect-files' subcommand
+///
+/// Accepts a metadata address
+///
+/// TODO extend treatment to handle register with branches etc (post stabilisation of the Autonomi API)
+pub async fn handle_inspect_files(
+    metadata_address: XorName,
+    files_args: FilesArgs,
+) -> Result<bool> {
+    let files_api = awe_client::connect_to_autonomi()
+        .await
+        .expect("Failed to connect to Autonomi Network");
+
+    println!("fetching metadata at {metadata_address:64x}");
+    match get_website_metadata_from_network(metadata_address, &files_api).await {
+        Ok(metadata) => {
+            let _ = do_print_files(&metadata, &files_args);
+        }
+        Err(e) => {
+            println!("Failed to get website metadata from network");
+            return Err(eyre!(e));
+        }
+    };
     Ok(true)
 }

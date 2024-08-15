@@ -22,11 +22,13 @@ use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
 use sn_registers::RegisterAddress;
 use std::path::PathBuf;
+use xor_name::XorName;
 
 use sn_peers_acquisition::PeersArgs;
 use sn_protocol::storage::RetryStrategy;
 
 use crate::awe_client::str_to_register_address;
+use crate::awe_client::str_to_xor_name;
 
 // TODO add example to each CLI subcommand
 
@@ -296,8 +298,8 @@ pub enum Subcommands {
     #[clap(hide = true)] // TODO hide until implemented
     Inspect_files {
         /// The Autonomi network address of some awe metadata. Can be prefixed with awm://
-        #[clap(value_name = "FILES-METADATA-ADDRESS")]
-        files_metadata_address: String,
+        #[clap(value_name = "FILES-METADATA-ADDRESS", value_parser = str_to_xor_name)]
+        files_metadata_address: XorName,
 
         #[command(flatten)]
         files_args: FilesArgs,
