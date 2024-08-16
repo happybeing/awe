@@ -149,7 +149,21 @@ pub async fn publish_website_metadata(
             if let Some(resource_full_path) = osstr_to_string(full_path.as_os_str()) {
                 let resource_path = resource_full_path[resource_path_start..].to_string();
                 println!("Adding '{resource_full_path}' as '{resource_path}'");
-                metadata.add_resource_to_metadata(&resource_path, chunk_address.clone())?
+                match std::fs::metadata(resource_full_path) {
+                    Ok(file_metadata) => metadata.add_resource_to_metadata(
+                        &resource_path,
+                        chunk_address.clone(),
+                        Some(&file_metadata),
+                    )?,
+                    Err(e) => {
+                        println!("Failed to obtain metadata for file due to: {e:}");
+                        metadata.add_resource_to_metadata(
+                            &resource_path,
+                            chunk_address.clone(),
+                            None,
+                        )?
+                    }
+                };
             }
         }
 

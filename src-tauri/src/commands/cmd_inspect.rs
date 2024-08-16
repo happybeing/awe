@@ -19,6 +19,8 @@ use crate::awe_client;
 use crate::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 use crate::cli_options::{EntriesRange, FilesArgs};
 use crate::commands::helpers;
+use chrono::offset::Utc;
+use chrono::DateTime;
 use color_eyre::{eyre::eyre, Result};
 use sn_client::FilesApi;
 use sn_registers::{Entry, RegisterAddress};
@@ -121,6 +123,8 @@ pub async fn do_print_entries(
     files_args: &FilesArgs,
 ) -> Result<bool> {
     let size = entries_vec.len();
+    if size == 0 { return Ok(true); }
+
     let first = if entries_range.start.is_some() {
         entries_range.start.unwrap()
     } else {
@@ -180,8 +184,35 @@ pub fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Res
         if files_args.print_count_files {
             let _ = do_print_count_files(metadata_stats.0);
         }
+
+        #[cfg(feature = "extra-file-metadata")]
+        if files_args.print_total_bytes {
+            let _ = do_print_total_bytes(metadata_stats.1);
+        }
     }
 
+    #[cfg(feature = "extra-file-metadata")]
+    if files_args.print_paths || files_args.print_all_details {
+        for (path_string, path_map) in metadata.path_map.paths_to_files_map.iter() {
+            for (file_name, chunk_address, modified, size) in path_map.iter() {
+                if files_args.print_all_details {
+                    let date_time = DateTime::<Utc>::from(*modified);
+                    let modified_str = date_time.format("%Y-%m-%d %H:%M:%S").to_string();
+                    println!(
+                        "{:64x} {modified_str} \"{path_string}{file_name}\" {size} bytes",
+                        chunk_address.xorname()
+                    );
+                } else {
+                    println!(
+                        "{:64x} \"{path_string}{file_name}\"",
+                        chunk_address.xorname()
+                    );
+                }
+            }
+        }
+    }
+
+    #[cfg(not(feature = "extra-file-metadata"))]
     if files_args.print_paths || files_args.print_all_details {
         for (path_string, path_map) in metadata.path_map.paths_to_files_map.iter() {
             for (file_name, chunk_address) in path_map.iter() {
@@ -200,9 +231,27 @@ pub fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Res
             }
         }
     }
+
     Ok(true)
 }
 
+#[cfg(feature = "extra-file-metadata")]
+pub fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
+    let mut files_count: usize = 0;
+    let mut total_bytes: u64 = 0;
+
+    for (_, path_map) in metadata.path_map.paths_to_files_map.iter() {
+        files_count = files_count + path_map.len();
+
+        for file_metadata in path_map {
+            total_bytes = total_bytes + file_metadata.3
+        }
+    }
+
+    Ok((files_count, total_bytes))
+}
+
+#[cfg(not(feature = "extra-file-metadata"))]
 pub fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
     let mut files_count: usize = 0;
     let total_bytes: u64 = 0;
@@ -221,6 +270,8 @@ pub fn do_print_metadata_summary(
     println!("published  : {}", metadata.date_published);
     let _ = do_print_count_directories(metadata);
     let _ = do_print_count_files(metadata_stats.0);
+    #[cfg(feature = "extra-file-metadata")]
+    let _ = do_print_total_bytes(metadata_stats.1);
     Ok(true)
 }
 
@@ -234,6 +285,12 @@ pub fn do_print_count_directories(metadata: &WebsiteMetadata) -> Result<bool> {
 
 pub fn do_print_count_files(count_files: usize) -> Result<bool> {
     println!("files      : {count_files}");
+    Ok(true)
+}
+
+#[cfg(feature = "extra-file-metadata")]
+pub fn do_print_total_bytes(total_bytes: u64) -> Result<bool> {
+    println!("total bytes: {total_bytes}");
     Ok(true)
 }
 

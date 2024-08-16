@@ -295,7 +295,6 @@ pub enum Subcommands {
 
     /// Print information about files from stored metadata
     #[allow(non_camel_case_types)]
-    #[clap(hide = true)] // TODO hide until implemented
     Inspect_files {
         /// The Autonomi network address of some awe metadata. Can be prefixed with awm://
         #[clap(value_name = "FILES-METADATA-ADDRESS", value_parser = str_to_xor_name)]
@@ -324,7 +323,6 @@ pub struct FilesArgs {
     #[clap(
         long = "total-bytes",
         short = 'b',
-        hide = true,
         default_value = "false"
     )]
     pub print_total_bytes: bool,
@@ -333,8 +331,8 @@ pub struct FilesArgs {
     #[clap(long = "paths", short = 'p', default_value = "false")]
     pub print_paths: bool,
 
-    /// TODO Print detailed information about each file including path and size in bytes
-    #[clap(long = "all", short = 'a', hide = true, default_value = "false")]
+    /// Print metadata about each file including path, modification time and size in bytes
+    #[clap(long = "all", short = 'a', default_value = "false")]
     pub print_all_details: bool,
 }
 

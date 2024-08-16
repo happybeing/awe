@@ -15,6 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 use std::collections::HashMap;
+use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
 use bytes::{BufMut, BytesMut};
@@ -167,6 +168,20 @@ impl WebsiteMetadata {
         Err(StatusCode::NOT_FOUND)
     }
 
+    #[cfg(feature = "extra-file-metadata")]
+    fn lookup_name_in_vec(
+        name: &String,
+        resources_vec: &Vec<(String, ChunkAddress, std::time::SystemTime, u64)>,
+    ) -> Option<XorName> {
+        for (resource_name, chunk_address, _modified, _size) in resources_vec {
+            if resource_name.eq(name) {
+                return Some(chunk_address.xorname().clone());
+            }
+        }
+        None
+    }
+
+    #[cfg(not(feature = "extra-file-metadata"))]
     fn lookup_name_in_vec(
         name: &String,
         resources_vec: &Vec<(String, ChunkAddress)>,
@@ -187,9 +202,10 @@ impl WebsiteMetadata {
         &mut self,
         resource_website_path: &String,
         chunk_address: ChunkAddress,
+        file_metadata: Option<&std::fs::Metadata>,
     ) -> Result<()> {
         self.path_map
-            .add_resource_to_metadata(resource_website_path, chunk_address)
+            .add_resource_to_metadata(resource_website_path, chunk_address, file_metadata)
     }
 
     // TODO handle metadata larger than one chunk using self encryption
@@ -246,6 +262,10 @@ impl WebsiteMetadata {
 #[derive(Serialize, Deserialize)]
 pub struct WebsitePathMap {
     // TODO add file metadata (size, date modified) using a struct: FileMeta {filename, size, date_modified, chunk_address}
+    #[cfg(feature = "extra-file-metadata")]
+    pub paths_to_files_map:
+        HashMap<String, Vec<(String, ChunkAddress, std::time::SystemTime, u64)>>,
+    #[cfg(not(feature = "extra-file-metadata"))]
     pub paths_to_files_map: HashMap<String, Vec<(String, ChunkAddress)>>,
 }
 
@@ -254,6 +274,12 @@ pub struct WebsitePathMap {
 impl WebsitePathMap {
     pub fn new() -> WebsitePathMap {
         WebsitePathMap {
+            #[cfg(feature = "extra-file-metadata")]
+            paths_to_files_map: HashMap::<
+                String,
+                Vec<(String, ChunkAddress, std::time::SystemTime, u64)>,
+            >::new(),
+            #[cfg(not(feature = "extra-file-metadata"))]
             paths_to_files_map: HashMap::<String, Vec<(String, ChunkAddress)>>::new(),
         }
     }
@@ -265,6 +291,7 @@ impl WebsitePathMap {
         &mut self,
         resource_website_path: &String,
         chunk_address: ChunkAddress,
+        file_metadata: Option<&std::fs::Metadata>,
     ) -> Result<()> {
         // println!("DEBUG add_resource_to_metadata() path '{resource_website_path}'");
         let mut web_path = Self::webify_string(&resource_website_path);
@@ -273,10 +300,30 @@ impl WebsitePathMap {
             // println!(
             //     "DEBUG Splitting at {last_separator_position} into path: '{web_path}' file: '{resource_file_name}'"
             // );
+            #[cfg(feature = "extra-file-metadata")]
+            let metadata_tuple = if let Some(metadata) = file_metadata {
+                (
+                    resource_file_name.clone(),
+                    chunk_address,
+                    metadata.modified().unwrap(),
+                    metadata.size(),
+                )
+            } else {
+                (
+                    resource_file_name.clone(),
+                    chunk_address,
+                    std::time::SystemTime::now(),
+                    0,
+                )
+            };
+
+            #[cfg(not(feature = "extra-file-metadata"))]
+            let metadata_tuple = (resource_file_name.clone(), chunk_address);
+
             self.paths_to_files_map
                 .entry(web_path)
-                .and_modify(|vector| vector.push((resource_file_name.clone(), chunk_address)))
-                .or_insert(vec![(resource_file_name.clone(), chunk_address)]);
+                .and_modify(|vector| vector.push(metadata_tuple.clone()))
+                .or_insert(vec![metadata_tuple]);
         } else {
             return Err(eyre!(
                 "Path separator not found in resource website path: {resource_website_path}"
