@@ -45,21 +45,21 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
     match opt.cmd {
         Some(Subcommands::Estimate {
             website_root,
-            make_public,
+            make_private,
         }) => {
             let files_api = awe_client::connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
             let chunk_manager = ChunkManager::new(root_dir.as_path());
             Estimator::new(chunk_manager, files_api)
-                .estimate_cost(website_root, make_public, root_dir.as_path())
+                .estimate_cost(website_root, !make_private, root_dir.as_path())
                 .await
                 .expect("Failed to estimate cost");
         }
         Some(Subcommands::Publish {
             website_root,
             // update, TODO when NRS, re-instate
-            make_public,
+            make_private,
             website_config,
             batch_size,
             retry_strategy,
@@ -92,7 +92,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             let website_address = publish_website(
                 &website_root,
                 website_config,
-                make_public,
+                make_private,
                 &files_api.client().clone(),
                 root_dir.as_path(),
                 &upload_config,
@@ -147,7 +147,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             website_root,
             // name: String, // TODO when NRS, re-instate name
             update_xor,
-            make_public,
+            make_private,
             website_config,
             batch_size,
             retry_strategy,
@@ -168,7 +168,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             let website_address = publish_website(
                 &website_root,
                 website_config,
-                make_public,
+                make_private,
                 &files_api.client().clone(),
                 root_dir.as_path(),
                 &upload_config,

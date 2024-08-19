@@ -28,7 +28,7 @@ use crate::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata
 pub async fn publish_website(
     website_root: &PathBuf,
     website_config_path: Option<PathBuf>,
-    make_public: bool,
+    make_private: bool,
     client: &Client,
     root_dir: &Path,
     upload_config: &UploadCfg,
@@ -47,7 +47,8 @@ pub async fn publish_website(
         None
     };
 
-    match publish_website_content(client, root_dir, website_root, make_public, &upload_config).await
+    match publish_website_content(client, root_dir, website_root, make_private, &upload_config)
+        .await
     {
         Ok(site_upload_summary) => {
             match publish_website_metadata(
@@ -55,7 +56,7 @@ pub async fn publish_website(
                 root_dir,
                 website_root,
                 &site_upload_summary,
-                make_public,
+                make_private,
                 website_config,
                 &upload_config,
             )
@@ -78,7 +79,7 @@ pub async fn publish_website_content(
     client: &Client,
     root_dir: &Path,
     website_root: &PathBuf,
-    make_public: bool,
+    make_private: bool,
     upload_cfg: &UploadCfg,
 ) -> Result<FilesUploadSummary> {
     if !website_root.is_dir() {
@@ -95,7 +96,7 @@ pub async fn publish_website_content(
 
     println!("Uploading website from: {website_root:?}");
     let files_uploader = FilesUploader::new(client.clone(), root_dir.to_path_buf())
-        .set_make_data_public(make_public)
+        .set_make_data_public(make_private)
         .set_upload_cfg(*upload_cfg)
         .insert_path(&website_root);
 
@@ -126,7 +127,7 @@ pub async fn publish_website_metadata(
     root_dir: &Path,
     website_root: &PathBuf,
     site_upload_summary: &FilesUploadSummary,
-    _make_public: bool,
+    _make_private: bool,
     website_config: Option<JsonSettings>,
     upload_cfg: &UploadCfg,
 ) -> Result<XorName> {

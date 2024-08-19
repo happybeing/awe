@@ -118,13 +118,15 @@ pub enum Subcommands {
         /// The root directory containing the website content to be published
         #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
         website_root: PathBuf,
-        /// Should the website content be made accessible to all. (This is irreversible.)
+        /// Should the website content be made private. (This is irreversible.)
+        ///
+        /// The default is public and accessible to all.
         ///
         /// Note that without access to the website metadata even public data won't be
         /// discoverable. Access will only be possible with the address of the metadata
         /// or of the individual uploaded pages and resources contained in the metadata.
-        #[clap(long, name = "make-public", default_value = "true", short = 'p')]
-        make_public: bool,
+        #[clap(long, name = "make-private", default_value = "false", short = 'p')]
+        make_private: bool,
     },
 
     /// Publish a new website
@@ -152,13 +154,15 @@ pub enum Subcommands {
         /// during payment and upload processing.
         #[clap(long, default_value_t = sn_client::BATCH_SIZE, short='b')]
         batch_size: usize,
-        /// Should the website content be made accessible to all. (This is irreversible.)
+        /// Should the website content be made private. (This is irreversible.)
+        ///
+        /// The default is public and accessible to all.
         ///
         /// Note that without access to the website metadata even public data won't be
         /// discoverable. Access will only be possible with the address of the metadata
         /// or of the individual uploaded pages and resources contained in the metadata.
-        #[clap(long, name = "make-public", default_value = "true", short = 'p')]
-        make_public: bool,
+        #[clap(long, name = "make-private", default_value = "false", short = 'p')]
+        make_private: bool,
         /// Set the strategy to use on chunk upload failure. Does not modify the spend failure retry attempts yet.
         ///
         /// Choose a retry strategy based on effort level, from 'quick' (least effort), through 'balanced',
@@ -202,13 +206,15 @@ pub enum Subcommands {
         /// during payment and upload processing.
         #[clap(long, default_value_t = sn_client::BATCH_SIZE, short='b')]
         batch_size: usize,
-        /// Should the website content be made accessible to all. (This is irreversible.)
+        /// Should the website content be made private. (This is irreversible.)
+        ///
+        /// The default is public and accessible to all.
         ///
         /// Note that without access to the website metadata even public data won't be
         /// discoverable. Access will only be possible with the address of the metadata
         /// or of the individual uploaded pages and resources contained in the metadata.
-        #[clap(long, name = "make-public", default_value = "true", short = 'p')]
-        make_public: bool,
+        #[clap(long, name = "make-private", default_value = "false", short = 'p')]
+        make_private: bool,
         /// Set the strategy to use on chunk upload failure. Does not modify the spend failure retry attempts yet.
         ///
         /// Choose a retry strategy based on effort level, from 'quick' (least effort), through 'balanced',
