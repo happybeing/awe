@@ -87,7 +87,7 @@ impl JsonSettings {
 pub struct WebsiteMetadata {
     /// System time of device publishing to Autonomi
     pub date_published: DateTime<Utc>,
-    // TODO use website_config to implement web server like configuration such as redirects
+    // TODO use website_config to implement web server like configuration such as redirects, short links and subdomains
     pub website_config: JsonSettings,
     // TODO document usage of third_party_settings JSON for metadata created by and accessible
     // TODO to unknown applications such as site builder, as well as awe. Mandate that:
