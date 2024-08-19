@@ -15,6 +15,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::sync::LazyLock;
+use std::sync::Mutex;
+
 use http::{status::StatusCode, Request};
 
 use sn_client::{
@@ -32,24 +35,25 @@ pub const AWE_PROTOCOL_METADATA: &str = "awm://";
 #[allow(dead_code)]
 pub const AWE_PROTOCOL_FILE: &str = "awx://";
 
-use std::sync::Mutex;
-lazy_static::lazy_static! {
-    pub static ref STATIC_CLI_URL: Mutex<String> =
-        Mutex::<String>::new(String::from(""));
+static STATIC_CLI_URL: LazyLock<Mutex<String>> =
+    LazyLock::new(|| Mutex::<String>::new(String::from("")));
 
-    // Set true by UI when it is about to navigate by setting the source URI
-    static ref STATIC_NEXT_LOAD_IS_ADDRESS_BAR: Mutex<bool> = Mutex::<bool>::new(true);
+// Set true by UI when it is about to navigate by setting the source URI
+static STATIC_NEXT_LOAD_IS_ADDRESS_BAR: LazyLock<Mutex<bool>> =
+    LazyLock::new(|| Mutex::<bool>::new(true));
 
-    // Set true by UI after a page loads, so we can know the next load is not a page resource, but is a new page
-    static ref STATIC_SAVE_NEXT_ADDRESS: Mutex<bool> = Mutex::<bool>::new(true);
+// Set true by UI after a page loads, so we can know the next load is not a page resource, but is a new page
+static STATIC_SAVE_NEXT_ADDRESS: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::<bool>::new(true));
 
-    // Address of the last site loaded via address bar or user clicking a link
-    static ref STATIC_LAST_SITE_ADDRESS: Mutex<String> = Mutex::<String>::new(String::from(""));
+// Address of the last site loaded via address bar or user clicking a link
+static STATIC_LAST_SITE_ADDRESS: LazyLock<Mutex<String>> =
+    LazyLock::new(|| Mutex::<String>::new(String::from("")));
 
-    static ref STATIC_VERSION_REQUESTED: Mutex<u64> = Mutex::<u64>::new(0);
-    static ref STATIC_VERSION_LOADED: Mutex<u64> = Mutex::<u64>::new(0);
-    static ref STATIC_VERSION_MAX: Mutex<u64> = Mutex::<u64>::new(0);
-}
+static STATIC_VERSION_REQUESTED: LazyLock<Mutex<u64>> = LazyLock::new(|| Mutex::<u64>::new(0));
+
+static STATIC_VERSION_LOADED: LazyLock<Mutex<u64>> = LazyLock::new(|| Mutex::<u64>::new(0));
+
+static STATIC_VERSION_MAX: LazyLock<Mutex<u64>> = LazyLock::new(|| Mutex::<u64>::new(0));
 
 pub fn get_next_load_is_address_bar() -> bool {
     let flag = *STATIC_NEXT_LOAD_IS_ADDRESS_BAR.lock().unwrap();

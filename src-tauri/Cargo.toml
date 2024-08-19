@@ -92,7 +92,6 @@ chrono = { version = "0.4.37", features = ["serde"] }
 rmp-serde = "1.1.2"
 self_encryption = "0.29.1"
 crdts = "7.3.2"
-lazy_static = "1.4.0"
 url = "2.5.0"
 regex = "1.9.6"
 

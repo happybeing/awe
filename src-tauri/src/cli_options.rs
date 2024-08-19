@@ -15,13 +15,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::path::PathBuf;
+use std::sync::LazyLock;
+
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
 use sn_registers::RegisterAddress;
-use std::path::PathBuf;
 use xor_name::XorName;
 
 use sn_peers_acquisition::PeersArgs;
@@ -320,11 +322,7 @@ pub struct FilesArgs {
     pub print_count_files: bool,
 
     /// TODO Print the total number of bytes for all files
-    #[clap(
-        long = "total-bytes",
-        short = 'b',
-        default_value = "false"
-    )]
+    #[clap(long = "total-bytes", short = 'b', default_value = "false")]
     pub print_total_bytes: bool,
 
     /// Print the path of each file
@@ -344,9 +342,7 @@ pub struct EntriesRange {
 }
 
 fn str_to_entries_range(s: &str) -> Result<EntriesRange> {
-    lazy_static::lazy_static! {
-        static ref RE: Regex = Regex::new(r"^(\d*)(:?)(\d*)$").unwrap();
-    }
+    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\d*)(:?)(\d*)$").unwrap());
 
     let captures = match RE.captures(s) {
         Some(captures) => captures,
