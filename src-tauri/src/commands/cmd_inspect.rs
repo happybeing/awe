@@ -14,17 +14,21 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+use std::collections::HashMap;
+
+use chrono::offset::Utc;
+use chrono::DateTime;
+use color_eyre::{eyre::eyre, Result};
+use crdts::merkle_reg::{Hash, MerkleReg, Node};
+use xor_name::XorName;
+
+use sn_client::{ClientRegister, FilesApi};
+use sn_registers::{Entry, RegisterAddress};
 
 use crate::awe_client;
 use crate::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 use crate::cli_options::{EntriesRange, FilesArgs};
-use crate::commands::helpers;
-use chrono::offset::Utc;
-use chrono::DateTime;
-use color_eyre::{eyre::eyre, Result};
-use sn_client::FilesApi;
-use sn_registers::{Entry, RegisterAddress};
-use xor_name::XorName;
+use crate::commands::helpers::{node_entries_as_vec, xorname_from_entry};
 
 /// Implement 'inspect-register' subcommand
 ///
@@ -36,6 +40,7 @@ pub async fn handle_inspect_register(
     print_summary: bool,
     print_type: bool,
     print_size: bool,
+    print_audit: bool,
     entries_range: Option<EntriesRange>,
     include_files: bool,
     files_args: FilesArgs,
@@ -53,10 +58,10 @@ pub async fn handle_inspect_register(
 
     register.sync(&mut files_api.wallet()?, true, None).await?;
 
-    let entries_vec = helpers::node_entries_as_vec(&register);
+    let entries_vec = node_entries_as_vec(&register);
     let size = entries_vec.len();
     if print_summary {
-        do_print_summary(register.address(), &entries_vec, size)?;
+        do_print_summary(&register, register.address(), &entries_vec, size)?;
     } else {
         if print_type {
             if size > 0 {
@@ -82,40 +87,180 @@ pub async fn handle_inspect_register(
         .await?;
     };
 
+    if print_audit {
+        let _ = do_print_audit(&register);
+    }
+
     Ok(true)
 }
 
-pub fn do_print_summary(
+fn do_print_summary(
+    register: &ClientRegister,
     reg_address: &RegisterAddress,
     entries_vec: &Vec<Entry>,
     size: usize,
 ) -> Result<bool> {
-    println!("register: {}", reg_address.to_hex());
+    println!("register    : {}", reg_address.to_hex());
+    println!("owned by    : {:?}", register.owner());
+    println!("permissions : {:?}", register.permissions());
+
     if entries_vec.len() > 0 {
         do_print_type(Some(&entries_vec[0]))?;
     } else {
         do_print_type(None)?;
     }
     do_print_size(size)?;
+    do_print_audit_summary(&register)?;
     Ok(true)
 }
 
-pub fn do_print_type(reg_type: Option<&Entry>) -> Result<bool> {
+fn do_print_type(reg_type: Option<&Entry>) -> Result<bool> {
     if reg_type.is_some() {
-        let xor_name = helpers::xorname_from_entry(reg_type.unwrap());
-        println!("type: {xor_name}");
+        let xor_name = xorname_from_entry(reg_type.unwrap());
+        println!("app reg type: {xor_name}");
     } else {
-        println!("type: not set");
+        println!("app reg type: not set");
     }
     Ok(true)
 }
 
-pub fn do_print_size(size: usize) -> Result<bool> {
-    println!("size: {size}");
+fn do_print_size(size: usize) -> Result<bool> {
+    println!("size        : {size}");
     Ok(true)
 }
 
-pub async fn do_print_entries(
+fn do_print_audit_summary(register: &ClientRegister) -> Result<bool> {
+    let merkle_reg = register.merkle_reg();
+    let content = merkle_reg.read();
+
+    let node = content.nodes().nth(0);
+    if let Some(node) = node {
+        println!("audit       :");
+        // Print current/root value(s)
+        // The 'roots' are one or more current values
+        // We always write and merge so this should always be a single value
+        let num_root_values = content.values().into_iter().count();
+
+        if num_root_values == 1 {
+            println!("   current state is merged, 1 value:");
+        } else {
+            println!("   current state is NOT merged, {num_root_values} values:");
+        }
+        for value in content.values().into_iter() {
+            let xor_name = xorname_from_entry(value);
+            println!("   {xor_name:64x}");
+        }
+    } else {
+        println!("audit       : empty (no values)");
+    }
+
+    Ok(true)
+}
+
+fn do_print_audit(register: &ClientRegister) -> Result<bool> {
+    let merkle_reg = register.merkle_reg();
+    let content = merkle_reg.read();
+
+    let node = content.nodes().nth(0);
+    if let Some(_node) = node {
+        print_audit_for_nodes(merkle_reg);
+    } else {
+        println!("history     : empty (no values)");
+    }
+
+    Ok(true)
+}
+
+fn print_audit_for_nodes(merkle_reg: &crdts::merkle_reg::MerkleReg<Entry>) {
+    // Show the Register structure
+    let content = merkle_reg.read();
+
+    // Index nodes to make it easier to see where a
+    // node appears multiple times in the output.
+    // Note: it isn't related to the order of insertion
+    // which is hard to determine.
+    let mut index: usize = 0;
+    let mut node_ordering: HashMap<Hash, usize> = HashMap::new();
+    for (_hash, node) in content.hashes_and_nodes() {
+        index_node_and_descendants(node, &mut index, &mut node_ordering, merkle_reg);
+    }
+
+    println!("======================");
+    println!("Root (Latest) Node(s):");
+    for node in content.nodes() {
+        let _ = print_node(0, node, &node_ordering);
+    }
+
+    println!("======================");
+    println!("Register Structure:");
+    println!("(In general, earlier nodes are more indented)");
+    let mut indents = 0;
+    for (_hash, node) in content.hashes_and_nodes() {
+        print_node_and_descendants(&mut indents, node, &node_ordering, merkle_reg);
+    }
+
+    println!("======================");
+}
+
+fn index_node_and_descendants(
+    node: &Node<Entry>,
+    index: &mut usize,
+    node_ordering: &mut HashMap<Hash, usize>,
+    merkle_reg: &MerkleReg<Entry>,
+) {
+    let node_hash = node.hash();
+    if node_ordering.get(&node_hash).is_none() {
+        node_ordering.insert(node_hash, *index);
+        *index += 1;
+    }
+
+    for child_hash in node.children.iter() {
+        if let Some(child_node) = merkle_reg.node(*child_hash) {
+            index_node_and_descendants(child_node, index, node_ordering, merkle_reg);
+        } else {
+            println!("ERROR looking up hash of child");
+        }
+    }
+}
+
+fn print_node_and_descendants(
+    indents: &mut usize,
+    node: &Node<Entry>,
+    node_ordering: &HashMap<Hash, usize>,
+    merkle_reg: &MerkleReg<Entry>,
+) {
+    let _ = print_node(*indents, node, node_ordering);
+
+    *indents += 1;
+    for child_hash in node.children.iter() {
+        if let Some(child_node) = merkle_reg.node(*child_hash) {
+            // let xor_name = xorname_from_entry(child_node.value());
+            print_node_and_descendants(indents, child_node, node_ordering, merkle_reg);
+        }
+    }
+    *indents -= 1;
+}
+
+fn print_node(
+    indents: usize,
+    node: &Node<Entry>,
+    node_ordering: &HashMap<Hash, usize>,
+) -> Result<()> {
+    let order = match node_ordering.get(&node.hash()) {
+        Some(order) => format!("{order}"),
+        None => String::new(),
+    };
+
+    let indentation = "  ".repeat(indents);
+    let node_entry = xorname_from_entry(&node.value);
+    println!(
+        "{indentation}[{order:>2}] Node({:?}..) Entry({node_entry:64x})",
+        order
+    );
+    Ok(())
+}
+
+async fn do_print_entries(
     files_api: &FilesApi,
     entries_range: &EntriesRange,
     entries_vec: Vec<Entry>,
@@ -123,7 +268,9 @@ pub async fn do_print_entries(
     files_args: &FilesArgs,
 ) -> Result<bool> {
     let size = entries_vec.len();
-    if size == 0 { return Ok(true); }
+    if size == 0 {
+        return Ok(true);
+    }
 
     let first = if entries_range.start.is_some() {
         entries_range.start.unwrap()
@@ -147,7 +294,7 @@ pub async fn do_print_entries(
     // As entries_vec[] is in reverse order we adjust the start and end and count backwards
     println!("entries {first} to {last}:");
     for index in first..=last {
-        let xor_name = helpers::xorname_from_entry(&entries_vec[index]);
+        let xor_name = xorname_from_entry(&entries_vec[index]);
         if include_files {
             println!("entry {index} - fetching metadata at {xor_name:64x}");
             match get_website_metadata_from_network(xor_name, &files_api).await {
@@ -167,8 +314,8 @@ pub async fn do_print_entries(
     Ok(true)
 }
 
-pub fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<bool> {
-    let metadata_stats = if files_args.print_metadata_summary || files_args.print_count_files {
+fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<bool> {
+    let metadata_stats = if files_args.print_metadata_summary || files_args.print_counts {
         metadata_stats(metadata)?
     } else {
         (0 as usize, 0 as u64)
@@ -177,12 +324,8 @@ pub fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Res
     if files_args.print_metadata_summary {
         let _ = do_print_metadata_summary(metadata, metadata_stats);
     } else {
-        if files_args.print_count_directories {
-            let _ = do_print_count_directories(metadata);
-        }
-
-        if files_args.print_count_files {
-            let _ = do_print_count_files(metadata_stats.0);
+        if files_args.print_counts {
+            let _ = do_print_counts(metadata, metadata_stats.0);
         }
 
         #[cfg(feature = "extra-file-metadata")]
@@ -236,7 +379,7 @@ pub fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Res
 }
 
 #[cfg(feature = "extra-file-metadata")]
-pub fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
+fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
     let mut files_count: usize = 0;
     let mut total_bytes: u64 = 0;
 
@@ -252,7 +395,7 @@ pub fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
 }
 
 #[cfg(not(feature = "extra-file-metadata"))]
-pub fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
+fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
     let mut files_count: usize = 0;
     let total_bytes: u64 = 0;
 
@@ -263,33 +406,28 @@ pub fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
     Ok((files_count, total_bytes))
 }
 
-pub fn do_print_metadata_summary(
+fn do_print_metadata_summary(
     metadata: &WebsiteMetadata,
     metadata_stats: (usize, u64),
 ) -> Result<bool> {
     println!("published  : {}", metadata.date_published);
-    let _ = do_print_count_directories(metadata);
-    let _ = do_print_count_files(metadata_stats.0);
+    let _ = do_print_counts(metadata, metadata_stats.0);
     #[cfg(feature = "extra-file-metadata")]
     let _ = do_print_total_bytes(metadata_stats.1);
     Ok(true)
 }
 
-pub fn do_print_count_directories(metadata: &WebsiteMetadata) -> Result<bool> {
+fn do_print_counts(metadata: &WebsiteMetadata, count_files: usize) -> Result<bool> {
     println!(
         "directories: {}",
         metadata.path_map.paths_to_files_map.len()
     );
-    Ok(true)
-}
-
-pub fn do_print_count_files(count_files: usize) -> Result<bool> {
     println!("files      : {count_files}");
     Ok(true)
 }
 
 #[cfg(feature = "extra-file-metadata")]
-pub fn do_print_total_bytes(total_bytes: u64) -> Result<bool> {
+fn do_print_total_bytes(total_bytes: u64) -> Result<bool> {
     println!("total bytes: {total_bytes}");
     Ok(true)
 }

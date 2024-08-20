@@ -280,6 +280,10 @@ pub enum Subcommands {
         #[clap(long = "size", short = 's', default_value = "false")]
         print_size: bool,
 
+        /// Print an audit of register nodes/values
+        #[clap(long = "audit", short = 'a', default_value = "false")]
+        print_audit: bool,
+
         /// Print information about each entry in RANGE, which can be
         /// an integer (for a single entry), or an integer followed by ':' or
         /// two integers separated by ':'. The first entry is position 0
@@ -319,13 +323,9 @@ pub struct FilesArgs {
     #[clap(long = "metadata-summary", short = 'm', default_value = "false")]
     pub print_metadata_summary: bool,
 
-    /// Print the number of directories
-    #[clap(long = "count-directories", short = 'd', default_value = "false")]
-    pub print_count_directories: bool,
-
-    /// Print the number of files
-    #[clap(long = "count-files", short = 'f', default_value = "false")]
-    pub print_count_files: bool,
+    /// Print the number of directories and files
+    #[clap(long = "count", short = 'c', default_value = "false")]
+    pub print_counts: bool,
 
     /// TODO Print the total number of bytes for all files
     #[clap(long = "total-bytes", short = 'b', default_value = "false")]
@@ -336,7 +336,7 @@ pub struct FilesArgs {
     pub print_paths: bool,
 
     /// Print metadata about each file including path, modification time and size in bytes
-    #[clap(long = "all", short = 'a', default_value = "false")]
+    #[clap(long = "details", short = 'd', default_value = "false")]
     pub print_all_details: bool,
 }
 

@@ -96,7 +96,7 @@ pub async fn publish_website_content(
 
     println!("Uploading website from: {website_root:?}");
     let files_uploader = FilesUploader::new(client.clone(), root_dir.to_path_buf())
-        .set_make_data_public(make_private)
+        .set_make_data_public(!make_private)
         .set_upload_cfg(*upload_cfg)
         .insert_path(&website_root);
 
