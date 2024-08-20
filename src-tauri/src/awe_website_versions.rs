@@ -167,12 +167,12 @@ impl WebsiteVersions {
             VersionsRegister::from_client_register(result.unwrap())
         } else {
             println!("DEBUG: load_register() error:");
-            return Err(eyre!("Error: register not found on network"));
+            return Err(eyre!("register not found on network"));
         };
 
         versions_register.sync(&mut files_api.wallet()?).await?;
 
-        let default_version = versions_register.num_versions();
+        let default_version = versions_register.num_versions()?;
         Ok(WebsiteVersions {
             default_version: Some(default_version),
             site_version: None,
@@ -211,7 +211,7 @@ impl WebsiteVersions {
         wallet_client: &mut WalletClient,
     ) -> Result<(u64, NanoTokens, NanoTokens)> {
         let (storage_cost, royalties) = self.versions_register.sync(wallet_client).await?;
-        let version = self.versions_register.num_versions();
+        let version = self.versions_register.num_versions()?;
         self.default_version = Some(version);
         Ok((version, storage_cost, royalties))
     }
@@ -362,16 +362,22 @@ impl VersionsRegister {
         let num_entries = entries_vec.len();
 
         // This is used to hold a value for use by the Svelte frontend
-        set_version_max((num_entries - 1) as u64);
+        let max_version = if num_entries > 0 {
+            num_entries as u64 - 1
+        } else {
+            0
+        };
+
+        set_version_max(max_version as u64);
 
         // Note the first node is a marker, and not used so max version is length - 1
-        if version < num_entries as u64 {
+        if version <= max_version {
             let entry = &entries_vec[version as usize];
             Ok(crate::commands::helpers::xorname_from_entry(&entry))
         } else {
             Err(eyre!(
                 "Version {version} too large. Maximum is {}",
-                num_entries - 1
+                max_version
             ))
         }
     }
@@ -379,8 +385,16 @@ impl VersionsRegister {
     /// Return the number of available versions
     /// or an error if no versions are available.
     /// The first version is 1 last version is num_versions()
-    pub fn num_versions(&self) -> u64 {
-        return crate::commands::helpers::node_entries_as_vec(&self.register).len() as u64 - 1;
+    pub fn num_versions(&self) -> Result<u64> {
+        let num_entries =
+            crate::commands::helpers::node_entries_as_vec(&self.register).len() as u64;
+
+        if num_entries == 0 {
+            let message = "register is empty (0 entries)";
+            Err(eyre!(message))
+        } else {
+            Ok(num_entries - 1)
+        }
     }
 
     /// Adds an XorName to the register, merging any branches
