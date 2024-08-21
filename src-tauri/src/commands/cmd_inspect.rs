@@ -44,7 +44,7 @@ pub async fn handle_inspect_register(
     entries_range: Option<EntriesRange>,
     include_files: bool,
     files_args: FilesArgs,
-) -> Result<bool> {
+) -> Result<()> {
     let files_api = awe_client::connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
@@ -91,7 +91,7 @@ pub async fn handle_inspect_register(
         let _ = do_print_audit(&register);
     }
 
-    Ok(true)
+    Ok(())
 }
 
 fn do_print_summary(
@@ -99,7 +99,7 @@ fn do_print_summary(
     reg_address: &RegisterAddress,
     entries_vec: &Vec<Entry>,
     size: usize,
-) -> Result<bool> {
+) -> Result<()> {
     println!("register    : {}", reg_address.to_hex());
     println!("owned by    : {:?}", register.owner());
     println!("permissions : {:?}", register.permissions());
@@ -111,30 +111,29 @@ fn do_print_summary(
     }
     do_print_size(size)?;
     do_print_audit_summary(&register)?;
-    Ok(true)
+    Ok(())
 }
 
-fn do_print_type(reg_type: Option<&Entry>) -> Result<bool> {
+fn do_print_type(reg_type: Option<&Entry>) -> Result<()> {
     if reg_type.is_some() {
         let xor_name = xorname_from_entry(reg_type.unwrap());
         println!("app reg type: {xor_name}");
     } else {
         println!("app reg type: not set");
     }
-    Ok(true)
+    Ok(())
 }
 
-fn do_print_size(size: usize) -> Result<bool> {
+fn do_print_size(size: usize) -> Result<()> {
     println!("size        : {size}");
-    Ok(true)
+    Ok(())
 }
 
-fn do_print_audit_summary(register: &ClientRegister) -> Result<bool> {
+fn do_print_audit_summary(register: &ClientRegister) -> Result<()> {
     let merkle_reg = register.merkle_reg();
     let content = merkle_reg.read();
 
-    let node = content.nodes().nth(0);
-    if let Some(node) = node {
+    if content.nodes().nth(0).is_some() {
         println!("audit       :");
         // Print current/root value(s)
         // The 'roots' are one or more current values
@@ -154,10 +153,10 @@ fn do_print_audit_summary(register: &ClientRegister) -> Result<bool> {
         println!("audit       : empty (no values)");
     }
 
-    Ok(true)
+    Ok(())
 }
 
-fn do_print_audit(register: &ClientRegister) -> Result<bool> {
+fn do_print_audit(register: &ClientRegister) -> Result<()> {
     let merkle_reg = register.merkle_reg();
     let content = merkle_reg.read();
 
@@ -168,7 +167,7 @@ fn do_print_audit(register: &ClientRegister) -> Result<bool> {
         println!("history     : empty (no values)");
     }
 
-    Ok(true)
+    Ok(())
 }
 
 fn print_audit_for_nodes(merkle_reg: &crdts::merkle_reg::MerkleReg<Entry>) {
@@ -266,10 +265,10 @@ async fn do_print_entries(
     entries_vec: Vec<Entry>,
     include_files: bool,
     files_args: &FilesArgs,
-) -> Result<bool> {
+) -> Result<()> {
     let size = entries_vec.len();
     if size == 0 {
-        return Ok(true);
+        return Ok(());
     }
 
     let first = if entries_range.start.is_some() {
@@ -311,10 +310,10 @@ async fn do_print_entries(
         }
     }
 
-    Ok(true)
+    Ok(())
 }
 
-fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<bool> {
+fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<()> {
     let metadata_stats = if files_args.print_metadata_summary || files_args.print_counts {
         metadata_stats(metadata)?
     } else {
@@ -375,7 +374,7 @@ fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<
         }
     }
 
-    Ok(true)
+    Ok(())
 }
 
 #[cfg(feature = "extra-file-metadata")]
@@ -409,27 +408,27 @@ fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
 fn do_print_metadata_summary(
     metadata: &WebsiteMetadata,
     metadata_stats: (usize, u64),
-) -> Result<bool> {
+) -> Result<()> {
     println!("published  : {}", metadata.date_published);
     let _ = do_print_counts(metadata, metadata_stats.0);
     #[cfg(feature = "extra-file-metadata")]
     let _ = do_print_total_bytes(metadata_stats.1);
-    Ok(true)
+    Ok(())
 }
 
-fn do_print_counts(metadata: &WebsiteMetadata, count_files: usize) -> Result<bool> {
+fn do_print_counts(metadata: &WebsiteMetadata, count_files: usize) -> Result<()> {
     println!(
         "directories: {}",
         metadata.path_map.paths_to_files_map.len()
     );
     println!("files      : {count_files}");
-    Ok(true)
+    Ok(())
 }
 
 #[cfg(feature = "extra-file-metadata")]
-fn do_print_total_bytes(total_bytes: u64) -> Result<bool> {
+fn do_print_total_bytes(total_bytes: u64) -> Result<()> {
     println!("total bytes: {total_bytes}");
-    Ok(true)
+    Ok(())
 }
 
 /// Implement 'inspect-files' subcommand
@@ -437,10 +436,7 @@ fn do_print_total_bytes(total_bytes: u64) -> Result<bool> {
 /// Accepts a metadata address
 ///
 /// TODO extend treatment to handle register with branches etc (post stabilisation of the Autonomi API)
-pub async fn handle_inspect_files(
-    metadata_address: XorName,
-    files_args: FilesArgs,
-) -> Result<bool> {
+pub async fn handle_inspect_files(metadata_address: XorName, files_args: FilesArgs) -> Result<()> {
     let files_api = awe_client::connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
@@ -455,5 +451,5 @@ pub async fn handle_inspect_files(
             return Err(eyre!(e));
         }
     };
-    Ok(true)
+    Ok(())
 }

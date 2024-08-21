@@ -243,7 +243,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             )
             .await
             {
-                Ok(_) => return Ok(true),
+                Ok(()) => return Ok(true),
                 Err(e) => {
                     println!("{e:?}");
                     return Err(e);
