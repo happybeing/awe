@@ -28,6 +28,9 @@ mod cli_options;
 mod commands;
 mod generated_rs;
 
+#[cfg(feature = "client-logs")]
+use sn_logging::{Level, LogBuilder};
+
 use crate::commands::awe_subcommands;
 
 // TODO fix messed up cursor keys in terminal after running CLI command.
@@ -42,6 +45,28 @@ pub fn run() {
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
+
+    #[cfg(feature = "client-logs")]
+    if opt.client_logs {
+        let logging_targets = vec![
+            // TODO: Reset to nice and clean defaults once we have a better idea of what we want
+            ("sn_networking".to_string(), Level::DEBUG),
+            ("safe".to_string(), Level::TRACE),
+            ("sn_build_info".to_string(), Level::TRACE),
+            ("autonomi".to_string(), Level::TRACE),
+            ("sn_client".to_string(), Level::TRACE),
+            ("sn_logging".to_string(), Level::TRACE),
+            ("sn_peers_acquisition".to_string(), Level::TRACE),
+            ("sn_protocol".to_string(), Level::TRACE),
+            ("sn_registers".to_string(), Level::TRACE),
+            ("sn_transfers".to_string(), Level::TRACE),
+        ];
+
+        let log_builder = LogBuilder::new(logging_targets);
+        // log_builder.output_dest(opt.log_output_dest);
+        // log_builder.format(opt.log_format.unwrap_or(LogFormat::Default));
+        let _log_handles = log_builder.initialize().unwrap();
+    };
 
     // Windows doesn't attach a GUI application to the console so we
     // do it manually - but only when the GUI is to be activated.

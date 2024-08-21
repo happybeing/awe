@@ -67,6 +67,10 @@ pub struct Opt {
     #[clap(long = "timeout", value_parser = |t: &str| -> Result<Duration> { Ok(t.parse().map(Duration::from_secs)?) })]
     pub connection_timeout: Option<Duration>,
 
+    /// Enable Autonomi network logging (to the terminal)
+    #[clap(long, name = "client-logs", short = 'l', default_value = "false")]
+    pub client_logs: bool,
+
     /// Prevent verification of data storage on the network.
     ///
     /// This may increase operation speed, but offers no guarantees that operations were successful.

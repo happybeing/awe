@@ -94,12 +94,14 @@ self_encryption = "0.29.1"
 crdts = "7.3.2"
 url = "2.5.0"
 regex = "1.9.6"
+sn_logging = { version = "0.2.31", optional = true }
 
 [features]
-default = ["network-contacts"]
+default = ["network-contacts", "client-logs"]
 # default = ["network-contacts", "extra-file-metadata"]
 local-discovery = ["sn_client/local-discovery", "sn_peers_acquisition/local-discovery"]
 network-contacts = ["sn_peers_acquisition/network-contacts"]
+client-logs = ["sn_logging"]
 # This feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
 # DO NOT REMOVE!!
