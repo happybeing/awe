@@ -305,7 +305,7 @@ impl WebsitePathMap {
                     resource_file_name.clone(),
                     chunk_address,
                     metadata.modified().unwrap(),
-                    metadata.size(),
+                    metadata.len(),
                 )
             } else {
                 (
