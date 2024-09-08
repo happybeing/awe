@@ -175,7 +175,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             )
             .await?;
 
-            println!("Updating versions register...");
+            println!("Updating versions register {}", update_xor.to_hex());
             let mut wallet_client =
                 WalletClient::new(files_api.client().clone(), HotWallet::load_from(&root_dir)?);
             let mut website_versions =
