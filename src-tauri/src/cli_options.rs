@@ -47,7 +47,7 @@ pub struct Opt {
     ///
     /// Use awm://<XOR-ADDRESS> to browse a website (use --website-version to specify a version).
     ///
-    /// Use awx://<XOR-ADDRESS> to load or fetch to a file rather than a website.
+    /// Use awf://<XOR-ADDRESS> to load or fetch to a file rather than a website.
     // TODO mention awv://name
     // TODO implement fetch subcommand
     pub url: Option<String>,
@@ -106,7 +106,7 @@ pub enum Subcommands {
         ///
         /// Use awm://<XOR-ADDRESS> to browse a website (use --website-version to specify a version).
         ///
-        /// Use awx://<XOR-ADDRESS> to load or fetch to a file rather than a website.
+        /// Use awf://<XOR-ADDRESS> to load or fetch to a file rather than a website.
         // TODO mention awv://name
         // TODO implement fetch subcommand
         url: Option<String>,
@@ -230,7 +230,7 @@ pub enum Subcommands {
     /// Download a file or directory
     #[clap(hide = true)] // TODO hide until implemented
     Download {
-        /// An awe compatible URL. Must be an xor address prefixed with 'awx://', 'awm://' or 'awv://' respectively
+        /// An awe compatible URL. Must be an xor address prefixed with 'awf://', 'awm://' or 'awv://' respectively
         /// to reference a file, some files metadata or a register with entries of files metadata.
         ///
         /// For a metadata address you may specify the path of a specific file or directory to be downloaded

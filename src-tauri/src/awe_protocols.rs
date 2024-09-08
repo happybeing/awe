@@ -33,7 +33,7 @@ pub const AWE_PROTOCOL_REGISTER: &str = "awv://";
 #[allow(dead_code)]
 pub const AWE_PROTOCOL_METADATA: &str = "awm://";
 #[allow(dead_code)]
-pub const AWE_PROTOCOL_FILE: &str = "awx://";
+pub const AWE_PROTOCOL_FILE: &str = "awf://";
 
 static STATIC_CLI_URL: LazyLock<Mutex<String>> =
     LazyLock::new(|| Mutex::<String>::new(String::from("")));

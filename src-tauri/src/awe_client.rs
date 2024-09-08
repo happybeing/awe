@@ -32,7 +32,7 @@ use sn_client::transfers::bls_secret_from_hex;
 use sn_client::{Client, ClientEventsBroadcaster, FilesApi, FilesDownload};
 
 use crate::awe_client;
-use crate::awe_protocols::{AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
+use crate::awe_protocols::{AWE_PROTOCOL_FILE, AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
 use crate::cli_options::Opt;
 
 const CLIENT_KEY: &str = "clientkey";
@@ -127,19 +127,24 @@ pub fn str_to_register_address(str: &str) -> Result<RegisterAddress> {
 
 /// Parse a hex xor address with optional URL scheme
 pub fn str_to_xor_name(str: &str) -> Result<XorName> {
-    let str = if str.starts_with(AWE_PROTOCOL_METADATA) {
+    let mut str = if str.starts_with(AWE_PROTOCOL_METADATA) {
         &str[AWE_PROTOCOL_METADATA.len()..]
+    } else if str.starts_with(AWE_PROTOCOL_FILE) {
+        &str[AWE_PROTOCOL_FILE.len()..]
     } else {
         &str
     };
+    str = if str.ends_with('/') {
+        &str[0..str.len() - 1]
+    } else {
+        str
+    };
 
     match hex::decode(str) {
-        Ok(bytes) => {
-            match bytes.try_into() {
-                Ok(xor_name_bytes) => Ok(XorName(xor_name_bytes)),
-                Err(e) => Err(eyre!("XorName not valid due to {e:?}")),
-            }
-        }
+        Ok(bytes) => match bytes.try_into() {
+            Ok(xor_name_bytes) => Ok(XorName(xor_name_bytes)),
+            Err(e) => Err(eyre!("XorName not valid due to {e:?}")),
+        },
         Err(e) => Err(eyre!("XorName not valid due to {e:?}")),
     }
 }
