@@ -314,7 +314,10 @@ async fn do_print_entries(
 }
 
 fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<()> {
-    let metadata_stats = if files_args.print_metadata_summary || files_args.print_counts {
+    let metadata_stats = if files_args.print_metadata_summary
+        || files_args.print_counts
+        || files_args.print_total_bytes
+    {
         metadata_stats(metadata)?
     } else {
         (0 as usize, 0 as u64)

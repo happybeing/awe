@@ -331,7 +331,7 @@ pub struct FilesArgs {
     #[clap(long = "count", short = 'c', default_value = "false")]
     pub print_counts: bool,
 
-    /// TODO Print the total number of bytes for all files
+    /// Print the total number of bytes for all files
     #[clap(long = "total-bytes", short = 'b', default_value = "false")]
     pub print_total_bytes: bool,
 
