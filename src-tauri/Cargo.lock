@@ -6432,18 +6432,18 @@ dependencies = [
 
 [[package]]
 name = "sn_build_info"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1d7d4dc97b7a9f3c12411b2d424fcb14d09b6e6fee7ae6f6116e298c6ec4950"
+checksum = "96104d31ce87f433a26138b92348e4c27c274fd6685e928252db8c907ef2c47c"
 dependencies = [
  "vergen",
 ]
 
 [[package]]
 name = "sn_cli"
-version = "0.94.1"
+version = "0.95.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0190577b973309bacd4fce2311476c6d20da77f14a5f80460f211990a6ac03e8"
+checksum = "301e5e55ad7765478c97ed3861ed5a5b683e6120f92856c919e62845d034d9c7"
 dependencies = [
  "aes 0.7.5",
  "block-modes",
@@ -6481,9 +6481,9 @@ dependencies = [
 
 [[package]]
 name = "sn_client"
-version = "0.109.1"
+version = "0.110.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e31864f4fdfb0f7bc69d4d77a00125c2996b36c820f6d6e94dd0e423a7b73fea"
+checksum = "bdf15ba4421b2db2bdfbf793f43555119304d5e1a43ca7565010cce28290235b"
 dependencies = [
  "async-trait",
  "backoff",
@@ -6559,9 +6559,9 @@ dependencies = [
 
 [[package]]
 name = "sn_logging"
-version = "0.2.32"
+version = "0.2.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adbec1074be55e7e7759e130411a9d9448c532393e3ead010ca1d77eb6cf35e1"
+checksum = "0a618ed5d5d22299537d85f6496aeed9a5039217054f59f11b5ef4b177e6c209"
 dependencies = [
  "chrono",
  "dirs-next",
@@ -6579,9 +6579,9 @@ dependencies = [
 
 [[package]]
 name = "sn_networking"
-version = "0.17.2"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3cd95c9c4e056348581f4edd28a4a201f31ae4b68514e56a65204b0ad133cd6"
+checksum = "cfad1a785832688d1ae1f23e44da4be066b15660ae1e51dd94f49e2b2c258a96"
 dependencies = [
  "aes-gcm-siv",
  "async-trait",
@@ -6616,16 +6616,16 @@ dependencies = [
 
 [[package]]
 name = "sn_peers_acquisition"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17d14eacc2952a3ded66391b568fc82fd2f62a61f0d2bfbdf28dfe34bffdba19"
+checksum = "39ca8b94477481d4b9cd109a85162d57882b8bd20d0bf4f88b4610501d5473d3"
 dependencies = [
  "clap 4.5.4",
  "lazy_static",
  "libp2p",
  "rand 0.8.5",
  "reqwest",
- "sn_networking",
+ "sn_protocol",
  "thiserror",
  "tokio",
  "tracing",
@@ -6634,9 +6634,9 @@ dependencies = [
 
 [[package]]
 name = "sn_protocol"
-version = "0.17.7"
+version = "0.17.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff91c33f51baf755eb0f5b9dc99a892a248b4a215b3ba093bdffb8663c79809a"
+checksum = "f824e36ee4076b3974dcc149594c495f70bb1148e61613db0f8ba6d126cf811f"
 dependencies = [
  "blsttc",
  "bytes",
@@ -6645,11 +6645,13 @@ dependencies = [
  "custom_debug",
  "dirs-next",
  "hex 0.4.3",
+ "lazy_static",
  "libp2p",
  "rmp-serde",
  "serde",
  "serde_json",
  "sha2 0.10.8",
+ "sn_build_info",
  "sn_registers",
  "sn_transfers",
  "thiserror",
@@ -6661,9 +6663,9 @@ dependencies = [
 
 [[package]]
 name = "sn_registers"
-version = "0.3.17"
+version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c1f5bf3f31f865d9ded3519b1e31f7a017dd23cac59dbbdac3be7c7e890cceb"
+checksum = "3ca78663aec54744ca9866984662e17184782064b42c435eb3bd259d3aff31e8"
 dependencies = [
  "blsttc",
  "crdts",
@@ -6677,9 +6679,9 @@ dependencies = [
 
 [[package]]
 name = "sn_transfers"
-version = "0.18.10"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1b35a3551c84db5a3551ffc5e1215b367a5fa5f5f0c3cd069b1b50337875b04"
+checksum = "301b2cf80d48b5c1888a32e748b411b7511600f77d4bb8c916b5860f647da3ce"
 dependencies = [
  "blsttc",
  "chrono",
