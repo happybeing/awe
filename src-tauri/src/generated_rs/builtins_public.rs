@@ -18,4 +18,4 @@
 // First register entry (version 0) to identify as WebsiteVersions register
 //
 // DO NOT CHANGE THIS COMMENT OR THE AUTOMATICALLY GENERATED LINES WHICH FOLLOW.
-pub const AWV_REG_TYPE_PUBLIC: &str = "1fd6ee53b69a428051a49ccd6e9e3cf9f92af3c685a77468a70b37b784f73472";
+pub const AWV_REG_TYPE_PUBLIC: &str = "5ebbbc4f061702c875b6cacb76e537eb482713c458b9d83c2f1e86ea9e0d0d0f";
