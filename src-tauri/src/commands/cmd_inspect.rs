@@ -330,13 +330,11 @@ fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<
             let _ = do_print_counts(metadata, metadata_stats.0);
         }
 
-        #[cfg(feature = "extra-file-metadata")]
         if files_args.print_total_bytes {
             let _ = do_print_total_bytes(metadata_stats.1);
         }
     }
 
-    #[cfg(feature = "extra-file-metadata")]
     if files_args.print_paths || files_args.print_all_details {
         for (path_string, path_map) in metadata.path_map.paths_to_files_map.iter() {
             for (file_name, chunk_address, modified, size) in path_map.iter() {
@@ -357,30 +355,9 @@ fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<
         }
     }
 
-    #[cfg(not(feature = "extra-file-metadata"))]
-    if files_args.print_paths || files_args.print_all_details {
-        for (path_string, path_map) in metadata.path_map.paths_to_files_map.iter() {
-            for (file_name, chunk_address) in path_map.iter() {
-                if files_args.print_all_details {
-                    // TODO add file metadata for 'details'
-                    println!(
-                        "{:64x} \"{path_string}{file_name}\"",
-                        chunk_address.xorname()
-                    );
-                } else {
-                    println!(
-                        "{:64x} \"{path_string}{file_name}\"",
-                        chunk_address.xorname()
-                    );
-                }
-            }
-        }
-    }
-
     Ok(())
 }
 
-#[cfg(feature = "extra-file-metadata")]
 fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
     let mut files_count: usize = 0;
     let mut total_bytes: u64 = 0;
@@ -396,25 +373,12 @@ fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
     Ok((files_count, total_bytes))
 }
 
-#[cfg(not(feature = "extra-file-metadata"))]
-fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
-    let mut files_count: usize = 0;
-    let total_bytes: u64 = 0;
-
-    for (_, path_map) in metadata.path_map.paths_to_files_map.iter() {
-        files_count = files_count + path_map.len();
-    }
-
-    Ok((files_count, total_bytes))
-}
-
 fn do_print_metadata_summary(
     metadata: &WebsiteMetadata,
     metadata_stats: (usize, u64),
 ) -> Result<()> {
     println!("published  : {}", metadata.date_published);
     let _ = do_print_counts(metadata, metadata_stats.0);
-    #[cfg(feature = "extra-file-metadata")]
     let _ = do_print_total_bytes(metadata_stats.1);
     Ok(())
 }
@@ -428,7 +392,6 @@ fn do_print_counts(metadata: &WebsiteMetadata, count_files: usize) -> Result<()>
     Ok(())
 }
 
-#[cfg(feature = "extra-file-metadata")]
 fn do_print_total_bytes(total_bytes: u64) -> Result<()> {
     println!("total bytes: {total_bytes}");
     Ok(())

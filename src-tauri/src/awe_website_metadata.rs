@@ -167,25 +167,11 @@ impl WebsiteMetadata {
         Err(StatusCode::NOT_FOUND)
     }
 
-    #[cfg(feature = "extra-file-metadata")]
     fn lookup_name_in_vec(
         name: &String,
         resources_vec: &Vec<(String, ChunkAddress, std::time::SystemTime, u64)>,
     ) -> Option<XorName> {
         for (resource_name, chunk_address, _modified, _size) in resources_vec {
-            if resource_name.eq(name) {
-                return Some(chunk_address.xorname().clone());
-            }
-        }
-        None
-    }
-
-    #[cfg(not(feature = "extra-file-metadata"))]
-    fn lookup_name_in_vec(
-        name: &String,
-        resources_vec: &Vec<(String, ChunkAddress)>,
-    ) -> Option<XorName> {
-        for (resource_name, chunk_address) in resources_vec {
             if resource_name.eq(name) {
                 return Some(chunk_address.xorname().clone());
             }
@@ -261,11 +247,8 @@ impl WebsiteMetadata {
 #[derive(Serialize, Deserialize)]
 pub struct WebsitePathMap {
     // TODO add file metadata (size, date modified) using a struct: FileMeta {filename, size, date_modified, chunk_address}
-    #[cfg(feature = "extra-file-metadata")]
     pub paths_to_files_map:
         HashMap<String, Vec<(String, ChunkAddress, std::time::SystemTime, u64)>>,
-    #[cfg(not(feature = "extra-file-metadata"))]
-    pub paths_to_files_map: HashMap<String, Vec<(String, ChunkAddress)>>,
 }
 
 // TODO replace OS path separator with '/' when storing web paths
@@ -273,13 +256,10 @@ pub struct WebsitePathMap {
 impl WebsitePathMap {
     pub fn new() -> WebsitePathMap {
         WebsitePathMap {
-            #[cfg(feature = "extra-file-metadata")]
             paths_to_files_map: HashMap::<
                 String,
                 Vec<(String, ChunkAddress, std::time::SystemTime, u64)>,
             >::new(),
-            #[cfg(not(feature = "extra-file-metadata"))]
-            paths_to_files_map: HashMap::<String, Vec<(String, ChunkAddress)>>::new(),
         }
     }
 
@@ -299,7 +279,6 @@ impl WebsitePathMap {
             // println!(
             //     "DEBUG Splitting at {last_separator_position} into path: '{web_path}' file: '{resource_file_name}'"
             // );
-            #[cfg(feature = "extra-file-metadata")]
             let metadata_tuple = if let Some(metadata) = file_metadata {
                 (
                     resource_file_name.clone(),
@@ -315,9 +294,6 @@ impl WebsitePathMap {
                     0,
                 )
             };
-
-            #[cfg(not(feature = "extra-file-metadata"))]
-            let metadata_tuple = (resource_file_name.clone(), chunk_address);
 
             self.paths_to_files_map
                 .entry(web_path)
