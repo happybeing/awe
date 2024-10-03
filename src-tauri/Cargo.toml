@@ -1,6 +1,6 @@
 [package]
 name = "awe"
-version = "0.8.0"
+version = "0.9.0"
 description = "Autonomi Web Browser and Publisher (demo)"
 authors = ["Mark <git@happybeing.com>"]
 license = "GPL-3.0"
