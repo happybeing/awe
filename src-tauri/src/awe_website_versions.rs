@@ -22,6 +22,7 @@ use sn_client::{Client, ClientRegister, FilesApi, WalletClient};
 use sn_registers::RegisterAddress;
 use sn_transfers::NanoTokens;
 
+#[cfg(not(feature = "skip-network-compatibility-check"))]
 use crate::awe_client::str_to_xor_name;
 use crate::awe_protocols::{set_version_loaded, set_version_max};
 use crate::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
@@ -35,6 +36,7 @@ pub const AWV_REG_TYPE_DUMMY: &str =
     "ee383f084cffaab845617b1c43ffaee8b5c17e8fbbb3ad3d379c96b5b844f24e";
 
 /// Check if this build of awe is compatible with the current network
+#[cfg(not(feature = "skip-network-compatibility-check"))]
 pub async fn is_compatible_network(files_api: &FilesApi) -> bool {
     let xor_string = hard_coded_awv_type_string();
     if xor_string.len() == 0 {
@@ -48,6 +50,11 @@ pub async fn is_compatible_network(files_api: &FilesApi) -> bool {
     get_website_metadata_from_network(metadata_address, files_api)
         .await
         .is_ok()
+}
+
+#[cfg(feature = "skip-network-compatibility-check")]
+pub async fn is_compatible_network(_files_api: &FilesApi) -> bool {
+    return true;
 }
 
 fn hard_coded_awv_type_string() -> String {
