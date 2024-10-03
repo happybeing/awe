@@ -18,7 +18,7 @@ use color_eyre::eyre::{eyre, Result};
 use std::path::{Path, PathBuf};
 use xor_name::XorName;
 
-use autonomi::{FilesUploadSummary, FilesUploader};
+use sn_cli::{FilesUploadSummary, FilesUploader};
 use sn_client::{Client, UploadCfg};
 
 use crate::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};

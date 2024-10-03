@@ -394,11 +394,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
+name = "autonomi"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c11223c2a40e7225a866b5af08b297b2ff72f0a6087108ba543f23416467ff3f"
+dependencies = [
+ "bip39",
+ "blsttc",
+ "bytes",
+ "libp2p",
+ "rand 0.8.5",
+ "rmp-serde",
+ "self_encryption",
+ "serde",
+ "sn_client",
+ "sn_protocol",
+ "sn_registers",
+ "sn_transfers",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "walkdir",
+ "xor_name",
+]
+
+[[package]]
 name = "awe"
 version = "0.8.0"
 dependencies = [
  "anyhow",
  "async-stream",
+ "autonomi",
  "bytes",
  "chrono",
  "clap 4.5.4",
@@ -420,7 +446,8 @@ dependencies = [
  "serde_json",
  "sn_cli",
  "sn_client",
- "sn_logging 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sn_logging",
+ "sn_networking",
  "sn_peers_acquisition",
  "sn_protocol",
  "sn_registers",
@@ -6432,14 +6459,18 @@ dependencies = [
 
 [[package]]
 name = "sn_build_info"
-version = "0.1.12"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa7fe496d9d8ca496a67c4cb919808769d9a14c4a30a9b2add71c520ac994a1b"
 dependencies = [
  "vergen",
 ]
 
 [[package]]
 name = "sn_cli"
-version = "0.95.0"
+version = "0.95.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8daf9fc0b8b8393bc8f9e15e69f6925f04d25331a646c9f3d7fe21610713d94"
 dependencies = [
  "aes 0.7.5",
  "block-modes",
@@ -6463,7 +6494,7 @@ dependencies = [
  "serde",
  "sn_build_info",
  "sn_client",
- "sn_logging 0.2.33",
+ "sn_logging",
  "sn_peers_acquisition",
  "sn_protocol",
  "tempfile",
@@ -6477,7 +6508,9 @@ dependencies = [
 
 [[package]]
 name = "sn_client"
-version = "0.110.0"
+version = "0.110.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e993e8e070b265664ffa9ca4cb40edd87c0edf1ca419d1733b2b3532c730931"
 dependencies = [
  "async-trait",
  "backoff",
@@ -6553,7 +6586,9 @@ dependencies = [
 
 [[package]]
 name = "sn_logging"
-version = "0.2.33"
+version = "0.2.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a4e0dc43157f5b4a451c9b80aebbaa70b662dda3815abdd19da7c9c1da27537"
 dependencies = [
  "chrono",
  "dirs-next",
@@ -6570,26 +6605,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "sn_logging"
-version = "0.2.33"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a618ed5d5d22299537d85f6496aeed9a5039217054f59f11b5ef4b177e6c209"
-dependencies = [
- "chrono",
- "dirs-next",
- "file-rotate",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
- "tracing-appender",
- "tracing-core",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "sn_networking"
-version = "0.18.0"
+version = "0.18.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f296ae2eca2feb673216e21646262b75674af9e1d6e9f990bc52fc3dc0c37c9f"
 dependencies = [
  "aes-gcm-siv",
  "async-trait",
@@ -6624,7 +6643,9 @@ dependencies = [
 
 [[package]]
 name = "sn_peers_acquisition"
-version = "0.5.0"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f424e447e9bd59884c6973bae5f49941fb72da3c60db27b6846ba5182f3c25e3"
 dependencies = [
  "clap 4.5.4",
  "lazy_static",
@@ -6640,7 +6661,9 @@ dependencies = [
 
 [[package]]
 name = "sn_protocol"
-version = "0.17.8"
+version = "0.17.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6b5bef38b3c1d7bfbea5e5c3937a792c0693f3c5a75fa8417e292fb713833cd"
 dependencies = [
  "blsttc",
  "bytes",
@@ -6667,7 +6690,9 @@ dependencies = [
 
 [[package]]
 name = "sn_registers"
-version = "0.3.18"
+version = "0.3.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "548a3292cc3799fc18adb76bdbe8bd8f7622e4f3641fc92fb733392a4b72c4e9"
 dependencies = [
  "blsttc",
  "crdts",
@@ -6681,7 +6706,9 @@ dependencies = [
 
 [[package]]
 name = "sn_transfers"
-version = "0.19.0"
+version = "0.19.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "518ba4997c9676e381ae631602ec70b20e694240553521a66272be6a7757a594"
 dependencies = [
  "blsttc",
  "chrono",
@@ -7006,9 +7033,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.30.12"
+version = "0.30.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "732ffa00f53e6b2af46208fba5718d9662a421049204e156328b66791ffa15ae"
+checksum = "0a5b4ddaee55fb2bea2bf0e5000747e5f5c0de765e5a5ff87f4cd106439f4bb3"
 dependencies = [
  "cfg-if",
  "core-foundation-sys",

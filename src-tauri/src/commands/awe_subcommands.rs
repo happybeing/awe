@@ -20,8 +20,7 @@ use std::path::PathBuf;
 use color_eyre::{eyre::bail, eyre::eyre, Result};
 use walkdir::WalkDir;
 
-use autonomi::{ChunkManager, Estimator};
-
+use sn_cli::{ChunkManager, Estimator};
 use sn_client::{transfers::HotWallet, UploadCfg, WalletClient};
 
 use crate::awe_const::MAIN_REPOSITORY;
