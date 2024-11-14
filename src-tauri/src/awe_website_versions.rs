@@ -1,3 +1,5 @@
+use core::time;
+
 /*
  Copyright (c) 2024-2025 Mark Hughes
 
@@ -14,13 +16,20 @@
  You should have received a copy of the GNU Affero General Public License
  along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-use color_eyre::eyre::{eyre, Result};
+use bytes::Bytes;
+use color_eyre::eyre::{eyre, Error, Result};
 use tauri::http::status::StatusCode;
 use xor_name::XorName;
 
-use sn_client::{Client, ClientRegister, FilesApi, WalletClient};
+use crate::helpers::autonomi::access::keys::{get_register_signing_key, get_secret_key_from_env};
+
+use autonomi::client::registers::{Register, RegisterSecretKey};
+use autonomi::client::Client;
+use autonomi::Wallet;
 use sn_registers::RegisterAddress;
-use sn_transfers::NanoTokens;
+// use sn_registers::RegisterCrdt; // Wraps MerkleReg
+// use autonomi::client::registers::Register; // Wraps RegisterCrdt
+// use sn_registers::Register as SnRegister;  // RegisterAddress and Permissions
 
 #[cfg(not(feature = "skip-network-compatibility-check"))]
 use crate::awe_client::str_to_xor_name;
@@ -37,7 +46,7 @@ pub const AWV_REG_TYPE_DUMMY: &str =
 
 /// Check if this build of awe is compatible with the current network
 #[cfg(not(feature = "skip-network-compatibility-check"))]
-pub async fn is_compatible_network(files_api: &FilesApi) -> bool {
+pub async fn is_compatible_network(client: &Client) -> bool {
     let xor_string = hard_coded_awv_type_string();
     if xor_string.len() == 0 {
         println!("ERROR: is_compatible_network() - no hard coded AWV type set.");
@@ -47,13 +56,13 @@ pub async fn is_compatible_network(files_api: &FilesApi) -> bool {
     let metadata_address =
         str_to_xor_name(xor_string.as_str()).expect("Failed to decode awv type string");
 
-    get_website_metadata_from_network(metadata_address, files_api)
+    get_website_metadata_from_network(metadata_address, client)
         .await
         .is_ok()
 }
 
 #[cfg(feature = "skip-network-compatibility-check")]
-pub async fn is_compatible_network(_files_api: &FilesApi) -> bool {
+pub async fn is_compatible_network(_client: &Client) -> bool {
     return true;
 }
 
@@ -131,30 +140,29 @@ pub struct WebsiteVersions {
 }
 
 /// API for handling a versioned website
-// TODO maybe this will be WebsiteClient and wrap sn_client
+/// The owner_secret is only required for publish/update.
 impl WebsiteVersions {
     /// Create a versioning register for a website,
     /// accessible using the returned WebsiteVersions
     pub async fn new_register(
         client: &Client,
-        wallet_client: &mut WalletClient,
+        wallet: &mut Wallet,
         register_type: &XorName,
+        owner_secret: Option<RegisterSecretKey>,
     ) -> Result<WebsiteVersions> {
-        let mut versions_register = match VersionsRegister::new(client.clone(), None).await {
-            Ok(versions_register) => versions_register,
-            Err(e) => {
-                return Err(eyre!("{e:?}"));
-            }
-        };
+        let mut versions_register =
+            match VersionsRegister::new(client.clone(), None, owner_secret, &wallet).await {
+                Ok(versions_register) => versions_register,
+                Err(e) => {
+                    println!("Failed to create website versions register online. {:?}", e);
+                    return Err(eyre!("{e:?}"));
+                }
+            };
 
+        let owner_secret = versions_register.owner_secret()?;
         versions_register
-            .sync(wallet_client)
-            .await
-            .inspect_err(|e| {
-                println!("Failed to create website versions register online. {:?}", e);
-            })?;
-
-        versions_register.add_xor_name(&register_type).await?;
+            .add_xor_name(client, register_type, &owner_secret, &wallet)
+            .await?;
 
         Ok(WebsiteVersions {
             default_version: None,
@@ -164,20 +172,20 @@ impl WebsiteVersions {
     }
 
     /// Load a versions register and return wrapped in WebsiteVersions
+    /// The owner_secret is only required for publish/update.
     pub async fn load_register(
         register_address: RegisterAddress,
-        files_api: &FilesApi,
+        client: &Client,
+        owner_secret: Option<RegisterSecretKey>,
     ) -> Result<WebsiteVersions> {
         // Check it exists to avoid accidental creation (and payment)
-        let result = files_api.client().get_register(register_address).await;
-        let mut versions_register = if result.is_ok() {
-            VersionsRegister::from_client_register(result.unwrap())
+        let result = client.register_get(register_address).await;
+        let versions_register = if result.is_ok() {
+            VersionsRegister::from_client_register(result.unwrap(), owner_secret)
         } else {
             println!("DEBUG: load_register() error:");
             return Err(eyre!("register not found on network"));
         };
-
-        versions_register.sync(&mut files_api.wallet()?).await?;
 
         let default_version = versions_register.num_versions()?;
         Ok(WebsiteVersions {
@@ -191,49 +199,35 @@ impl WebsiteVersions {
         self.versions_register.address()
     }
 
-    /// Retrieves and merges unknown versions
     /// Publishes a new version pointing to the metadata provided
     /// which becomes the newly selected version
-    /// Returns the selected version as a number, storage cost and royalties
+    /// Returns the selected version as a number
     pub async fn publish_new_version(
         &mut self,
+        client: &Client,
         website_metadata: &XorName,
-        wallet_client: &mut WalletClient,
-    ) -> Result<(u64, NanoTokens, NanoTokens)> {
-        (_, _, _) = self.sync_versions(wallet_client).await?;
+        wallet: &Wallet,
+    ) -> Result<u64> {
+        let owner_secret = self.versions_register.owner_secret()?;
         self.versions_register
-            .add_xor_name(website_metadata)
+            .add_xor_name(client, website_metadata, &owner_secret, wallet)
             .await?;
         println!("website_metadata added to register: {website_metadata:64x}");
-        let (version, storage_cost, royalties) = self.sync_versions(wallet_client).await?;
-        self.site_version = Some(SiteVersion::new(version, website_metadata.clone(), None));
-        self.default_version = Some(version);
-        Ok((version, storage_cost, royalties))
-    }
-
-    /// Reads versions from the network and merges any unknown versions.
-    /// Returns the number of the most recently published version (count-1).
-    pub async fn sync_versions(
-        &mut self,
-        wallet_client: &mut WalletClient,
-    ) -> Result<(u64, NanoTokens, NanoTokens)> {
-        let (storage_cost, royalties) = self.versions_register.sync(wallet_client).await?;
         let version = self.versions_register.num_versions()?;
         self.default_version = Some(version);
-        Ok((version, storage_cost, royalties))
+
+        self.site_version = Some(SiteVersion::new(version, website_metadata.clone(), None));
+        self.default_version = Some(version);
+        Ok(version)
     }
 
     async fn lookup_resource(
         &mut self,
         resource_path: &String,
         version: Option<u64>,
-        files_api: &FilesApi,
+        client: &Client,
     ) -> Result<XorName, StatusCode> {
-        if !self
-            .fetch_version_metadata(files_api, version)
-            .await
-            .is_err()
-        {
+        if !self.fetch_version_metadata(client, version).await.is_err() {
             if self.site_version.is_some() && self.site_version.as_ref().unwrap().metadata.is_some()
             {
                 let site_version = self.site_version.as_ref().unwrap();
@@ -256,7 +250,7 @@ impl WebsiteVersions {
     // specifying a version of LARGEST_VERSION
     async fn fetch_version_metadata(
         &mut self,
-        files_api: &FilesApi,
+        client: &Client,
         version: Option<u64>,
     ) -> Result<()> {
         println!(
@@ -301,7 +295,7 @@ impl WebsiteVersions {
             }
         };
 
-        let metadata = match get_website_metadata_from_network(metadata_xor, files_api).await {
+        let metadata = match get_website_metadata_from_network(metadata_xor, client).await {
             Ok(metadata) => {
                 set_version_loaded(version);
                 metadata
@@ -331,28 +325,70 @@ impl WebsiteVersions {
 }
 
 struct VersionsRegister {
-    register: ClientRegister,
+    register: Register,
+    /// owner_secret is only required for publish/update (not access)
+    owner_secret: Option<RegisterSecretKey>,
 }
 
 impl VersionsRegister {
-    /// Creates the register offline
-    /// Use sync() to:
-    /// - if new, to pay for creation before online writes
-    /// - if existing, to get entries from the network
-    pub async fn new(client: Client, address: Option<RegisterAddress>) -> Result<Self> {
+    /// Gets an existing Register or creates a new register online
+    /// The owner_secret is required when creating and for adding entries (publish/update)
+    pub async fn new(
+        client: Client,
+        address: Option<RegisterAddress>,
+        owner_secret: Option<RegisterSecretKey>,
+        wallet: &Wallet,
+    ) -> Result<Self> {
+        let mut register_signing_key = owner_secret;
         let register = if let Some(addr) = address {
-            ClientRegister::create_with_addr(client.clone(), addr)
+            client.register_get(addr).await
         } else {
+            let signing_key = if register_signing_key.is_some() {
+                register_signing_key.unwrap()
+            } else {
+                println!(
+                    "Register signing key was not provided so attempting to obtain from system"
+                );
+                match get_register_signing_key() {
+                    Ok(signing_key) => signing_key,
+                    Err(e) => {
+                        println!("Failed to get register signing key: {e}");
+                        return Err(e);
+                    }
+                }
+            };
+            register_signing_key = Some(signing_key.clone());
+
+            // let secret_key =
+            //     get_secret_key_from_env().expect("SECRET_KEY environment variable not set");
+            // let secret_key = autonomi::client::registers::RegisterSecretKey::from_hex(&secret_key)
+            //     .expect("Failed to decode SECRET_KEY environment variable");
+
             let mut rng = rand::thread_rng();
-            ClientRegister::create(client.clone(), XorName::random(&mut rng))
+            let name = format!("{:64x}", XorName::random(&mut rng));
+            client
+                .register_create(None, name.as_str(), signing_key, wallet)
+                .await
         };
 
-        Ok(VersionsRegister { register })
+        if register.is_ok() {
+            Ok(VersionsRegister {
+                register: register.unwrap(),
+                owner_secret: register_signing_key,
+            })
+        } else {
+            Err(register.unwrap_err().into())
+        }
     }
 
-    pub fn from_client_register(client_register: ClientRegister) -> VersionsRegister {
+    /// The owner_secret is only required for publish/update (not access)
+    pub fn from_client_register(
+        client_register: Register,
+        owner_secret: Option<RegisterSecretKey>,
+    ) -> VersionsRegister {
         VersionsRegister {
             register: client_register,
+            owner_secret: owner_secret.clone(),
         }
     }
 
@@ -389,12 +425,21 @@ impl VersionsRegister {
         }
     }
 
+    /// Return the number of entries in the register
+    /// This is one more than the number of versions
+    /// because the first entry is reserved for use
+    /// as a type (which may point to metadata about
+    /// the type). Example types include file system
+    /// and website.
+    pub fn num_entries(&self) -> u64 {
+        crate::commands::helpers::node_entries_as_vec(&self.register).len() as u64
+    }
+
     /// Return the number of available versions
     /// or an error if no versions are available.
     /// The first version is 1 last version is num_versions()
     pub fn num_versions(&self) -> Result<u64> {
-        let num_entries =
-            crate::commands::helpers::node_entries_as_vec(&self.register).len() as u64;
+        let num_entries = self.num_entries();
 
         if num_entries == 0 {
             let message = "register is empty (0 entries)";
@@ -405,150 +450,67 @@ impl VersionsRegister {
     }
 
     /// Adds an XorName to the register, merging any branches
-    /// If successful returns the number of entries in the register
-    pub async fn add_xor_name(&mut self, xor_address: &XorName) -> Result<u64> {
-        match self
-            .register
-            .write_merging_branches_online(xor_address, true)
+    pub async fn add_xor_name(
+        &mut self,
+        client: &Client,
+        xor_address: &XorName,
+        owner_secret: &RegisterSecretKey,
+        _wallet: &Wallet, // Include for when updates are charged for
+    ) -> Result<()> {
+        match client
+            .register_update(
+                self.register.clone(),
+                Bytes::from(xor_address.to_vec()),
+                owner_secret.clone(),
+            )
             .await
         {
-            Ok(_) => Ok(self.register.size() as u64),
+            Ok(_) => {
+                let values = self.register.values();
+                println!("After update...");
+                println!("      Register has {} values", values.len());
+                println!("      Register has {} entries", self.num_entries());
+                let merkle_reg = self.register.inner_merkle_reg();
+                println!("      Register {merkle_reg:?}");
+
+                // It is necessary to get the register from the network to have it's entries accessible
+                self.register = match client.register_get(self.register.address().clone()).await {
+                    Ok(register) => {
+                        println!("After update...and get...");
+                        println!("      Register has {} values", values.len());
+                        println!("      Register has {} entries", self.num_entries());
+                        let merkle_reg = self.register.inner_merkle_reg();
+                        println!("      Register {merkle_reg:?}");
+
+                        let xor_address = self.register.address().to_hex();
+                        println!("client.register_update() added entry to register: {xor_address}");
+                        register
+                    }
+                    Err(e) => {
+                        return Err(eyre!("DEBUG failed to get register that was just updated!"))
+                    }
+                };
+
+                let xor_address = self.register.address().to_hex();
+                println!("DEBUG client.register_update() added entry to register: {xor_address}");
+                let merkle_reg = self.register.inner_merkle_reg();
+                println!("DEBUG register.inner_merkle_reg():\n{merkle_reg:?}");
+                Ok(())
+            }
             Err(e) => {
                 return Err(eyre!("Failed to add XorName to register: {e:?}"));
             }
         }
     }
 
-    /// Reads versions from the network and merges any unknown versions.
-    /// Returns the number of the most recently published version (count-1).
-    pub async fn sync(
-        &mut self,
-        wallet_client: &mut WalletClient,
-    ) -> Result<(NanoTokens, NanoTokens)> {
-        println!("VersionsRegister::sync() - this can take a while...");
-        let result = Ok(self.register.sync(wallet_client, true, None).await?);
-        println!("VersionsRegister::sync() - ...done.");
-        result
+    fn owner_secret(&self) -> Result<RegisterSecretKey, Error> {
+        match self.owner_secret.clone() {
+            Some(owner_secret) => Ok(owner_secret),
+            None => Err(eyre!(
+                "ERROR: VersionsRegister can't update register without ::owner_secret"
+            )),
+        }
     }
-
-    // TODO add_register_address() will not be possible if Register entries can
-    // TODO only hold an XorName (ptr to chunk or datamap). (A RegisterAddress is XorName+PublicKey)
-    // TODO In which case I would need to store a Chunk of metadata containing the RegisterAddress
-    // TODO Note: The Autonomi FoldersApi doesn't store a RegisterAddress in a Register entry
-    // pub async fn add_register_address(&mut self, register_address: RegisterAddress) -> Result<u64> {
-    //     match self.register.write_merging_branches_online(register_address., true).await {
-    //         Ok(_) => Ok(self.register.size() as u64),
-    //         Err(e) => {return Err(eyre!("Failed to add RegisterAddress to register: {e:?}"));}
-    //     }
-    // }
-
-    // TODO remove when above works
-    // pub async fn old_new(
-    //     root_dir: &PathBuf,
-    //     hex_register_address: Option<String>,
-    // ) -> Result<VersionsRegister> {
-    //     println!("Initialising a new VersionsRegister");
-
-    //     let user = String::from("TODO user");
-    //     let mut reg_nickname = String::from(""); // TODO remove
-    //     let register_address_string = String::from("TODO register_address_string");
-
-    //     // TODO persist signer and use Permissions::new_with() instead of Permissions::new_anyone_can_write() below
-    //     // Random secret key to sign Register ops
-    //     let signer = SecretKey::random();
-
-    //     println!("VersionsRegister starting Autonomi client...");
-    //     let client = Client::new(signer, None, None, None).await?;
-    //     println!(
-    //         "Autonomi client signer public key: {:?}",
-    //         client.signer_pk()
-    //     );
-
-    //     // We'll retrieve (or create if not found) a Register, and write on it
-    //     // in offline mode, syncing with the network periodically.
-
-    //     // TODO tidy this when working
-    //     if hex_register_address.is_none() {
-    //         reg_nickname = String::from("random website");
-    //     }
-    //     let mut meta = XorName::from_content(reg_nickname.as_bytes());
-    //     let register_address = if !reg_nickname.is_empty() {
-    //         meta = XorName::from_content(reg_nickname.as_bytes());
-    //         RegisterAddress::new(meta, client.signer_pk())
-    //     } else if let Some(hex_register_address) = hex_register_address {
-    //         match RegisterAddress::from_hex(&hex_register_address.as_str()) {
-    //             Ok(register_address) => register_address,
-    //             Err(e) => {
-    //                 return Err(eyre!(
-    //                     "cannot parse hex register address: {}\n {e:?}",
-    //                     hex_register_address
-    //                 ));
-    //             }
-    //         }
-    //     } else {
-    //         return Err(eyre!("No useable register address"));
-    //     };
-
-    //     // Loading a local wallet. It needs to have a non-zero balance for
-    //     // this example to be able to pay for the Register's storage.
-    //     // let root_dir = dirs_next::data_dir()
-    //     //     .ok_or_else(|| eyre!("could not obtain data directory path".to_string()))?
-    //     //     .join("safe")
-    //     //     .join("client");
-
-    //     let wallet = match HotWallet::load_from(&root_dir.as_path()) {
-    //         Ok(wallet) => wallet,
-    //         Err(e) => {
-    //             return Err(eyre!("Unable to read wallet file in {root_dir:?}\n{e:?}\nIf you have an old wallet file, it may no longer be compatible."));
-    //         }
-    //     };
-    //     let mut wallet_client = WalletClient::new(client.clone(), wallet);
-
-    //     println!("Retrieving Register '{reg_nickname}' from SAFE, as user '{user}'");
-    //     let mut register = match client.get_register(register_address).await {
-    //         Ok(register) => {
-    //             println!(
-    //                 "Register '{reg_nickname}' found at {:?}!",
-    //                 register.address(),
-    //             );
-    //             register
-    //         }
-    //         Err(_) => {
-    //             println!("Register '{reg_nickname}' not found, creating it at {register_address}");
-    //             let (register, _cost, _royalties_fees) = client
-    //                 .create_and_pay_for_register(
-    //                     meta,
-    //                     &mut wallet_client,
-    //                     true,
-    //                     Permissions::new_anyone_can_write(),
-    //                 )
-    //                 .await?;
-
-    //             register
-    //         }
-    //     };
-    //     println!("Register address: {:?}", register.address().to_hex());
-    //     println!("Register owned by: {:?}", register.owner());
-    //     println!("Register permissions: {:?}", register.permissions());
-
-    //     println!();
-    //     println!(
-    //         "Current total number of items in Register: {}",
-    //         register.size()
-    //     );
-    //     println!("Latest value (more than one if concurrent writes were made):");
-    //     println!("--------------");
-    //     for (_, entry) in register.read().into_iter() {
-    //         println!("{}", String::from_utf8(entry)?);
-    //     }
-    //     println!("--------------");
-
-    //     Ok(VersionsRegister {
-    //         register,
-    //         client,
-    //         wallet_dir: root_dir.clone(),
-    //     })
-    // }
 }
 
 /// Helper which gets a website version
@@ -557,16 +519,16 @@ pub async fn lookup_resource_for_website_version(
     resource_path: &String,
     versions_xor_name: RegisterAddress,
     version: Option<u64>,
-    files_api: &FilesApi,
+    client: &Client,
 ) -> Result<XorName, StatusCode> {
     println!("DEBUG lookup_resource_for_website_version() version {version:?}");
     println!("DEBUG versions_xor_name: {versions_xor_name}");
     println!("DEBUG resource_path    : {resource_path}");
 
-    match WebsiteVersions::load_register(versions_xor_name, files_api).await {
+    match WebsiteVersions::load_register(versions_xor_name, client, None).await {
         Ok(mut website_versions) => {
             return website_versions
-                .lookup_resource(resource_path, version, files_api)
+                .lookup_resource(resource_path, version, client)
                 .await;
         }
         Err(e) => {

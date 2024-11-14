@@ -20,10 +20,8 @@ use std::sync::Mutex;
 
 use http::{status::StatusCode, Request};
 
-use sn_client::{
-    networking::{GetRecordError, NetworkError},
-    FilesApi,
-};
+use autonomi::client::data::GetError;
+use autonomi::client::Client;
 use sn_registers::RegisterAddress;
 
 use crate::awe_client;
@@ -127,12 +125,12 @@ const PROTOCOL_AWM: &str = "awm://";
 
 //// JavaScript interface
 
-#[cfg(not(feature = "local-discovery"))]
+#[cfg(not(feature = "local"))]
 fn is_local_discovery() -> bool {
     false
 }
 
-#[cfg(feature = "local-discovery")]
+#[cfg(feature = "local")]
 fn is_local_discovery() -> bool {
     true
 }
@@ -434,7 +432,7 @@ async fn handle_protocol_awv(
     };
 
     // Initialise network connection, client and files api
-    let files_api = awe_client::connect_to_autonomi()
+    let client = awe_client::connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 
@@ -445,7 +443,7 @@ async fn handle_protocol_awv(
         &resource_path,
         versions_register_address,
         website_version,
-        &files_api,
+        &client,
     )
     .await
     {
@@ -460,7 +458,7 @@ async fn handle_protocol_awv(
         }
     };
 
-    let response = awe_fetch_xor_data(xor_name, Some(&files_api)).await;
+    let response = awe_fetch_xor_data(xor_name, Some(&client)).await;
     if response.status() == StatusCode::OK {
         // Keep site version unchanged when loading a resource
         if loading_resource {
@@ -582,26 +580,25 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
 /// Fetch data from network and return as an http Response
 async fn awe_fetch_xor_data(
     xor_name: XorName,
-    files_api_opt: Option<&FilesApi>,
+    client_opt: Option<&Client>,
 ) -> http::Response<Vec<u8>> {
     println!("DEBUG fetching xor data: {xor_name:64x}");
 
-    // Initialise network connection, client and files api
-    let api;
-    let files_api_ref;
-    if let Some(api_ref) = files_api_opt {
-        files_api_ref = api_ref;
+    let client;
+    let client_ref;
+    if let Some(api_ref) = client_opt {
+        client_ref = api_ref;
     } else {
-        api = awe_client::connect_to_autonomi()
+        client = awe_client::connect_to_autonomi()
             .await
             .expect("Failed to connect to Autonomi Network");
-        files_api_ref = &api;
+        client_ref = &client;
     }
 
     // TODO since Tauri v2, the iframe won't load content from
     // TODO a URI unless the response has a Content-Type header
     // TODO Investigate options, such as saving content type in the site map
-    match awe_client::autonomi_get_file(xor_name, files_api_ref).await {
+    match awe_client::autonomi_get_file(xor_name, client_ref).await {
         Ok(content) => {
             println!("DEBUG retrieved {} bytes", content.len());
             return http::Response::builder()
@@ -627,7 +624,7 @@ async fn awe_fetch_xor_data(
 // TODO Improve autonomi application level API errors (e.g. in a crate, or in the Autonomi APIs).
 // TODO Autonomi API errors are largely internal. Could do with a subset of API errors for apps.
 // The following are a very selective sample
-pub fn tauri_http_status_from_network_error(error: &sn_client::Error) -> (StatusCode, String) {
+pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, String) {
     let message: String;
 
     match error {
@@ -635,15 +632,20 @@ pub fn tauri_http_status_from_network_error(error: &sn_client::Error) -> (Status
         //     StatusCode::INTERNAL_SERVER_ERROR,
         //     "Internal Server Error - deserialisation failed",
         // ),
-        sn_client::Error::Deserialization(error) => {
+        GetError::Deserialization(error) => {
             message = format!("Internal Server Error - deserialisation failed ({error})");
             (StatusCode::INTERNAL_SERVER_ERROR, message.clone())
         }
-        sn_client::Error::Network(NetworkError::GetRecordError(GetRecordError::RecordNotFound)) => {
+
+        GetError::Network(sn_networking::NetworkError::RecordNotStoredByNodes(_)) => {
             (StatusCode::NOT_FOUND, String::from("404 Not found"))
         }
 
-        sn_client::Error::Network(_network_error) => (
+        GetError::Network(sn_networking::NetworkError::GetRecordError(_)) => {
+            (StatusCode::NOT_FOUND, String::from("404 Not found"))
+        }
+
+        GetError::Network(_network_error) => (
             StatusCode::SERVICE_UNAVAILABLE,
             String::from("Unknown error (NetworkError))"),
         ),

@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use bytes::{BufMut, BytesMut};
 use chrono::{DateTime, Utc};
@@ -24,9 +24,9 @@ use serde::{Deserialize, Serialize};
 use tauri::http::status::StatusCode;
 use xor_name::XorName;
 
+use autonomi::client::Client;
+use autonomi::Wallet;
 use self_encryption::MAX_CHUNK_SIZE;
-use sn_client::{Client, FilesApi, UploadCfg};
-use sn_protocol::storage::{Chunk, ChunkAddress};
 
 use crate::awe_client;
 
@@ -34,10 +34,10 @@ pub const PATH_SEPARATOR: char = '/';
 
 pub async fn get_website_metadata_from_network(
     metadata_xor_name: XorName,
-    files_api: &FilesApi,
+    client: &Client,
 ) -> Result<WebsiteMetadata> {
     println!("DEBUG get_website_metadata_from_network() at {metadata_xor_name:64x}");
-    match awe_client::autonomi_get_file(metadata_xor_name, files_api).await {
+    match awe_client::autonomi_get_file(metadata_xor_name, client).await {
         Ok(content) => {
             println!("Retrieved {} bytes", content.len());
             let metadata: WebsiteMetadata = rmp_serde::from_slice(&content)?;
@@ -169,11 +169,11 @@ impl WebsiteMetadata {
 
     fn lookup_name_in_vec(
         name: &String,
-        resources_vec: &Vec<(String, ChunkAddress, std::time::SystemTime, u64)>,
+        resources_vec: &Vec<(String, XorName, std::time::SystemTime, u64)>,
     ) -> Option<XorName> {
-        for (resource_name, chunk_address, _modified, _size) in resources_vec {
+        for (resource_name, xor_name, _modified, _size) in resources_vec {
             if resource_name.eq(name) {
-                return Some(chunk_address.xorname().clone());
+                return Some(xor_name.clone());
             }
         }
         None
@@ -186,19 +186,18 @@ impl WebsiteMetadata {
     pub fn add_resource_to_metadata(
         &mut self,
         resource_website_path: &String,
-        chunk_address: ChunkAddress,
+        xor_name: XorName,
         file_metadata: Option<&std::fs::Metadata>,
     ) -> Result<()> {
         self.path_map
-            .add_resource_to_metadata(resource_website_path, chunk_address, file_metadata)
+            .add_resource_to_metadata(resource_website_path, xor_name, file_metadata)
     }
 
     // TODO handle metadata larger than one chunk using self encryption
     pub async fn put_website_metadata_to_network(
         &self,
         client: Client,
-        root_dir: &Path,
-        upload_cfg: &UploadCfg,
+        wallet: &Wallet,
     ) -> Result<XorName> {
         let serialised_metadata = rmp_serde::to_vec(self)?;
         if serialised_metadata.len() > MAX_CHUNK_SIZE {
@@ -209,37 +208,47 @@ impl WebsiteMetadata {
 
         let mut bytes = BytesMut::with_capacity(MAX_CHUNK_SIZE);
         bytes.put(serialised_metadata.as_slice());
-        let metadata_chunk = Chunk::new(bytes.freeze());
-        let metadata_xorname = *metadata_chunk.name();
-        println!("wallet_dir: {root_dir:?}"); // Typical wallet_dir: "/home/user/.local/share/safe/client"
-        let files_api = FilesApi::new(client.clone(), root_dir.to_path_buf());
-        let storage_payment_results = files_api
-            .pay_for_chunks(vec![metadata_xorname.clone()])
-            .await?;
+        // let metadata_chunk = Chunk::new(bytes.freeze());
+        // let metadata_xorname = *metadata_chunk.name();
 
-        // Note: even if the website content is unchanged, the metadata will be paid again as
-        // it contains the publishing date. So payment is needed every time.
-        println!(
-            "Paid {}+{} to store Website metadata, now uploading...",
-            storage_payment_results.storage_cost, storage_payment_results.royalty_fees
-        );
-        match files_api
-            .get_local_payment_and_upload_chunk(
-                metadata_chunk,
-                upload_cfg.verify_store,
-                Some(upload_cfg.retry_strategy),
-            )
-            .await
-        {
-            Ok(_) => (),
+        match client.data_put(bytes.freeze(), &wallet).await {
+            Ok(addr) => Ok(addr),
             Err(e) => {
                 let message = format!("Failed to upload website metadata - {e}");
                 println!("{}", &message);
                 return Err(eyre!(message.clone()));
             }
-        };
+        }
 
-        Ok(metadata_xorname)
+        // println!("wallet_dir: {root_dir:?}"); // Typical wallet_dir: "/home/user/.local/share/safe/client"
+        // let files_api = FilesApi::new(client.clone(), root_dir.to_path_buf());
+        // let storage_payment_results = files_api
+        //     .pay_for_chunks(vec![metadata_xorname.clone()])
+        //     .await?;
+
+        // // Note: even if the website content is unchanged, the metadata will be paid again as
+        // // it contains the publishing date. So payment is needed every time.
+        // println!(
+        //     "Paid {}+{} to store Website metadata, now uploading...",
+        //     storage_payment_results.storage_cost, storage_payment_results.royalty_fees
+        // );
+        // match files_api
+        //     .get_local_payment_and_upload_chunk(
+        //         metadata_chunk,
+        //         upload_cfg.verify_store,
+        //         Some(upload_cfg.retry_strategy),
+        //     )
+        //     .await
+        // {
+        //     Ok(_) => (),
+        //     Err(e) => {
+        //         let message = format!("Failed to upload website metadata - {e}");
+        //         println!("{}", &message);
+        //         return Err(eyre!(message.clone()));
+        //     }
+        // };
+
+        // Ok(metadata_xorname)
     }
 }
 
@@ -247,8 +256,7 @@ impl WebsiteMetadata {
 #[derive(Serialize, Deserialize)]
 pub struct WebsitePathMap {
     // TODO add file metadata (size, date modified) using a struct: FileMeta {filename, size, date_modified, chunk_address}
-    pub paths_to_files_map:
-        HashMap<String, Vec<(String, ChunkAddress, std::time::SystemTime, u64)>>,
+    pub paths_to_files_map: HashMap<String, Vec<(String, XorName, std::time::SystemTime, u64)>>,
 }
 
 // TODO replace OS path separator with '/' when storing web paths
@@ -256,10 +264,8 @@ pub struct WebsitePathMap {
 impl WebsitePathMap {
     pub fn new() -> WebsitePathMap {
         WebsitePathMap {
-            paths_to_files_map: HashMap::<
-                String,
-                Vec<(String, ChunkAddress, std::time::SystemTime, u64)>,
-            >::new(),
+            paths_to_files_map:
+                HashMap::<String, Vec<(String, XorName, std::time::SystemTime, u64)>>::new(),
         }
     }
 
@@ -269,7 +275,7 @@ impl WebsitePathMap {
     pub fn add_resource_to_metadata(
         &mut self,
         resource_website_path: &String,
-        chunk_address: ChunkAddress,
+        xor_name: XorName,
         file_metadata: Option<&std::fs::Metadata>,
     ) -> Result<()> {
         // println!("DEBUG add_resource_to_metadata() path '{resource_website_path}'");
@@ -282,14 +288,14 @@ impl WebsitePathMap {
             let metadata_tuple = if let Some(metadata) = file_metadata {
                 (
                     resource_file_name.clone(),
-                    chunk_address,
+                    xor_name,
                     metadata.modified().unwrap(),
                     metadata.len(),
                 )
             } else {
                 (
                     resource_file_name.clone(),
-                    chunk_address,
+                    xor_name,
                     std::time::SystemTime::now(),
                     0,
                 )

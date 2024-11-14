@@ -17,11 +17,12 @@
 */
 use std::path::PathBuf;
 
-use color_eyre::{eyre::bail, eyre::eyre, Result};
+use color_eyre::{eyre::eyre, Result};
 use walkdir::WalkDir;
 
-use sn_cli::{ChunkManager, Estimator};
-use sn_client::{transfers::HotWallet, UploadCfg, WalletClient};
+use crate::helpers::autonomi::access::keys::get_register_signing_key;
+// use sn_cli::{ChunkManager, Estimator};
+use crate::helpers::autonomi::wallet::load_wallet;
 
 use crate::awe_const::MAIN_REPOSITORY;
 use crate::awe_website_publisher::publish_website;
@@ -32,53 +33,32 @@ use crate::cli_options::{Opt, Subcommands};
 
 // Returns true if command complete, false to start the browser
 pub async fn cli_commands(opt: Opt) -> Result<bool> {
-    // Leave this here for now as a way to show if connecting is not working,
-    // even though it is not used, and the handlers do this for each request.
-    // TODO rationalise these steps and minimise repeats across requests.
-    let client_data_dir_path = awe_client::get_client_data_dir_path()?;
-    let root_dir = client_data_dir_path.clone(); // TODO ? make this an optional "wallet_dir" parameter
-
-    // default to verifying storage
-    let verify_store = !opt.no_verify;
-
     match opt.cmd {
-        Some(Subcommands::Estimate {
-            website_root,
-            make_private,
-        }) => {
-            let files_api = awe_client::connect_to_autonomi()
+        Some(Subcommands::Estimate { website_root }) => {
+            let client = awe_client::connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
-            let chunk_manager = ChunkManager::new(root_dir.as_path());
-            Estimator::new(chunk_manager, files_api)
-                .estimate_cost(website_root, !make_private, root_dir.as_path())
-                .await
-                .expect("Failed to estimate cost");
+            match client.file_cost(&website_root).await {
+                Ok(tokens) => println!("Cost estimate: {tokens}"),
+                Err(e) => println!("Unable to estimate cost: {e}"),
+            }
         }
         Some(Subcommands::Publish {
             website_root,
             // update, TODO when NRS, re-instate
-            make_private,
             website_config,
-            batch_size,
-            retry_strategy,
             is_new_network,
         }) => {
             // TODO move this code into a function which handles both Publish and Update
             let _ = check_website_path(&website_root);
 
-            let upload_config = UploadCfg {
-                batch_size,
-                verify_store,
-                retry_strategy,
-                ..Default::default()
-            };
-
-            let files_api = awe_client::connect_to_autonomi()
+            let mut wallet =
+                load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
+            let client = awe_client::connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
-            if !is_new_network && !is_compatible_network(&files_api).await {
+            if !is_new_network && !is_compatible_network(&client).await {
                 let message = format!(
                     "ERROR: This version of awe cannot publish to this Autonomi network\
                 \nERROR: Please update awe and try again. See {MAIN_REPOSITORY}"
@@ -88,16 +68,10 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 return Err(eyre!(message));
             }
 
-            let website_address = publish_website(
-                &website_root,
-                website_config,
-                make_private,
-                &files_api.client().clone(),
-                root_dir.as_path(),
-                &upload_config,
-            )
-            .await
-            .inspect_err(|e| println!("{}", e))?;
+            println!("Uploading new website to network...");
+            let website_address = publish_website(&website_root, website_config, &client, &wallet)
+                .await
+                .inspect_err(|e| println!("{}", e))?;
 
             let register_type = if is_new_network {
                 website_address
@@ -108,20 +82,21 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             };
 
             println!("Creating versions register, please wait...");
-            let mut wallet_client =
-                WalletClient::new(files_api.client().clone(), HotWallet::load_from(&root_dir)?);
+            let owner_secret = get_register_signing_key().inspect_err(|e| println!("{}", e))?;
+            println!("got wallet... calling WebsiteVersions::new_register()");
             let mut website_versions = WebsiteVersions::new_register(
-                &files_api.client().clone(),
-                &mut wallet_client,
+                &client,
+                &mut wallet,
                 &register_type,
+                Some(owner_secret),
             )
             .await
             .inspect_err(|e| println!("{}", e))?;
             match website_versions
-                .publish_new_version(&website_address, &mut wallet_client)
+                .publish_new_version(&client, &website_address, &wallet)
                 .await
             {
-                Ok((version, _storage_cost, _royalties)) => {
+                Ok(version) => {
                     let xor_address = website_versions.versions_address().to_hex();
                     let website_root = website_root.to_str();
                     let website_root = if website_root.is_some() {
@@ -146,39 +121,26 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             website_root,
             // name: String, // TODO when NRS, re-instate name
             update_xor,
-            make_private,
             website_config,
-            batch_size,
-            retry_strategy,
         }) => {
             let _ = check_website_path(&website_root);
 
-            let upload_config = UploadCfg {
-                batch_size,
-                verify_store,
-                retry_strategy,
-                ..Default::default()
-            };
-
-            let files_api = awe_client::connect_to_autonomi()
+            let mut wallet =
+                load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
+            let client = awe_client::connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
-            let website_address = publish_website(
-                &website_root,
-                website_config,
-                make_private,
-                &files_api.client().clone(),
-                root_dir.as_path(),
-                &upload_config,
-            )
-            .await?;
+            println!("Uploading updated website to network...");
+            let owner_secret = get_register_signing_key().inspect_err(|e| println!("{}", e))?;
+
+            let website_address =
+                publish_website(&website_root, website_config, &client, &wallet).await?;
 
             println!("Updating versions register {}", update_xor.to_hex());
-            let mut wallet_client =
-                WalletClient::new(files_api.client().clone(), HotWallet::load_from(&root_dir)?);
             let mut website_versions =
-                match WebsiteVersions::load_register(update_xor, &files_api).await {
+                match WebsiteVersions::load_register(update_xor, &client, Some(owner_secret)).await
+                {
                     Ok(website_versions) => website_versions,
                     Err(e) => {
                         println!("Failed to access website versions. {}", e.root_cause());
@@ -187,10 +149,10 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 };
 
             match website_versions
-                .publish_new_version(&website_address, &mut wallet_client)
+                .publish_new_version(&client, &website_address, &mut wallet)
                 .await
             {
-                Ok((version, _storage_cost, _royalties)) => {
+                Ok(version) => {
                     let xor_address = website_versions.versions_address().to_hex();
                     let website_root = website_root.to_str();
                     let website_root = if website_root.is_some() {
@@ -226,6 +188,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             print_type,
             print_size,
             print_audit,
+            print_merkle_reg,
             entries_range,
             include_files,
             files_args,
@@ -236,6 +199,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 print_type,
                 print_size,
                 print_audit,
+                print_merkle_reg,
                 entries_range,
                 include_files,
                 files_args,
@@ -290,12 +254,14 @@ fn check_website_path(website_root: &PathBuf) -> Result<()> {
 
     if files_count == 0 {
         if website_root.is_dir() {
-            bail!(
+            return Err(eyre!(
                 "The directory specified for upload is empty. \
         Please verify the provided path."
-            );
+            ));
         } else {
-            bail!("The provided file path is invalid. Please verify the path.");
+            return Err(eyre!(
+                "The provided file path is invalid. Please verify the path."
+            ));
         }
     }
     Ok(())

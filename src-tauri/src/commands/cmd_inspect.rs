@@ -22,7 +22,8 @@ use color_eyre::{eyre::eyre, Result};
 use crdts::merkle_reg::{Hash, MerkleReg, Node};
 use xor_name::XorName;
 
-use sn_client::{ClientRegister, FilesApi};
+use autonomi::client::registers::Register;
+use autonomi::client::Client;
 use sn_registers::{Entry, RegisterAddress};
 
 use crate::awe_client;
@@ -41,22 +42,24 @@ pub async fn handle_inspect_register(
     print_type: bool,
     print_size: bool,
     print_audit: bool,
+    print_merkle_reg: bool,
     entries_range: Option<EntriesRange>,
     include_files: bool,
     files_args: FilesArgs,
 ) -> Result<()> {
-    let files_api = awe_client::connect_to_autonomi()
+    let client = awe_client::connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 
-    let result = files_api.client().get_register(register_address).await;
-    let mut register = if result.is_ok() {
+    let result = client.register_get(register_address).await;
+    let register = if result.is_ok() {
         result.unwrap()
     } else {
-        return Err(eyre!("Error: register not found on network"));
+        return Err(eyre!(
+            "Error: register not found on network\n\
+            This may be due to connection issues"
+        ));
     };
-
-    register.sync(&mut files_api.wallet()?, true, None).await?;
 
     let entries_vec = node_entries_as_vec(&register);
     let size = entries_vec.len();
@@ -78,7 +81,7 @@ pub async fn handle_inspect_register(
 
     if let Some(entries_range) = entries_range {
         do_print_entries(
-            &files_api,
+            &client,
             &entries_range,
             entries_vec,
             include_files,
@@ -91,18 +94,23 @@ pub async fn handle_inspect_register(
         let _ = do_print_audit(&register);
     }
 
+    if print_merkle_reg {
+        let _ = do_print_merkle_reg(&register);
+    }
+
     Ok(())
 }
 
 fn do_print_summary(
-    register: &ClientRegister,
+    register: &Register,
     reg_address: &RegisterAddress,
     entries_vec: &Vec<Entry>,
     size: usize,
 ) -> Result<()> {
     println!("register    : {}", reg_address.to_hex());
-    println!("owned by    : {:?}", register.owner());
+    println!("owner       : {:?}", reg_address.owner());
     println!("permissions : {:?}", register.permissions());
+    println!("num roots   : {:?}", register.values().len());
 
     if entries_vec.len() > 0 {
         do_print_type(Some(&entries_vec[0]))?;
@@ -129,8 +137,13 @@ fn do_print_size(size: usize) -> Result<()> {
     Ok(())
 }
 
-fn do_print_audit_summary(register: &ClientRegister) -> Result<()> {
-    let merkle_reg = register.merkle_reg();
+fn do_print_merkle_reg(register: &Register) -> Result<()> {
+    println!("{:?}", register.inner_merkle_reg());
+    Ok(())
+}
+
+fn do_print_audit_summary(register: &Register) -> Result<()> {
+    let merkle_reg = register.inner_merkle_reg();
     let content = merkle_reg.read();
 
     if content.nodes().nth(0).is_some() {
@@ -156,8 +169,8 @@ fn do_print_audit_summary(register: &ClientRegister) -> Result<()> {
     Ok(())
 }
 
-fn do_print_audit(register: &ClientRegister) -> Result<()> {
-    let merkle_reg = register.merkle_reg();
+fn do_print_audit(register: &Register) -> Result<()> {
+    let merkle_reg = register.inner_merkle_reg();
     let content = merkle_reg.read();
 
     let node = content.nodes().nth(0);
@@ -260,7 +273,7 @@ fn print_node(
 }
 
 async fn do_print_entries(
-    files_api: &FilesApi,
+    client: &Client,
     entries_range: &EntriesRange,
     entries_vec: Vec<Entry>,
     include_files: bool,
@@ -296,7 +309,7 @@ async fn do_print_entries(
         let xor_name = xorname_from_entry(&entries_vec[index]);
         if include_files {
             println!("entry {index} - fetching metadata at {xor_name:64x}");
-            match get_website_metadata_from_network(xor_name, &files_api).await {
+            match get_website_metadata_from_network(xor_name, &client).await {
                 Ok(metadata) => {
                     let _ = do_print_files(&metadata, &files_args);
                 }
@@ -337,19 +350,15 @@ fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<
 
     if files_args.print_paths || files_args.print_all_details {
         for (path_string, path_map) in metadata.path_map.paths_to_files_map.iter() {
-            for (file_name, chunk_address, modified, size) in path_map.iter() {
+            for (file_name, xor_name, modified, size) in path_map.iter() {
                 if files_args.print_all_details {
                     let date_time = DateTime::<Utc>::from(*modified);
                     let modified_str = date_time.format("%Y-%m-%d %H:%M:%S").to_string();
                     println!(
-                        "{:64x} {modified_str} \"{path_string}{file_name}\" {size} bytes",
-                        chunk_address.xorname()
+                        "{xor_name:64x} {modified_str} \"{path_string}{file_name}\" {size} bytes",
                     );
                 } else {
-                    println!(
-                        "{:64x} \"{path_string}{file_name}\"",
-                        chunk_address.xorname()
-                    );
+                    println!("{xor_name:64x} \"{path_string}{file_name}\"");
                 }
             }
         }

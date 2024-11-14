@@ -15,11 +15,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 use color_eyre::eyre::{eyre, Result};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use xor_name::XorName;
 
-use sn_cli::{FilesUploadSummary, FilesUploader};
-use sn_client::{Client, UploadCfg};
+use crate::helpers::autonomi::wallet::load_wallet;
+use autonomi::client::archive::Archive;
+use autonomi::client::Client;
+use autonomi::Wallet;
 
 use crate::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};
 
@@ -28,10 +30,8 @@ use crate::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata
 pub async fn publish_website(
     website_root: &PathBuf,
     website_config_path: Option<PathBuf>,
-    make_private: bool,
     client: &Client,
-    root_dir: &Path,
-    upload_config: &UploadCfg,
+    wallet: &Wallet,
 ) -> Result<XorName> {
     let website_config = if let Some(website_config_path) = website_config_path {
         match JsonSettings::load_json_file(&website_config_path) {
@@ -47,18 +47,14 @@ pub async fn publish_website(
         None
     };
 
-    match publish_website_content(client, root_dir, website_root, make_private, &upload_config)
-        .await
-    {
+    match publish_website_content(client, website_root).await {
         Ok(site_upload_summary) => {
             match publish_website_metadata(
                 client,
-                root_dir,
                 website_root,
                 &site_upload_summary,
-                make_private,
                 website_config,
-                &upload_config,
+                wallet,
             )
             .await
             {
@@ -74,14 +70,8 @@ pub async fn publish_website(
 }
 
 /// Uploads the tree of website content at website_root
-/// Returns the autonomi::FilesUploadSummary if all files are uploaded
-pub async fn publish_website_content(
-    client: &Client,
-    root_dir: &Path,
-    website_root: &PathBuf,
-    make_private: bool,
-    upload_cfg: &UploadCfg,
-) -> Result<FilesUploadSummary> {
+/// Returns the autonomi::UploadSummary if all files are uploaded
+pub async fn publish_website_content(client: &Client, website_root: &PathBuf) -> Result<Archive> {
     if !website_root.is_dir() {
         return Err(eyre!("Website path must be a directory: {website_root:?}"));
     }
@@ -94,26 +84,21 @@ pub async fn publish_website_content(
         return Err(eyre!("Website path is empty: {website_root:?}"));
     }
 
+    let wallet = load_wallet()?;
     println!("Uploading website from: {website_root:?}");
-    let files_uploader = FilesUploader::new(client.clone(), root_dir.to_path_buf())
-        .set_make_data_public(!make_private)
-        .set_upload_cfg(*upload_cfg)
-        .insert_path(&website_root);
+    let archive = match client.dir_upload(website_root.clone(), &wallet).await {
+        Ok(archive) => archive,
+        Err(e) => return Err(eyre!("Failed to upload directory tree: {e}")),
+    };
 
-    let files_upload_summary = files_uploader.start_upload().await?;
+    println!("web publish completed files: {:?}", archive.map().len());
 
-    println!(
-        "web publish completed files: {:?}",
-        files_upload_summary.completed_files
-    );
-
-    let completed_files = files_upload_summary.completed_files.clone();
     println!("WEBSITE CONTENT UPLOADED:");
-    for (path, _, chunk_address) in completed_files {
-        println!("{} {path:?}", chunk_address.to_hex());
+    for (path, data_address, _metadata) in archive.iter() {
+        println!("{data_address:64x} {path:?}");
     }
 
-    Ok(files_upload_summary)
+    Ok(archive)
 }
 
 // TODO review handling of errors that might occur here
@@ -124,12 +109,10 @@ pub async fn publish_website_content(
 /// Returns the xor address of the stored metadata
 pub async fn publish_website_metadata(
     client: &Client,
-    root_dir: &Path,
     website_root: &PathBuf,
-    site_upload_summary: &FilesUploadSummary,
-    _make_private: bool,
+    site_upload_archive: &Archive,
     website_config: Option<JsonSettings>,
-    upload_cfg: &UploadCfg,
+    wallet: &Wallet,
 ) -> Result<XorName> {
     let mut metadata = WebsiteMetadata::new();
     if let Some(website_config) = website_config {
@@ -144,23 +127,21 @@ pub async fn publish_website_metadata(
             website_root_string.len()
         };
 
-        for (full_path, _file_name, chunk_address) in
-            site_upload_summary.completed_files.clone().into_iter()
-        {
+        for (full_path, datamap_address, _file_metadata) in site_upload_archive.iter() {
             if let Some(resource_full_path) = osstr_to_string(full_path.as_os_str()) {
                 let resource_path = resource_full_path[resource_path_start..].to_string();
                 println!("Adding '{resource_full_path}' as '{resource_path}'");
                 match std::fs::metadata(resource_full_path) {
                     Ok(file_metadata) => metadata.add_resource_to_metadata(
                         &resource_path,
-                        chunk_address.clone(),
+                        datamap_address.clone(),
                         Some(&file_metadata),
                     )?,
                     Err(e) => {
                         println!("Failed to obtain metadata for file due to: {e:}");
                         metadata.add_resource_to_metadata(
                             &resource_path,
-                            chunk_address.clone(),
+                            datamap_address.clone(),
                             None,
                         )?
                     }
@@ -169,7 +150,7 @@ pub async fn publish_website_metadata(
         }
 
         let xor_name = metadata
-            .put_website_metadata_to_network(client.clone(), root_dir, upload_cfg)
+            .put_website_metadata_to_network(client.clone(), &wallet)
             .await?;
         println!("WEBSITE METADATA UPLOADED:\nawm://{xor_name:64x}");
 

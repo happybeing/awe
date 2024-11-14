@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use sn_client::ClientRegister;
+use autonomi::client::registers::Register;
 use sn_registers::Entry;
 use xor_name::XorName;
 
@@ -23,8 +23,8 @@ use xor_name::XorName;
 // We take the first 'root' node and the first child of the root, the first child
 // of that child and so on.
 // So if there were multiple children (i.e. conflicting versions) only one is included
-pub fn node_entries_as_vec(register: &ClientRegister) -> Vec<Entry> {
-    let merkle_reg = register.merkle_reg();
+pub fn node_entries_as_vec(register: &Register) -> Vec<Entry> {
+    let merkle_reg = register.inner_merkle_reg();
     let content = merkle_reg.read();
     let mut entries_vec: Vec<Entry> = Vec::new();
     let mut node = content.nodes().nth(0);

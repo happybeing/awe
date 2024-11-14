@@ -27,7 +27,6 @@ use sn_registers::RegisterAddress;
 use xor_name::XorName;
 
 use sn_peers_acquisition::PeersArgs;
-use sn_protocol::storage::RetryStrategy;
 
 use crate::awe_client::str_to_register_address;
 use crate::awe_client::str_to_xor_name;
@@ -70,12 +69,6 @@ pub struct Opt {
     /// Enable Autonomi network logging (to the terminal)
     #[clap(long, name = "client-logs", short = 'l', default_value = "false")]
     pub client_logs: bool,
-
-    /// Prevent verification of data storage on the network.
-    ///
-    /// This may increase operation speed, but offers no guarantees that operations were successful.
-    #[clap(global = true, long = "no-verify", short = 'x')]
-    pub no_verify: bool,
     // TODO remove in favour of WebCmds subcommand
     // /// Local path of static HTML files to publish
     // #[clap(long = "publish-website")]
@@ -122,15 +115,6 @@ pub enum Subcommands {
         /// The root directory containing the website content to be published
         #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
         website_root: PathBuf,
-        /// Should the website content be made private. (This is irreversible.)
-        ///
-        /// The default is public and accessible to all.
-        ///
-        /// Note that without access to the website metadata even public data won't be
-        /// discoverable. Access will only be possible with the address of the metadata
-        /// or of the individual uploaded pages and resources contained in the metadata.
-        #[clap(long, name = "make-private", default_value = "false", short = 'p')]
-        make_private: bool,
     },
 
     /// Publish a new website
@@ -154,26 +138,7 @@ pub enum Subcommands {
         /// Optional website configuration such as default index file(s), redirects etc.
         #[clap(long = "website-config", short = 'c', value_name = "JSON-FILE")]
         website_config: Option<PathBuf>,
-        /// The batch_size to split chunks into parallel handling batches
-        /// during payment and upload processing.
-        #[clap(long, default_value_t = sn_client::BATCH_SIZE, short='b')]
-        batch_size: usize,
-        /// Should the website content be made private. (This is irreversible.)
-        ///
-        /// The default is public and accessible to all.
-        ///
-        /// Note that without access to the website metadata even public data won't be
-        /// discoverable. Access will only be possible with the address of the metadata
-        /// or of the individual uploaded pages and resources contained in the metadata.
-        #[clap(long, name = "make-private", default_value = "false", short = 'p')]
-        make_private: bool,
-        /// Set the strategy to use on chunk upload failure. Does not modify the spend failure retry attempts yet.
-        ///
-        /// Choose a retry strategy based on effort level, from 'quick' (least effort), through 'balanced',
-        /// to 'persistent' (most effort).
-        #[clap(long, default_value_t = RetryStrategy::Balanced, short = 'r', help = "Sets the retry strategy on upload failure. Options: 'quick' for minimal effort, 'balanced' for moderate effort, or 'persistent' for maximum effort.")]
-        retry_strategy: RetryStrategy,
-        ///
+        //
         /// Disable the AWV check when publishing a new website to allow for init of a new Autonomi network (during beta)
         #[clap(long, name = "is-new-network", hide = true, default_value = "false")]
         is_new_network: bool,
@@ -206,25 +171,6 @@ pub enum Subcommands {
         /// Optional website configuration such as default index file(s), redirects etc.
         #[clap(long = "website-config", short = 'c', value_name = "JSON-FILE")]
         website_config: Option<PathBuf>,
-        /// The batch_size to split chunks into parallel handling batches
-        /// during payment and upload processing.
-        #[clap(long, default_value_t = sn_client::BATCH_SIZE, short='b')]
-        batch_size: usize,
-        /// Should the website content be made private. (This is irreversible.)
-        ///
-        /// The default is public and accessible to all.
-        ///
-        /// Note that without access to the website metadata even public data won't be
-        /// discoverable. Access will only be possible with the address of the metadata
-        /// or of the individual uploaded pages and resources contained in the metadata.
-        #[clap(long, name = "make-private", default_value = "false", short = 'p')]
-        make_private: bool,
-        /// Set the strategy to use on chunk upload failure. Does not modify the spend failure retry attempts yet.
-        ///
-        /// Choose a retry strategy based on effort level, from 'quick' (least effort), through 'balanced',
-        /// to 'persistent' (most effort).
-        #[clap(long, default_value_t = RetryStrategy::Balanced, short = 'r', help = "Sets the retry strategy on upload failure. Options: 'quick' for minimal effort, 'balanced' for moderate effort, or 'persistent' for maximum effort.")]
-        retry_strategy: RetryStrategy,
     },
 
     /// Download a file or directory
@@ -283,6 +229,10 @@ pub enum Subcommands {
         /// Print the number of entries
         #[clap(long = "size", short = 's', default_value = "false")]
         print_size: bool,
+
+        /// Print the merkle register structure
+        #[clap(long = "merkle-reg", short = 'k', default_value = "false")]
+        print_merkle_reg: bool,
 
         /// Print an audit of register nodes/values
         #[clap(long = "audit", short = 'a', default_value = "false")]

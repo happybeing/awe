@@ -50,15 +50,47 @@ serde_json = "1"
 # sn_protocol = { version = "0.17.8", path = "../../safe_network/sn_protocol" }
 
 # Generated using: awe-dependencies --branch stable-2024.10.1.2
-autonomi = { version = "0.1.1" }
-sn_client = { version = "0.110.2" }
-sn_cli = { version = "0.95.2" }
-sn_networking = { version = "0.18.3" }
-sn_peers_acquisition = { version = "0.5.2" }
-sn_registers = { version = "0.3.20" }
-sn_transfers = { version = "0.19.2" }
-sn_protocol = { version = "0.17.10" }
+# PRE ERC20
+# autonomi = { version = "0.1.1" }
+# sn_client = { version = "0.110.2" }
+# sn_cli = { version = "0.95.2" }
+# sn_networking = { version = "0.18.3" }
+# sn_peers_acquisition = { version = "0.5.2" }
+# sn_registers = { version = "0.3.20" }
+# sn_transfers = { version = "0.19.2" }
+# sn_protocol = { version = "0.17.10" }
 
+# Generated using: awe-dependencies --branch stable-2024.10.4.6
+# NOW ERC20
+# sn_client = { }
+# autonomi = { version = "0.2.1" }
+# # sn_cli = { }
+# autonomi-cli = { version = "0.1.2" }
+# sn_networking = { version = "0.19.0" }
+# sn_peers_acquisition = { version = "0.5.4" }
+# sn_registers = { version = "0.4.0" }
+# sn_transfers = { version = "0.20.0" }
+# sn_protocol = { version = "0.17.12" }
+
+# Generated using: awe-dependencies --sn-path ../../../autonomi/safe_network
+#autonomi = { version = "0.2.1", path = "../../../autonomi/safe_network/autonomi" }
+#autonomi-cli = { version = "0.1.2", path = "../../../autonomi/safe_network/autonomi-cli" }
+sn_networking = { version = "0.19.0", path = "../../../autonomi/safe_network/sn_networking" }
+#sn_peers_acquisition = { version = "0.5.4", path = "../../../autonomi/safe_network/sn_peers_acquisition" }
+sn_registers = { version = "0.4.0", path = "../../../autonomi/safe_network/sn_registers" }
+sn_transfers = { version = "0.20.0", path = "../../../autonomi/safe_network/sn_transfers" }
+sn_protocol = { version = "0.17.12", path = "../../../autonomi/safe_network/sn_protocol" }
+# Copied from awapi-test-actix:
+autonomi = { path = "../../../autonomi/safe_network/autonomi", version = "0.2.2", features = [
+    "data",
+    "fs",
+    "vault",
+    "registers",
+    "loud",
+] }
+sn_peers_acquisition = { path = "../../../autonomi/safe_network/sn_peers_acquisition", version = "0.5.5" }
+sn_logging = { path = "../../../autonomi/safe_network/sn_logging", version = "0.2.38" }
+sn_build_info = { path = "../../../autonomi/safe_network/sn_build_info", version = "0.1.17" }
 
 ## Everything else
 rand = { version = "~0.8.5", features = ["small_rng"] }
@@ -73,7 +105,6 @@ tempfile = "3.10.1"
 xor_name = "5.0.0"
 color-eyre = "0.6.3"
 env_logger = "0.11.3"
-hex = "0.4.3"
 dirs-next = "2.0.0"
 structopt = "0.3.26"
 clap = "4.5.4"
@@ -84,13 +115,24 @@ self_encryption = "0.29.1"
 crdts = "7.3.2"
 url = "2.5.0"
 regex = "1.9.6"
-sn_logging = { version = "0.2.31", optional = true }
+ring = "0.17.8"
+prettytable = "0.10.0"
+const-hex = "1.13.1"
+hex = "0.4.3"
+rpassword = "7.3.1"
+thiserror = "2.0.0"
 
 [features]
-default = ["network-contacts", "client-logs", "skip-network-compatibility-check"]
-local-discovery = ["sn_client/local-discovery", "sn_peers_acquisition/local-discovery"]
+# # Copied from autonomi-cli stable-2024.10.4.6 for reference:
+# default = ["metrics"]
+# local = ["sn_peers_acquisition/local", "autonomi/local"]
+# network-contacts = ["sn_peers_acquisition/network-contacts"]
+# metrics = ["sn_logging/process-metrics"]
+default = ["network-contacts", "skip-network-compatibility-check"]
+local = ["sn_peers_acquisition/local", "autonomi/local"]
+# WAS local-discovery = ["sn_client/local-discovery", "sn_peers_acquisition/local-discovery"]
+metrics = ["sn_logging/process-metrics"]
 network-contacts = ["sn_peers_acquisition/network-contacts"]
-client-logs = ["sn_logging"]
 skip-network-compatibility-check = []   # Avoid need to upload avp type and include xor address in build
 # This feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
@@ -105,3 +147,4 @@ debug = 0
 
 [profile.release]
 debug = 0
+

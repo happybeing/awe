@@ -27,8 +27,8 @@ mod awe_website_versions;
 mod cli_options;
 mod commands;
 mod generated_rs;
+mod helpers;
 
-#[cfg(feature = "client-logs")]
 use sn_logging::{Level, LogBuilder};
 
 use crate::commands::awe_subcommands;
@@ -46,7 +46,6 @@ pub fn run() {
     use clap::Parser;
     let opt = Opt::parse();
 
-    #[cfg(feature = "client-logs")]
     if opt.client_logs {
         let logging_targets = vec![
             // TODO: Reset to nice and clean defaults once we have a better idea of what we want
