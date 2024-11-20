@@ -1,5 +1,3 @@
-use core::time;
-
 /*
  Copyright (c) 2024-2025 Mark Hughes
 
@@ -21,7 +19,7 @@ use color_eyre::eyre::{eyre, Error, Result};
 use tauri::http::status::StatusCode;
 use xor_name::XorName;
 
-use crate::helpers::autonomi::access::keys::{get_register_signing_key, get_secret_key_from_env};
+use crate::helpers::autonomi::access::keys::get_register_signing_key;
 
 use autonomi::client::registers::{Register, RegisterSecretKey};
 use autonomi::client::Client;
