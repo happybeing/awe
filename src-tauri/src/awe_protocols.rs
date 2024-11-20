@@ -27,8 +27,8 @@ use sn_registers::RegisterAddress;
 
 use crate::awe_client;
 use crate::awe_client::{autonomi_get_file, connect_to_autonomi};
-use crate::dweb::awe_website_metadata::{get_website_metadata_from_network, PATH_SEPARATOR};
-use crate::dweb::awe_website_versions::lookup_resource_for_website_version;
+use crate::dweb::data::awe_website_metadata::{get_website_metadata_from_network, PATH_SEPARATOR};
+use crate::dweb::data::awe_website_versions::lookup_resource_for_website_version;
 
 pub const AWE_PROTOCOL_REGISTER: &str = "awv://";
 #[allow(dead_code)]

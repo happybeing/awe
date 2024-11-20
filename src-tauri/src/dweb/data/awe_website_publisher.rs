@@ -23,7 +23,7 @@ use autonomi::client::archive::Archive;
 use autonomi::client::Client;
 use autonomi::Wallet;
 
-use crate::dweb::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};
+use crate::dweb::data::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};
 
 /// Upload the website content and website metadata to Autonomi
 /// TODO returns the xor address for the metadata used to access the website

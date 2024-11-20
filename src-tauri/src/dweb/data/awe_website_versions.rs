@@ -32,7 +32,7 @@ use sn_registers::RegisterAddress;
 #[cfg(not(feature = "skip-network-compatibility-check"))]
 use crate::awe_client::str_to_xor_name;
 use crate::awe_protocols::{set_version_loaded, set_version_max};
-use crate::dweb::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
+use crate::dweb::data::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 
 use crate::generated_rs::{builtins_local, builtins_public};
 

@@ -28,8 +28,8 @@ use crate::awe_client;
 use crate::awe_client::connect_to_autonomi;
 use crate::awe_const::MAIN_REPOSITORY;
 use crate::cli_options::{Opt, Subcommands};
-use crate::dweb::awe_website_publisher::publish_website;
-use crate::dweb::awe_website_versions::{self, is_compatible_network, WebsiteVersions};
+use crate::dweb::data::awe_website_publisher::publish_website;
+use crate::dweb::data::awe_website_versions::{self, is_compatible_network, WebsiteVersions};
 
 // Returns true if command complete, false to start the browser
 pub async fn cli_commands(opt: Opt) -> Result<bool> {
