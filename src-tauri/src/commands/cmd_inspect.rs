@@ -26,10 +26,10 @@ use autonomi::client::registers::Register;
 use autonomi::client::Client;
 use sn_registers::{Entry, RegisterAddress};
 
-use crate::awe_client;
-use crate::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 use crate::cli_options::{EntriesRange, FilesArgs};
 use crate::commands::helpers::{node_entries_as_vec, xorname_from_entry};
+use crate::dweb::awe_client;
+use crate::dweb::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 
 /// Implement 'inspect-register' subcommand
 ///

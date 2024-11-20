@@ -20,16 +20,15 @@ use std::path::PathBuf;
 use color_eyre::{eyre::eyre, Result};
 use walkdir::WalkDir;
 
-use crate::helpers::autonomi::access::keys::get_register_signing_key;
+use crate::dweb::helpers::autonomi::access::keys::get_register_signing_key;
 // use sn_cli::{ChunkManager, Estimator};
-use crate::helpers::autonomi::wallet::load_wallet;
+use crate::dweb::helpers::autonomi::wallet::load_wallet;
 
 use crate::awe_const::MAIN_REPOSITORY;
-use crate::awe_website_publisher::publish_website;
-use crate::awe_website_versions::{self, is_compatible_network, WebsiteVersions};
-
-use crate::awe_client;
 use crate::cli_options::{Opt, Subcommands};
+use crate::dweb::awe_client;
+use crate::dweb::awe_website_publisher::publish_website;
+use crate::dweb::awe_website_versions::{self, is_compatible_network, WebsiteVersions};
 
 // Returns true if command complete, false to start the browser
 pub async fn cli_commands(opt: Opt) -> Result<bool> {

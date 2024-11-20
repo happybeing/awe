@@ -34,7 +34,7 @@ use crate::awe_protocols::{AWE_PROTOCOL_FILE, AWE_PROTOCOL_METADATA, AWE_PROTOCO
 
 pub async fn connect_to_autonomi() -> Result<Client> {
     println!("Autonomi client initialising...");
-    crate::helpers::autonomi::connect::connect_to_network().await
+    crate::dweb::helpers::autonomi::connect::connect_to_network().await
 }
 
 pub async fn autonomi_get_file(xor_name: XorName, client: &Client) -> Result<Bytes, GetError> {

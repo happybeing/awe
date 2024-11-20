@@ -19,13 +19,15 @@ use std::sync::LazyLock;
 use std::sync::Mutex;
 
 use http::{status::StatusCode, Request};
+use xor_name::XorName;
 
 use autonomi::client::data::GetError;
 use autonomi::client::Client;
 use sn_registers::RegisterAddress;
 
-use crate::awe_client;
-use crate::awe_website_versions::lookup_resource_for_website_version;
+use crate::dweb::awe_client;
+use crate::dweb::awe_website_metadata::{get_website_metadata_from_network, PATH_SEPARATOR};
+use crate::dweb::awe_website_versions::lookup_resource_for_website_version;
 
 pub const AWE_PROTOCOL_REGISTER: &str = "awv://";
 #[allow(dead_code)]
@@ -323,9 +325,6 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
-use crate::awe_website_metadata::{get_website_metadata_from_network, PATH_SEPARATOR};
-use xor_name::XorName;
 
 // TODO implement publishing via version register (based on webname)
 // TODO Placeholder for awe:// webname protocol

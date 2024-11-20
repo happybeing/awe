@@ -18,16 +18,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod awe_client;
+mod dweb;
+
 mod awe_const;
 mod awe_protocols;
-mod awe_website_metadata;
-mod awe_website_publisher;
-mod awe_website_versions;
 mod cli_options;
 mod commands;
 mod generated_rs;
-mod helpers;
 
 use sn_logging::{Level, LogBuilder};
 

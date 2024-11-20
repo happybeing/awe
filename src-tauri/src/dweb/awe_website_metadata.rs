@@ -29,7 +29,7 @@ use autonomi::client::Client;
 use autonomi::Wallet;
 use self_encryption::MAX_CHUNK_SIZE;
 
-use crate::awe_client;
+use crate::dweb::awe_client;
 
 pub const PATH_SEPARATOR: char = '/';
 

@@ -19,7 +19,7 @@ use color_eyre::eyre::{eyre, Error, Result};
 use tauri::http::status::StatusCode;
 use xor_name::XorName;
 
-use crate::helpers::autonomi::access::keys::get_register_signing_key;
+use crate::dweb::helpers::autonomi::access::keys::get_register_signing_key;
 
 use autonomi::client::registers::{Register, RegisterSecretKey};
 use autonomi::client::Client;
@@ -32,7 +32,7 @@ use sn_registers::RegisterAddress;
 #[cfg(not(feature = "skip-network-compatibility-check"))]
 use crate::awe_client::str_to_xor_name;
 use crate::awe_protocols::{set_version_loaded, set_version_max};
-use crate::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
+use crate::dweb::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 
 use crate::generated_rs::{builtins_local, builtins_public};
 

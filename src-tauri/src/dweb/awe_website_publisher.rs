@@ -18,12 +18,12 @@ use color_eyre::eyre::{eyre, Result};
 use std::path::PathBuf;
 use xor_name::XorName;
 
-use crate::helpers::autonomi::wallet::load_wallet;
+use crate::dweb::helpers::autonomi::wallet::load_wallet;
 use autonomi::client::archive::Archive;
 use autonomi::client::Client;
 use autonomi::Wallet;
 
-use crate::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};
+use crate::dweb::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};
 
 /// Upload the website content and website metadata to Autonomi
 /// TODO returns the xor address for the metadata used to access the website
