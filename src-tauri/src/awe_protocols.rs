@@ -25,7 +25,8 @@ use autonomi::client::data::GetError;
 use autonomi::client::Client;
 use sn_registers::RegisterAddress;
 
-use crate::dweb::awe_client;
+use crate::awe_client;
+use crate::awe_client::{autonomi_get_file, connect_to_autonomi};
 use crate::dweb::awe_website_metadata::{get_website_metadata_from_network, PATH_SEPARATOR};
 use crate::dweb::awe_website_versions::lookup_resource_for_website_version;
 
@@ -431,7 +432,7 @@ async fn handle_protocol_awv(
     };
 
     // Initialise network connection, client and files api
-    let client = awe_client::connect_to_autonomi()
+    let client = connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 
@@ -510,7 +511,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     };
 
     // Initialise network connection, client and files api
-    let files_api = awe_client::connect_to_autonomi()
+    let files_api = connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 
@@ -555,7 +556,7 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     println!("DEBUG Hello from handle_protocol_awf()");
 
     // Initialise network connection, client and files api
-    let files_api = awe_client::connect_to_autonomi()
+    let files_api = connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 
@@ -588,7 +589,7 @@ async fn awe_fetch_xor_data(
     if let Some(api_ref) = client_opt {
         client_ref = api_ref;
     } else {
-        client = awe_client::connect_to_autonomi()
+        client = connect_to_autonomi()
             .await
             .expect("Failed to connect to Autonomi Network");
         client_ref = &client;
@@ -597,7 +598,7 @@ async fn awe_fetch_xor_data(
     // TODO since Tauri v2, the iframe won't load content from
     // TODO a URI unless the response has a Content-Type header
     // TODO Investigate options, such as saving content type in the site map
-    match awe_client::autonomi_get_file(xor_name, client_ref).await {
+    match autonomi_get_file(xor_name, client_ref).await {
         Ok(content) => {
             println!("DEBUG retrieved {} bytes", content.len());
             return http::Response::builder()

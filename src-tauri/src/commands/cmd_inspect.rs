@@ -26,9 +26,9 @@ use autonomi::client::registers::Register;
 use autonomi::client::Client;
 use sn_registers::{Entry, RegisterAddress};
 
+use crate::awe_client::connect_to_autonomi;
 use crate::cli_options::{EntriesRange, FilesArgs};
 use crate::commands::helpers::{node_entries_as_vec, xorname_from_entry};
-use crate::dweb::awe_client;
 use crate::dweb::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
 
 /// Implement 'inspect-register' subcommand
@@ -47,7 +47,7 @@ pub async fn handle_inspect_register(
     include_files: bool,
     files_args: FilesArgs,
 ) -> Result<()> {
-    let client = awe_client::connect_to_autonomi()
+    let client = connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 
@@ -412,7 +412,7 @@ fn do_print_total_bytes(total_bytes: u64) -> Result<()> {
 ///
 /// TODO extend treatment to handle register with branches etc (post stabilisation of the Autonomi API)
 pub async fn handle_inspect_files(metadata_address: XorName, files_args: FilesArgs) -> Result<()> {
-    let files_api = awe_client::connect_to_autonomi()
+    let files_api = connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 

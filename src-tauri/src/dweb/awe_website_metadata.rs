@@ -29,7 +29,7 @@ use autonomi::client::Client;
 use autonomi::Wallet;
 use self_encryption::MAX_CHUNK_SIZE;
 
-use crate::dweb::awe_client;
+use crate::awe_client::autonomi_get_file;
 
 pub const PATH_SEPARATOR: char = '/';
 
@@ -38,7 +38,7 @@ pub async fn get_website_metadata_from_network(
     client: &Client,
 ) -> Result<WebsiteMetadata> {
     println!("DEBUG get_website_metadata_from_network() at {metadata_xor_name:64x}");
-    match awe_client::autonomi_get_file(metadata_xor_name, client).await {
+    match autonomi_get_file(metadata_xor_name, client).await {
         Ok(content) => {
             println!("Retrieved {} bytes", content.len());
             let metadata: WebsiteMetadata = rmp_serde::from_slice(&content)?;

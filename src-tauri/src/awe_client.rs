@@ -24,11 +24,6 @@ use xor_name::XorName;
 use autonomi::client::data::GetError;
 use autonomi::client::Client;
 use sn_registers::RegisterAddress;
-// TODO remove?
-// use autonomi::client::data::
-// use sn_client::transfers::bls::SecretKey;
-// use sn_client::transfers::bls_secret_from_hex;
-// use sn_client::{Client, ClientEventsBroadcaster, FilesApi, FilesDownload};
 
 use crate::awe_protocols::{AWE_PROTOCOL_FILE, AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
 

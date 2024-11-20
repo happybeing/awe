@@ -24,9 +24,10 @@ use crate::dweb::helpers::autonomi::access::keys::get_register_signing_key;
 // use sn_cli::{ChunkManager, Estimator};
 use crate::dweb::helpers::autonomi::wallet::load_wallet;
 
+use crate::awe_client;
+use crate::awe_client::connect_to_autonomi;
 use crate::awe_const::MAIN_REPOSITORY;
 use crate::cli_options::{Opt, Subcommands};
-use crate::dweb::awe_client;
 use crate::dweb::awe_website_publisher::publish_website;
 use crate::dweb::awe_website_versions::{self, is_compatible_network, WebsiteVersions};
 
@@ -34,7 +35,7 @@ use crate::dweb::awe_website_versions::{self, is_compatible_network, WebsiteVers
 pub async fn cli_commands(opt: Opt) -> Result<bool> {
     match opt.cmd {
         Some(Subcommands::Estimate { website_root }) => {
-            let client = awe_client::connect_to_autonomi()
+            let client = connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
             match client.file_cost(&website_root).await {
@@ -53,7 +54,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
 
             let mut wallet =
                 load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
-            let client = awe_client::connect_to_autonomi()
+            let client = connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
@@ -126,7 +127,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
 
             let mut wallet =
                 load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
-            let client = awe_client::connect_to_autonomi()
+            let client = connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
 

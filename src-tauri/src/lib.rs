@@ -20,6 +20,7 @@
 
 mod dweb;
 
+mod awe_client;
 mod awe_const;
 mod awe_protocols;
 mod cli_options;
