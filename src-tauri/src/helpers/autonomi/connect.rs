@@ -11,7 +11,7 @@ use std::time::Duration;
 use clap::Parser;
 use color_eyre::eyre::{eyre, Result};
 use indicatif::ProgressBar;
-use log::{error, info};
+use log::info;
 
 use autonomi::Client;
 

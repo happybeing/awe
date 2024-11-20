@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use tauri::http::status::StatusCode;
 use xor_name::XorName;
 
+use autonomi::client::payment::PaymentOption;
 use autonomi::client::Client;
 use autonomi::Wallet;
 use self_encryption::MAX_CHUNK_SIZE;
@@ -193,7 +194,7 @@ impl WebsiteMetadata {
             .add_resource_to_metadata(resource_website_path, xor_name, file_metadata)
     }
 
-    // TODO handle metadata larger than one chunk using self encryption
+    /// Upload website metadata and return the address (ie of the data map)
     pub async fn put_website_metadata_to_network(
         &self,
         client: Client,
@@ -208,47 +209,18 @@ impl WebsiteMetadata {
 
         let mut bytes = BytesMut::with_capacity(MAX_CHUNK_SIZE);
         bytes.put(serialised_metadata.as_slice());
-        // let metadata_chunk = Chunk::new(bytes.freeze());
-        // let metadata_xorname = *metadata_chunk.name();
 
-        match client.data_put(bytes.freeze(), &wallet).await {
-            Ok(addr) => Ok(addr),
+        match client
+            .data_put(bytes.freeze(), PaymentOption::from(wallet))
+            .await
+        {
+            Ok(data_map) => Ok(data_map),
             Err(e) => {
                 let message = format!("Failed to upload website metadata - {e}");
                 println!("{}", &message);
                 return Err(eyre!(message.clone()));
             }
         }
-
-        // println!("wallet_dir: {root_dir:?}"); // Typical wallet_dir: "/home/user/.local/share/safe/client"
-        // let files_api = FilesApi::new(client.clone(), root_dir.to_path_buf());
-        // let storage_payment_results = files_api
-        //     .pay_for_chunks(vec![metadata_xorname.clone()])
-        //     .await?;
-
-        // // Note: even if the website content is unchanged, the metadata will be paid again as
-        // // it contains the publishing date. So payment is needed every time.
-        // println!(
-        //     "Paid {}+{} to store Website metadata, now uploading...",
-        //     storage_payment_results.storage_cost, storage_payment_results.royalty_fees
-        // );
-        // match files_api
-        //     .get_local_payment_and_upload_chunk(
-        //         metadata_chunk,
-        //         upload_cfg.verify_store,
-        //         Some(upload_cfg.retry_strategy),
-        //     )
-        //     .await
-        // {
-        //     Ok(_) => (),
-        //     Err(e) => {
-        //         let message = format!("Failed to upload website metadata - {e}");
-        //         println!("{}", &message);
-        //         return Err(eyre!(message.clone()));
-        //     }
-        // };
-
-        // Ok(metadata_xorname)
     }
 }
 

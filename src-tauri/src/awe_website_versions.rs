@@ -453,54 +453,81 @@ impl VersionsRegister {
     pub async fn add_xor_name(
         &mut self,
         client: &Client,
-        xor_address: &XorName,
+        xor_value: &XorName,
         owner_secret: &RegisterSecretKey,
         _wallet: &Wallet, // Include for when updates are charged for
     ) -> Result<()> {
-        match client
-            .register_update(
-                self.register.clone(),
-                Bytes::from(xor_address.to_vec()),
-                owner_secret.clone(),
-            )
-            .await
-        {
-            Ok(_) => {
+        let register_xor_address = self.register.address().to_hex();
+        println!("Updating register    : {register_xor_address}");
+        // The first register_get() has been added for testing (as reg_update() isn't always changing some registers)
+        match client.register_get(self.register.address().clone()).await {
+            Ok(register) => {
+                let register_xor_address = register.address().to_hex();
+                println!("Register get returned: {register_xor_address}");
                 let values = self.register.values();
-                println!("After update...");
+                println!("Before register_update()...do client.register_get()...");
                 println!("      Register has {} values", values.len());
                 println!("      Register has {} entries", self.num_entries());
                 let merkle_reg = self.register.inner_merkle_reg();
                 println!("      Register {merkle_reg:?}");
 
-                // It is necessary to get the register from the network to have it's entries accessible
-                self.register = match client.register_get(self.register.address().clone()).await {
-                    Ok(register) => {
-                        println!("After update...and get...");
+                println!("Calling register_update() with value: {xor_value}");
+                match client
+                    .register_update(
+                        self.register.clone(),
+                        Bytes::from(xor_value.to_vec()),
+                        owner_secret.clone(),
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        let values = self.register.values();
+                        println!("After update...");
                         println!("      Register has {} values", values.len());
                         println!("      Register has {} entries", self.num_entries());
                         let merkle_reg = self.register.inner_merkle_reg();
                         println!("      Register {merkle_reg:?}");
 
-                        let xor_address = self.register.address().to_hex();
-                        println!("client.register_update() added entry to register: {xor_address}");
-                        register
+                        // It is necessary to get the register from the network to have it's entries accessible
+                        self.register = match client
+                            .register_get(self.register.address().clone())
+                            .await
+                        {
+                            Ok(register) => {
+                                let values = self.register.values();
+                                println!("After update...and get...");
+                                println!("      Register has {} values", values.len());
+                                println!("      Register has {} entries", self.num_entries());
+                                let merkle_reg = self.register.inner_merkle_reg();
+                                println!("      Register {merkle_reg:?}");
+
+                                let register_xor_address = self.register.address().to_hex();
+                                println!("client.register_update() added entry to register: {register_xor_address}");
+                                register
+                            }
+                            Err(e) => {
+                                return Err(eyre!(
+                                    "DEBUG failed to get register that was just updated!\n{e}"
+                                ))
+                            }
+                        };
+
+                        let register_xor_address = self.register.address().to_hex();
+                        println!(
+                            "DEBUG client.register_update() added entry to register: {register_xor_address}"
+                        );
+                        let merkle_reg = self.register.inner_merkle_reg();
+                        println!("DEBUG register.inner_merkle_reg():\n{merkle_reg:?}");
                     }
                     Err(e) => {
-                        return Err(eyre!("DEBUG failed to get register that was just updated!"))
+                        return Err(eyre!("Failed to add XorName to register: {e:?}"));
                     }
-                };
+                }
+            }
+            Err(e) => return Err(eyre!("DEBUG failed to get register prior to update!\n{e}")),
+        };
 
-                let xor_address = self.register.address().to_hex();
-                println!("DEBUG client.register_update() added entry to register: {xor_address}");
-                let merkle_reg = self.register.inner_merkle_reg();
-                println!("DEBUG register.inner_merkle_reg():\n{merkle_reg:?}");
-                Ok(())
-            }
-            Err(e) => {
-                return Err(eyre!("Failed to add XorName to register: {e:?}"));
-            }
-        }
+        Ok(())
     }
 
     fn owner_secret(&self) -> Result<RegisterSecretKey, Error> {

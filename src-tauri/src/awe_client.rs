@@ -16,11 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::convert::TryInto;
-use std::path::PathBuf;
 
 use bytes::Bytes;
 use color_eyre::{eyre::eyre, Result};
-use log::info;
 use xor_name::XorName;
 
 use autonomi::client::data::GetError;
@@ -33,8 +31,6 @@ use sn_registers::RegisterAddress;
 // use sn_client::{Client, ClientEventsBroadcaster, FilesApi, FilesDownload};
 
 use crate::awe_protocols::{AWE_PROTOCOL_FILE, AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
-
-const CLIENT_KEY: &str = "clientkey";
 
 pub async fn connect_to_autonomi() -> Result<Client> {
     println!("Autonomi client initialising...");
