@@ -29,7 +29,7 @@ use sn_registers::{Entry, RegisterAddress};
 use crate::awe_client::connect_to_autonomi;
 use crate::cli_options::{EntriesRange, FilesArgs};
 use crate::commands::helpers::{node_entries_as_vec, xorname_from_entry};
-use crate::dweb::data::awe_website_metadata::{get_website_metadata_from_network, WebsiteMetadata};
+use crate::dweb::trove::file_tree::FileTree;
 
 /// Implement 'inspect-register' subcommand
 ///
@@ -309,7 +309,7 @@ async fn do_print_entries(
         let xor_name = xorname_from_entry(&entries_vec[index]);
         if include_files {
             println!("entry {index} - fetching metadata at {xor_name:64x}");
-            match get_website_metadata_from_network(xor_name, &client).await {
+            match FileTree::file_tree_download(xor_name, &client).await {
                 Ok(metadata) => {
                     let _ = do_print_files(&metadata, &files_args);
                 }
@@ -326,7 +326,7 @@ async fn do_print_entries(
     Ok(())
 }
 
-fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<()> {
+fn do_print_files(metadata: &FileTree, files_args: &FilesArgs) -> Result<()> {
     let metadata_stats = if files_args.print_metadata_summary
         || files_args.print_counts
         || files_args.print_total_bytes
@@ -367,7 +367,7 @@ fn do_print_files(metadata: &WebsiteMetadata, files_args: &FilesArgs) -> Result<
     Ok(())
 }
 
-fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
+fn metadata_stats(metadata: &FileTree) -> Result<(usize, u64)> {
     let mut files_count: usize = 0;
     let mut total_bytes: u64 = 0;
 
@@ -382,17 +382,14 @@ fn metadata_stats(metadata: &WebsiteMetadata) -> Result<(usize, u64)> {
     Ok((files_count, total_bytes))
 }
 
-fn do_print_metadata_summary(
-    metadata: &WebsiteMetadata,
-    metadata_stats: (usize, u64),
-) -> Result<()> {
+fn do_print_metadata_summary(metadata: &FileTree, metadata_stats: (usize, u64)) -> Result<()> {
     println!("published  : {}", metadata.date_published);
     let _ = do_print_counts(metadata, metadata_stats.0);
     let _ = do_print_total_bytes(metadata_stats.1);
     Ok(())
 }
 
-fn do_print_counts(metadata: &WebsiteMetadata, count_files: usize) -> Result<()> {
+fn do_print_counts(metadata: &FileTree, count_files: usize) -> Result<()> {
     println!(
         "directories: {}",
         metadata.path_map.paths_to_files_map.len()
@@ -417,13 +414,13 @@ pub async fn handle_inspect_files(metadata_address: XorName, files_args: FilesAr
         .expect("Failed to connect to Autonomi Network");
 
     println!("fetching metadata at {metadata_address:64x}");
-    match get_website_metadata_from_network(metadata_address, &files_api).await {
+    match FileTree::file_tree_download(metadata_address, &files_api).await {
         Ok(metadata) => {
             let _ = do_print_files(&metadata, &files_args);
         }
         Err(e) => {
             println!("Failed to get website metadata from network");
-            return Err(eyre!(e));
+            return Err(eyre!(e).into());
         }
     };
     Ok(())

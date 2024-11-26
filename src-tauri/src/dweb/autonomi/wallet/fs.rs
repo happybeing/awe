@@ -6,7 +6,7 @@
 // KIND, either express or implied. Please review the Licences for the specific language governing
 // permissions and limitations relating to use of the SAFE Network Software.
 
-use crate::helpers::autonomi::*;
+use crate::dweb::autonomi::*;
 use autonomi::{get_evm_network_from_env, RewardsAddress, Wallet};
 use const_hex::traits::FromHex;
 use prettytable::{Cell, Row, Table};

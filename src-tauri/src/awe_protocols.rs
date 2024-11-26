@@ -25,10 +25,10 @@ use autonomi::client::data::GetError;
 use autonomi::client::Client;
 use sn_registers::RegisterAddress;
 
-use crate::awe_client;
 use crate::awe_client::{autonomi_get_file, connect_to_autonomi};
-use crate::dweb::data::awe_website_metadata::{get_website_metadata_from_network, PATH_SEPARATOR};
-use crate::dweb::data::awe_website_versions::lookup_resource_for_website_version;
+use crate::dweb::helpers::convert::str_to_xor_name;
+use crate::dweb::trove::file_tree::{FileTree, PATH_SEPARATOR};
+use crate::dweb::trove::TroveHistory;
 
 pub const AWE_PROTOCOL_REGISTER: &str = "awv://";
 #[allow(dead_code)]
@@ -119,6 +119,7 @@ pub fn set_version_loaded(version: u64) {
     println!("DEBUG set_version_loaded() set to {}", version);
     *STATIC_VERSION_LOADED.lock().unwrap() = version;
 }
+
 pub fn set_version_max(version: u64) {
     println!("DEBUG set_version_max() set to {}", version);
     *STATIC_VERSION_MAX.lock().unwrap() = version;
@@ -439,7 +440,7 @@ async fn handle_protocol_awv(
     // Save in case we don't want site version changed
     let current_site_version = get_version_loaded();
 
-    let xor_name = match lookup_resource_for_website_version(
+    let xor_name = match awe_lookup_resource_for_website_version(
         &resource_path,
         versions_register_address,
         website_version,
@@ -498,7 +499,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     };
 
     println!("DEBUG (xor_string, resource_path): ({xor_string}, {resource_path})'");
-    let xor_name = match awe_client::str_to_xor_name(&xor_string.as_str()) {
+    let xor_name = match str_to_xor_name(&xor_string.as_str()) {
         Ok(xor_name) => xor_name,
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
@@ -515,8 +516,8 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         .await
         .expect("Failed to connect to Autonomi Network");
 
-    println!("DEBUG calling get_website_metadata_from_network()");
-    let metadata = match get_website_metadata_from_network(xor_name, &files_api).await {
+    println!("DEBUG calling FileTree::file_tree_download()");
+    let metadata = match FileTree::file_tree_download(xor_name, &files_api).await {
         Ok(metadata) => {
             println!("DEBUG got metadata");
             metadata
@@ -531,7 +532,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    let xor_name = match metadata.lookup_resource(&resource_path) {
+    let xor_name = match metadata.lookup_web_resource(&resource_path) {
         Ok(xor_name) => xor_name,
         Err(status_code) => {
             let message = format!("Resource not found at {resource_path}");
@@ -562,7 +563,7 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
 
     // TODO test if need to handle trailing slash
     let autonomi_url = req.uri().to_string();
-    let xor_name = match awe_client::str_to_xor_name(&autonomi_url.as_str()) {
+    let xor_name = match str_to_xor_name(&autonomi_url.as_str()) {
         Ok(xor_name) => xor_name,
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
@@ -653,5 +654,53 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
             StatusCode::SERVICE_UNAVAILABLE,
             String::from("Unknown error (or default)"),
         ),
+    }
+}
+
+/// Look-up a website resource in FileTree metadata obtained from a Register on the network
+/// according to Some(version), or the most recent version if None.
+/// The lookup automatically handles a resource_path which ends in '/', and so will return
+/// '/index.html' or '/index.htm' if found (or other defaults according to website settings in the FileTree).
+/// Returns XorName of the resource if present, and updates the loaded version
+pub async fn awe_lookup_resource_for_website_version(
+    resource_path: &String,
+    history_address: RegisterAddress,
+    version: Option<u64>,
+    client: &Client,
+) -> Result<XorName, StatusCode> {
+    println!("DEBUG lookup_resource_for_website_version() version {version:?}");
+    println!("DEBUG history_address: {history_address}");
+    println!("DEBUG resource_path    : {resource_path}");
+
+    match TroveHistory::<FileTree>::from_register_address(history_address, client, None).await {
+        Ok(mut history) => {
+            let data_address = match FileTree::history_lookup_web_resource(
+                &mut history,
+                resource_path,
+                version,
+                client,
+            )
+            .await
+            {
+                Ok(data_address) => {
+                    let version = history.get_cached_version();
+                    set_version_loaded(if version.is_none() {
+                        0
+                    } else {
+                        version.unwrap()
+                    });
+                    data_address
+                }
+                Err(e) => {
+                    println!("Lookup web resource failed: {e:?}");
+                    return Err(e);
+                }
+            };
+            Ok(data_address)
+        }
+        Err(e) => {
+            println!("Failed to load versions register: {e:?}");
+            return Err(StatusCode::NOT_FOUND);
+        }
     }
 }

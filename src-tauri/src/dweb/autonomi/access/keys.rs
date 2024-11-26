@@ -6,7 +6,7 @@
 // KIND, either express or implied. Please review the Licences for the specific language governing
 // permissions and limitations relating to use of the SAFE Network Software.
 
-use crate::helpers::autonomi::wallet::load_wallet_private_key;
+use crate::dweb::autonomi::wallet::load_wallet_private_key;
 use autonomi::client::registers::RegisterSecretKey;
 use autonomi::client::vault::VaultSecretKey;
 use autonomi::{get_evm_network_from_env, Wallet};

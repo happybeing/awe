@@ -20,16 +20,16 @@ use std::path::PathBuf;
 use color_eyre::{eyre::eyre, Result};
 use walkdir::WalkDir;
 
-use crate::dweb::helpers::autonomi::access::keys::get_register_signing_key;
+use crate::dweb::autonomi::access::keys::get_register_signing_key;
 // use sn_cli::{ChunkManager, Estimator};
-use crate::dweb::helpers::autonomi::wallet::load_wallet;
+use crate::dweb::autonomi::wallet::load_wallet;
+use crate::dweb::trove::file_tree::FileTree;
+use crate::dweb::trove::TroveHistory;
 
-use crate::awe_client;
 use crate::awe_client::connect_to_autonomi;
-use crate::awe_const::MAIN_REPOSITORY;
 use crate::cli_options::{Opt, Subcommands};
-use crate::dweb::data::awe_website_publisher::publish_website;
-use crate::dweb::data::awe_website_versions::{self, is_compatible_network, WebsiteVersions};
+
+use crate::awe_websites::publish_website;
 
 // Returns true if command complete, false to start the browser
 pub async fn cli_commands(opt: Opt) -> Result<bool> {
@@ -47,7 +47,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             website_root,
             // update, TODO when NRS, re-instate
             website_config,
-            is_new_network,
+            is_new_network: _,
         }) => {
             // TODO move this code into a function which handles both Publish and Update
             let _ = check_website_path(&website_root);
@@ -58,6 +58,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
+            #[cfg(not(feature = "skip-network-compatibility-check"))]
             if !is_new_network && !is_compatible_network(&client).await {
                 let message = format!(
                     "ERROR: This version of awe cannot publish to this Autonomi network\
@@ -73,31 +74,28 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 .await
                 .inspect_err(|e| println!("{}", e))?;
 
-            let register_type = if is_new_network {
-                website_address
-            } else {
-                awe_client::str_to_xor_name(
-                    awe_website_versions::awv_register_type_string().as_str(),
-                )?
-            };
+            // TODO remove?
+            // let register_type = if is_new_network {
+            //     website_address
+            // } else {
+            //     awe_client::str_to_xor_name(
+            //         awe_website_history::awv_register_type_string().as_str(),
+            //     )?
+            // };
 
             println!("Creating versions register, please wait...");
             let owner_secret = get_register_signing_key().inspect_err(|e| println!("{}", e))?;
-            println!("got wallet... calling WebsiteVersions::new_register()");
-            let mut website_versions = WebsiteVersions::new_register(
-                &client,
-                &mut wallet,
-                &register_type,
-                Some(owner_secret),
-            )
-            .await
-            .inspect_err(|e| println!("{}", e))?;
-            match website_versions
+            println!("got wallet... calling TroveHistory<FileTree>::new_register()");
+            let mut website_history =
+                TroveHistory::<FileTree>::new(&client, None, Some(owner_secret), &mut wallet)
+                    .await
+                    .inspect_err(|e| println!("{}", e))?;
+            match website_history
                 .publish_new_version(&client, &website_address, &wallet)
                 .await
             {
                 Ok(version) => {
-                    let xor_address = website_versions.versions_address().to_hex();
+                    let xor_address = website_history.register_address().to_hex();
                     let website_root = website_root.to_str();
                     let website_root = if website_root.is_some() {
                         website_root.unwrap()
@@ -138,22 +136,27 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 publish_website(&website_root, website_config, &client, &wallet).await?;
 
             println!("Updating versions register {}", update_xor.to_hex());
-            let mut website_versions =
-                match WebsiteVersions::load_register(update_xor, &client, Some(owner_secret)).await
-                {
-                    Ok(website_versions) => website_versions,
-                    Err(e) => {
-                        println!("Failed to access website versions. {}", e.root_cause());
-                        return Err(e);
-                    }
-                };
+            let mut website_history = match TroveHistory::<FileTree>::new(
+                &client,
+                Some(update_xor),
+                Some(owner_secret),
+                &mut wallet,
+            )
+            .await
+            {
+                Ok(website_history) => website_history,
+                Err(e) => {
+                    println!("Failed to access website versions. {}", e.root_cause());
+                    return Err(e);
+                }
+            };
 
-            match website_versions
+            match website_history
                 .publish_new_version(&client, &website_address, &mut wallet)
                 .await
             {
                 Ok(version) => {
-                    let xor_address = website_versions.versions_address().to_hex();
+                    let xor_address = website_history.register_address().to_hex();
                     let website_root = website_root.to_str();
                     let website_root = if website_root.is_some() {
                         website_root.unwrap()

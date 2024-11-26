@@ -6,7 +6,7 @@
 // KIND, either express or implied. Please review the Licences for the specific language governing
 // permissions and limitations relating to use of the SAFE Network Software.
 
-use crate::helpers::autonomi::*;
+use crate::dweb::autonomi::*;
 use rand::Rng;
 use ring::aead::{BoundKey, Nonce, NonceSequence};
 use ring::error::Unspecified;

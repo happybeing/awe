@@ -18,12 +18,12 @@ use color_eyre::eyre::{eyre, Result};
 use std::path::PathBuf;
 use xor_name::XorName;
 
-use crate::dweb::helpers::autonomi::wallet::load_wallet;
+use crate::dweb::autonomi::wallet::load_wallet;
 use autonomi::client::archive::Archive;
 use autonomi::client::Client;
 use autonomi::Wallet;
 
-use crate::dweb::data::awe_website_metadata::{osstr_to_string, JsonSettings, WebsiteMetadata};
+use crate::dweb::trove::file_tree::{osstr_to_string, FileTree, JsonSettings};
 
 /// Upload the website content and website metadata to Autonomi
 /// TODO returns the xor address for the metadata used to access the website
@@ -114,7 +114,7 @@ pub async fn publish_website_metadata(
     website_config: Option<JsonSettings>,
     wallet: &Wallet,
 ) -> Result<XorName> {
-    let mut metadata = WebsiteMetadata::new();
+    let mut metadata = FileTree::new();
     if let Some(website_config) = website_config {
         metadata.website_config = website_config;
     };

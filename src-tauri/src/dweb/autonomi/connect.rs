@@ -19,7 +19,7 @@ use crate::cli_options::Opt;
 
 pub async fn connect_to_network() -> Result<Client> {
     let opt = Opt::parse();
-    match crate::dweb::helpers::autonomi::access::network::get_peers(opt.peers).await {
+    match crate::dweb::autonomi::access::network::get_peers(opt.peers).await {
         Ok(peers) => {
             let progress_bar = ProgressBar::new_spinner();
             progress_bar.enable_steady_tick(Duration::from_millis(120));

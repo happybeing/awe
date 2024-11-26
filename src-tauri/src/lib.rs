@@ -23,6 +23,7 @@ mod dweb;
 mod awe_client;
 mod awe_const;
 mod awe_protocols;
+mod awe_websites;
 mod cli_options;
 mod commands;
 mod generated_rs;

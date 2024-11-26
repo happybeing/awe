@@ -6,6 +6,13 @@
 // KIND, either express or implied. Please review the Licences for the specific language governing
 // permissions and limitations relating to use of the SAFE Network Software.
 
+use color_eyre::eyre::{eyre, Result};
+use sn_registers::RegisterAddress;
+use xor_name::XorName;
+
+// The following functions copied from sn_cli with minor changes (eg to message text)
+
+/// Parse a hex register address with optional URL scheme
 /// TODO modify for dweb use: Parse a hex register address with optional URL scheme
 pub fn str_to_register_address(str: &str) -> Result<RegisterAddress> {
     // let str = if str.starts_with(AWE_PROTOCOL_REGISTER) {
