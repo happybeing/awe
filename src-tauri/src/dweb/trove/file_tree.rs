@@ -242,9 +242,9 @@ impl FileTree {
 
     fn lookup_name_in_vec(
         name: &String,
-        resources_vec: &Vec<(String, XorName, std::time::SystemTime, u64)>,
+        resources_vec: &Vec<(String, XorName, std::time::SystemTime, u64, String)>,
     ) -> Option<XorName> {
-        for (resource_name, xor_name, _modified, _size) in resources_vec {
+        for (resource_name, xor_name, _modified, _size, _json_metadata) in resources_vec {
             if resource_name.eq(name) {
                 return Some(xor_name.clone());
             }
@@ -300,9 +300,11 @@ impl FileTree {
 #[derive(Serialize, Deserialize)]
 pub struct FileTreePathMap {
     // Maps of paths of directories and files to metadata.
-    // File metadata tuple is (filename, data_address, date modified, size)
+    // File metadata tuple is (filename, data_address, date modified, size, extended metadata)
+    // where extended metadata can be a JSON encoded String at some point
     // TODO consider if using a BTree or other collection would make serialization deterministic
-    pub paths_to_files_map: HashMap<String, Vec<(String, XorName, std::time::SystemTime, u64)>>,
+    pub paths_to_files_map:
+        HashMap<String, Vec<(String, XorName, std::time::SystemTime, u64, String)>>,
 }
 
 // TODO replace OS path separator with '/' when storing web paths
@@ -310,8 +312,10 @@ pub struct FileTreePathMap {
 impl FileTreePathMap {
     pub fn new() -> FileTreePathMap {
         FileTreePathMap {
-            paths_to_files_map:
-                HashMap::<String, Vec<(String, XorName, std::time::SystemTime, u64)>>::new(),
+            paths_to_files_map: HashMap::<
+                String,
+                Vec<(String, XorName, std::time::SystemTime, u64, String)>,
+            >::new(),
         }
     }
 
@@ -333,17 +337,21 @@ impl FileTreePathMap {
             // );
             let metadata_tuple = if let Some(metadata) = file_metadata {
                 (
+                    // Use metadata for time and size
                     resource_file_name.clone(),
                     xor_name,
                     metadata.modified().unwrap(),
                     metadata.len(),
+                    String::from(""), // Provision for future JSON encoded extended metadata (e.g. with MIME type)
                 )
             } else {
                 (
+                    // Use system time and set unknown size (0)
                     resource_file_name.clone(),
                     xor_name,
                     std::time::SystemTime::now(),
                     0,
+                    String::from(""), // Provision for future JSON encoded extended metadata (e.g. with MIME type)
                 )
             };
 

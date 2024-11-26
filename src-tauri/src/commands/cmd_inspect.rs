@@ -350,12 +350,12 @@ fn do_print_files(metadata: &FileTree, files_args: &FilesArgs) -> Result<()> {
 
     if files_args.print_paths || files_args.print_all_details {
         for (path_string, path_map) in metadata.path_map.paths_to_files_map.iter() {
-            for (file_name, xor_name, modified, size) in path_map.iter() {
+            for (file_name, xor_name, modified, size, json_metadata) in path_map.iter() {
                 if files_args.print_all_details {
                     let date_time = DateTime::<Utc>::from(*modified);
                     let modified_str = date_time.format("%Y-%m-%d %H:%M:%S").to_string();
                     println!(
-                        "{xor_name:64x} {modified_str} \"{path_string}{file_name}\" {size} bytes",
+                        "{xor_name:64x} {modified_str} \"{path_string}{file_name}\" {size} bytes and JSON: \"{json_metadata}\"",
                     );
                 } else {
                     println!("{xor_name:64x} \"{path_string}{file_name}\"");
