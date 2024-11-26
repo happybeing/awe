@@ -28,7 +28,7 @@ use xor_name::XorName;
 
 use sn_peers_acquisition::PeersArgs;
 
-use crate::dweb::helpers::convert::{str_to_register_address, str_to_xor_name};
+use crate::awe_client::{awe_str_to_register_address, awe_str_to_xor_name};
 
 // TODO add example to each CLI subcommand
 
@@ -155,7 +155,7 @@ pub enum Subcommands {
         #[clap(long = "website-root", value_name = "WEBSITE-ROOT")]
         website_root: PathBuf,
         /// The address of a register referencing each version of the website. Can begin with "awv://"
-        #[clap(long, name = "REGISTER-ADDRESS", value_parser = str_to_register_address)]
+        #[clap(long, name = "REGISTER-ADDRESS", value_parser = awe_str_to_register_address)]
         update_xor: RegisterAddress,
         // TODO when NRS, re-instate the following (and 'conflicts_with = "update"' above)
         // /// Update the website at given awe NRS name
@@ -214,7 +214,7 @@ pub enum Subcommands {
     #[allow(non_camel_case_types)]
     Inspect_register {
         /// The address of an Autonomi register. Can be prefixed with awv://
-        #[clap(name = "REGISTER-ADDRESS", value_parser = str_to_register_address)]
+        #[clap(name = "REGISTER-ADDRESS", value_parser = awe_str_to_register_address)]
         register_address: RegisterAddress,
 
         /// Print a summary of the register including type (the value of entry 0) and number of entries
@@ -262,7 +262,7 @@ pub enum Subcommands {
     #[allow(non_camel_case_types)]
     Inspect_files {
         /// The Autonomi network address of some awe metadata. Can be prefixed with awm://
-        #[clap(value_name = "FILES-METADATA-ADDRESS", value_parser = str_to_xor_name)]
+        #[clap(value_name = "FILES-METADATA-ADDRESS", value_parser = awe_str_to_xor_name)]
         files_metadata_address: XorName,
 
         #[command(flatten)]
