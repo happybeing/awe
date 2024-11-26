@@ -23,7 +23,7 @@ use autonomi::client::archive::Archive;
 use autonomi::client::Client;
 use autonomi::Wallet;
 
-use crate::dweb::trove::file_tree::{osstr_to_string, FileTree, JsonSettings};
+use crate::dweb::trove::file_tree::{osstr_to_string, FileTree, JsonSettings, WebsiteSettings};
 
 /// Upload the website content and website metadata to Autonomi
 /// TODO returns the xor address for the metadata used to access the website
@@ -47,13 +47,18 @@ pub async fn publish_website(
         None
     };
 
+    let mut website_settings = WebsiteSettings::new();
+    if let Some(website_config) = website_config {
+        website_settings.website_config = website_config;
+    };
+
     match publish_website_content(client, website_root).await {
         Ok(site_upload_summary) => {
             match publish_website_metadata(
                 client,
                 website_root,
                 &site_upload_summary,
-                website_config,
+                website_settings,
                 wallet,
             )
             .await
@@ -111,13 +116,10 @@ pub async fn publish_website_metadata(
     client: &Client,
     website_root: &PathBuf,
     site_upload_archive: &Archive,
-    website_config: Option<JsonSettings>,
+    website_settings: WebsiteSettings,
     wallet: &Wallet,
 ) -> Result<XorName> {
-    let mut metadata = FileTree::new();
-    if let Some(website_config) = website_config {
-        metadata.website_config = website_config;
-    };
+    let mut metadata = FileTree::new(Some(website_settings));
 
     if let Some(website_root_string) = osstr_to_string(website_root.as_os_str()) {
         println!("DEBUG publish_website_metadata() website_root '{website_root_string}'");

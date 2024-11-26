@@ -90,10 +90,23 @@ pub struct FileTree {
     pub third_party_settings: JsonSettings,
 
     // Optional settings when a FileTree is used to store a website
-    // TODO separate these in to a struct (e.g. WebsiteSettings) and an optional member (website_settings: Option<WebsiteSettings>)
+    website_settings: Option<WebsiteSettings>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct WebsiteSettings {
     // TODO use website_config to implement web server like configuration such as redirects, short links and subdomains
     pub website_config: JsonSettings,
-    index_filenames: Vec<String>, // Acceptable default index filenames (e.g. 'index.html')
+    pub index_filenames: Vec<String>, // Acceptable default index filenames (e.g. 'index.html')
+}
+
+impl WebsiteSettings {
+    pub fn new() -> WebsiteSettings {
+        WebsiteSettings {
+            index_filenames: Vec::from([String::from("index.html"), String::from("index.htm")]),
+            website_config: JsonSettings::new(),
+        }
+    }
 }
 
 impl Trove for FileTree {
@@ -111,13 +124,12 @@ impl Trove for FileTree {
 /// Work in progress and subject to breaking changes
 /// TODO consider how to handle use as a virtual file store (see comments above this in the code)
 impl FileTree {
-    pub fn new() -> FileTree {
+    pub fn new(website_settings: Option<WebsiteSettings>) -> FileTree {
         FileTree {
             date_published: Utc::now(),
-            website_config: JsonSettings::new(),
             third_party_settings: JsonSettings::new(),
             path_map: FileTreePathMap::new(),
-            index_filenames: Vec::from([String::from("index.html"), String::from("index.htm")]),
+            website_settings,
         }
     }
 
@@ -204,13 +216,16 @@ impl FileTree {
         };
 
         println!("Retrying for index file in new_resource_path '{new_resource_path}'");
+        let index_filenames = if let Some(website_settings) = &self.website_settings {
+            &website_settings.index_filenames
+        } else {
+            &Vec::from([String::from("index.html"), String::from("index.htm")])
+        };
+
         if let Some(new_resources) = self.path_map.paths_to_files_map.get(&new_resource_path) {
-            println!(
-                "DEBUG looking for a default INDEX file, one of {:?}",
-                self.index_filenames
-            );
+            println!("DEBUG looking for a default INDEX file, one of {index_filenames:?}",);
             // Look for a default index file
-            for index_file in &self.index_filenames {
+            for index_file in index_filenames {
                 // TODO might it be necessary to return the name of the resource?
                 match Self::lookup_name_in_vec(&index_file, &new_resources) {
                     Some(xorname) => return Ok(xorname),
