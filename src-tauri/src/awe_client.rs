@@ -19,15 +19,15 @@ use bytes::Bytes;
 use color_eyre::eyre::{eyre, Result};
 use xor_name::XorName;
 
+use ant_registers::RegisterAddress;
 use autonomi::client::data::GetError;
 use autonomi::client::Client;
-use sn_registers::RegisterAddress;
 
 use crate::awe_protocols::{AWE_PROTOCOL_FILE, AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
 
 pub async fn connect_to_autonomi() -> Result<Client> {
     println!("Autonomi client initialising...");
-    crate::dweb::autonomi::connect::connect_to_network().await
+    crate::connect::connect_to_network().await
 }
 
 pub async fn autonomi_get_file(xor_name: XorName, client: &Client) -> Result<Bytes, GetError> {

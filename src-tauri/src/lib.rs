@@ -18,17 +18,16 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod dweb;
-
 mod awe_client;
 mod awe_const;
 mod awe_protocols;
 mod awe_websites;
 mod cli_options;
 mod commands;
+mod connect;
 mod generated_rs;
 
-use sn_logging::{Level, LogBuilder};
+use ant_logging::{Level, LogBuilder};
 
 use crate::commands::awe_subcommands;
 
@@ -48,16 +47,16 @@ pub fn run() {
     if opt.client_logs {
         let logging_targets = vec![
             // TODO: Reset to nice and clean defaults once we have a better idea of what we want
-            ("sn_networking".to_string(), Level::DEBUG),
+            ("ant_networking".to_string(), Level::DEBUG),
             ("safe".to_string(), Level::TRACE),
-            ("sn_build_info".to_string(), Level::TRACE),
+            ("ant_build_info".to_string(), Level::TRACE),
             ("autonomi".to_string(), Level::TRACE),
-            ("sn_client".to_string(), Level::TRACE),
-            ("sn_logging".to_string(), Level::TRACE),
-            ("sn_peers_acquisition".to_string(), Level::TRACE),
-            ("sn_protocol".to_string(), Level::TRACE),
-            ("sn_registers".to_string(), Level::TRACE),
-            ("sn_transfers".to_string(), Level::TRACE),
+            ("ant_client".to_string(), Level::TRACE),
+            ("ant_logging".to_string(), Level::TRACE),
+            ("ant_peers_acquisition".to_string(), Level::TRACE),
+            ("ant_protocol".to_string(), Level::TRACE),
+            ("ant_registers".to_string(), Level::TRACE),
+            ("ant_transfers".to_string(), Level::TRACE),
         ];
 
         let log_builder = LogBuilder::new(logging_targets);

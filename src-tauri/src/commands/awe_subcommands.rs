@@ -20,11 +20,11 @@ use std::path::PathBuf;
 use color_eyre::{eyre::eyre, Result};
 use walkdir::WalkDir;
 
-use crate::dweb::autonomi::access::keys::get_register_signing_key;
-// use sn_cli::{ChunkManager, Estimator};
-use crate::dweb::autonomi::wallet::load_wallet;
-use crate::dweb::trove::file_tree::FileTree;
-use crate::dweb::trove::TroveHistory;
+use dweb::autonomi::access::keys::get_register_signing_key;
+// use ant_cli::{ChunkManager, Estimator};
+use dweb::autonomi::wallet::load_wallet;
+use dweb::trove::file_tree::FileTree;
+use dweb::trove::TroveHistory;
 
 use crate::awe_client::connect_to_autonomi;
 use crate::cli_options::{Opt, Subcommands};

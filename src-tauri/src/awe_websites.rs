@@ -18,12 +18,12 @@ use color_eyre::eyre::{eyre, Result};
 use std::path::PathBuf;
 use xor_name::XorName;
 
-use crate::dweb::autonomi::wallet::load_wallet;
 use autonomi::client::archive::Archive;
 use autonomi::client::Client;
 use autonomi::Wallet;
+use dweb::autonomi::wallet::load_wallet;
 
-use crate::dweb::trove::file_tree::{osstr_to_string, FileTree, JsonSettings, WebsiteSettings};
+use dweb::trove::file_tree::{osstr_to_string, FileTree, JsonSettings, WebsiteSettings};
 
 /// Upload the website content and website metadata to Autonomi
 /// TODO returns the xor address for the metadata used to access the website

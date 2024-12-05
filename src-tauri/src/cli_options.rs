@@ -18,15 +18,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
+use ant_registers::RegisterAddress;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
-use sn_registers::RegisterAddress;
 use xor_name::XorName;
 
-use sn_peers_acquisition::PeersArgs;
+use ant_peers_acquisition::PeersArgs;
 
 use crate::awe_client::{awe_str_to_register_address, awe_str_to_xor_name};
 

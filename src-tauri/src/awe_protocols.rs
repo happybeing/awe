@@ -21,14 +21,14 @@ use std::sync::Mutex;
 use http::{status::StatusCode, Request};
 use xor_name::XorName;
 
+use ant_registers::RegisterAddress;
 use autonomi::client::data::GetError;
 use autonomi::client::Client;
-use sn_registers::RegisterAddress;
+use dweb::helpers::convert::str_to_xor_name;
+use dweb::trove::file_tree::{FileTree, PATH_SEPARATOR};
+use dweb::trove::TroveHistory;
 
 use crate::awe_client::{autonomi_get_file, connect_to_autonomi};
-use crate::dweb::helpers::convert::str_to_xor_name;
-use crate::dweb::trove::file_tree::{FileTree, PATH_SEPARATOR};
-use crate::dweb::trove::TroveHistory;
 
 pub const AWE_PROTOCOL_REGISTER: &str = "awv://";
 #[allow(dead_code)]
@@ -638,11 +638,11 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
             (StatusCode::INTERNAL_SERVER_ERROR, message.clone())
         }
 
-        GetError::Network(sn_networking::NetworkError::RecordNotStoredByNodes(_)) => {
+        GetError::Network(ant_networking::NetworkError::RecordNotStoredByNodes(_)) => {
             (StatusCode::NOT_FOUND, String::from("404 Not found"))
         }
 
-        GetError::Network(sn_networking::NetworkError::GetRecordError(_)) => {
+        GetError::Network(ant_networking::NetworkError::GetRecordError(_)) => {
             (StatusCode::NOT_FOUND, String::from("404 Not found"))
         }
 

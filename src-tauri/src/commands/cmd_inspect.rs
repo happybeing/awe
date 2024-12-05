@@ -22,14 +22,15 @@ use color_eyre::{eyre::eyre, Result};
 use crdts::merkle_reg::{Hash, MerkleReg, Node};
 use xor_name::XorName;
 
+use ant_registers::{Entry, RegisterAddress};
 use autonomi::client::registers::Register;
 use autonomi::client::Client;
-use sn_registers::{Entry, RegisterAddress};
+
+use dweb::helpers::{convert::xorname_from_entry, node_entries_as_vec};
+use dweb::trove::file_tree::FileTree;
 
 use crate::awe_client::connect_to_autonomi;
 use crate::cli_options::{EntriesRange, FilesArgs};
-use crate::commands::helpers::{node_entries_as_vec, xorname_from_entry};
-use crate::dweb::trove::file_tree::FileTree;
 
 /// Implement 'inspect-register' subcommand
 ///
@@ -90,13 +91,13 @@ pub async fn handle_inspect_register(
         .await?;
     };
 
-    if print_audit {
-        let _ = do_print_audit(&register);
-    }
+    // if print_audit {
+    //     let _ = do_print_audit(&register);
+    // }
 
-    if print_merkle_reg {
-        let _ = do_print_merkle_reg(&register);
-    }
+    // if print_merkle_reg {
+    //     let _ = do_print_merkle_reg(&register);
+    // }
 
     Ok(())
 }
@@ -109,7 +110,7 @@ fn do_print_summary(
 ) -> Result<()> {
     println!("register    : {}", reg_address.to_hex());
     println!("owner       : {:?}", reg_address.owner());
-    println!("permissions : {:?}", register.permissions());
+    // println!("permissions : {:?}", register.permissions());
     println!("num roots   : {:?}", register.values().len());
 
     if entries_vec.len() > 0 {
@@ -118,7 +119,7 @@ fn do_print_summary(
         do_print_type(None)?;
     }
     do_print_size(size)?;
-    do_print_audit_summary(&register)?;
+    // do_print_audit_summary(&register)?;
     Ok(())
 }
 
@@ -137,140 +138,141 @@ fn do_print_size(size: usize) -> Result<()> {
     Ok(())
 }
 
-fn do_print_merkle_reg(register: &Register) -> Result<()> {
-    println!("{:?}", register.inner_merkle_reg());
-    Ok(())
-}
+// TODO refactor all Register refs to use Transactions when available
+// fn do_print_merkle_reg(register: &Register) -> Result<()> {
+//     println!("{:?}", register.inner_merkle_reg());
+//     Ok(())
+// }
 
-fn do_print_audit_summary(register: &Register) -> Result<()> {
-    let merkle_reg = register.inner_merkle_reg();
-    let content = merkle_reg.read();
+// fn do_print_audit_summary(register: &Register) -> Result<()> {
+//     let merkle_reg = register.inner_merkle_reg();
+//     let content = merkle_reg.read();
 
-    if content.nodes().nth(0).is_some() {
-        println!("audit       :");
-        // Print current/root value(s)
-        // The 'roots' are one or more current values
-        // We always write and merge so this should always be a single value
-        let num_root_values = content.values().into_iter().count();
+//     if content.nodes().nth(0).is_some() {
+//         println!("audit       :");
+//         // Print current/root value(s)
+//         // The 'roots' are one or more current values
+//         // We always write and merge so this should always be a single value
+//         let num_root_values = content.values().into_iter().count();
 
-        if num_root_values == 1 {
-            println!("   current state is merged, 1 value:");
-        } else {
-            println!("   current state is NOT merged, {num_root_values} values:");
-        }
-        for value in content.values().into_iter() {
-            let xor_name = xorname_from_entry(value);
-            println!("   {xor_name:64x}");
-        }
-    } else {
-        println!("audit       : empty (no values)");
-    }
+//         if num_root_values == 1 {
+//             println!("   current state is merged, 1 value:");
+//         } else {
+//             println!("   current state is NOT merged, {num_root_values} values:");
+//         }
+//         for value in content.values().into_iter() {
+//             let xor_name = xorname_from_entry(value);
+//             println!("   {xor_name:64x}");
+//         }
+//     } else {
+//         println!("audit       : empty (no values)");
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
-fn do_print_audit(register: &Register) -> Result<()> {
-    let merkle_reg = register.inner_merkle_reg();
-    let content = merkle_reg.read();
+// fn do_print_audit(register: &Register) -> Result<()> {
+//     let merkle_reg = register.inner_merkle_reg();
+//     let content = merkle_reg.read();
 
-    let node = content.nodes().nth(0);
-    if let Some(_node) = node {
-        print_audit_for_nodes(merkle_reg);
-    } else {
-        println!("history     : empty (no values)");
-    }
+//     let node = content.nodes().nth(0);
+//     if let Some(_node) = node {
+//         print_audit_for_nodes(merkle_reg);
+//     } else {
+//         println!("history     : empty (no values)");
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
-fn print_audit_for_nodes(merkle_reg: &crdts::merkle_reg::MerkleReg<Entry>) {
-    // Show the Register structure
-    let content = merkle_reg.read();
+// fn print_audit_for_nodes(merkle_reg: &crdts::merkle_reg::MerkleReg<Entry>) {
+//     // Show the Register structure
+//     let content = merkle_reg.read();
 
-    // Index nodes to make it easier to see where a
-    // node appears multiple times in the output.
-    // Note: it isn't related to the order of insertion
-    // which is hard to determine.
-    let mut index: usize = 0;
-    let mut node_ordering: HashMap<Hash, usize> = HashMap::new();
-    for (_hash, node) in content.hashes_and_nodes() {
-        index_node_and_descendants(node, &mut index, &mut node_ordering, merkle_reg);
-    }
+//     // Index nodes to make it easier to see where a
+//     // node appears multiple times in the output.
+//     // Note: it isn't related to the order of insertion
+//     // which is hard to determine.
+//     let mut index: usize = 0;
+//     let mut node_ordering: HashMap<Hash, usize> = HashMap::new();
+//     for (_hash, node) in content.hashes_and_nodes() {
+//         index_node_and_descendants(node, &mut index, &mut node_ordering, merkle_reg);
+//     }
 
-    println!("======================");
-    println!("Root (Latest) Node(s):");
-    for node in content.nodes() {
-        let _ = print_node(0, node, &node_ordering);
-    }
+//     println!("======================");
+//     println!("Root (Latest) Node(s):");
+//     for node in content.nodes() {
+//         let _ = print_node(0, node, &node_ordering);
+//     }
 
-    println!("======================");
-    println!("Register Structure:");
-    println!("(In general, earlier nodes are more indented)");
-    let mut indents = 0;
-    for (_hash, node) in content.hashes_and_nodes() {
-        print_node_and_descendants(&mut indents, node, &node_ordering, merkle_reg);
-    }
+//     println!("======================");
+//     println!("Register Structure:");
+//     println!("(In general, earlier nodes are more indented)");
+//     let mut indents = 0;
+//     for (_hash, node) in content.hashes_and_nodes() {
+//         print_node_and_descendants(&mut indents, node, &node_ordering, merkle_reg);
+//     }
 
-    println!("======================");
-}
+//     println!("======================");
+// }
 
-fn index_node_and_descendants(
-    node: &Node<Entry>,
-    index: &mut usize,
-    node_ordering: &mut HashMap<Hash, usize>,
-    merkle_reg: &MerkleReg<Entry>,
-) {
-    let node_hash = node.hash();
-    if node_ordering.get(&node_hash).is_none() {
-        node_ordering.insert(node_hash, *index);
-        *index += 1;
-    }
+// fn index_node_and_descendants(
+//     node: &Node<Entry>,
+//     index: &mut usize,
+//     node_ordering: &mut HashMap<Hash, usize>,
+//     merkle_reg: &MerkleReg<Entry>,
+// ) {
+//     let node_hash = node.hash();
+//     if node_ordering.get(&node_hash).is_none() {
+//         node_ordering.insert(node_hash, *index);
+//         *index += 1;
+//     }
 
-    for child_hash in node.children.iter() {
-        if let Some(child_node) = merkle_reg.node(*child_hash) {
-            index_node_and_descendants(child_node, index, node_ordering, merkle_reg);
-        } else {
-            println!("ERROR looking up hash of child");
-        }
-    }
-}
+//     for child_hash in node.children.iter() {
+//         if let Some(child_node) = merkle_reg.node(*child_hash) {
+//             index_node_and_descendants(child_node, index, node_ordering, merkle_reg);
+//         } else {
+//             println!("ERROR looking up hash of child");
+//         }
+//     }
+// }
 
-fn print_node_and_descendants(
-    indents: &mut usize,
-    node: &Node<Entry>,
-    node_ordering: &HashMap<Hash, usize>,
-    merkle_reg: &MerkleReg<Entry>,
-) {
-    let _ = print_node(*indents, node, node_ordering);
+// fn print_node_and_descendants(
+//     indents: &mut usize,
+//     node: &Node<Entry>,
+//     node_ordering: &HashMap<Hash, usize>,
+//     merkle_reg: &MerkleReg<Entry>,
+// ) {
+//     let _ = print_node(*indents, node, node_ordering);
 
-    *indents += 1;
-    for child_hash in node.children.iter() {
-        if let Some(child_node) = merkle_reg.node(*child_hash) {
-            // let xor_name = xorname_from_entry(child_node.value());
-            print_node_and_descendants(indents, child_node, node_ordering, merkle_reg);
-        }
-    }
-    *indents -= 1;
-}
+//     *indents += 1;
+//     for child_hash in node.children.iter() {
+//         if let Some(child_node) = merkle_reg.node(*child_hash) {
+//             // let xor_name = xorname_from_entry(child_node.value());
+//             print_node_and_descendants(indents, child_node, node_ordering, merkle_reg);
+//         }
+//     }
+//     *indents -= 1;
+// }
 
-fn print_node(
-    indents: usize,
-    node: &Node<Entry>,
-    node_ordering: &HashMap<Hash, usize>,
-) -> Result<()> {
-    let order = match node_ordering.get(&node.hash()) {
-        Some(order) => format!("{order}"),
-        None => String::new(),
-    };
+// fn print_node(
+//     indents: usize,
+//     node: &Node<Entry>,
+//     node_ordering: &HashMap<Hash, usize>,
+// ) -> Result<()> {
+//     let order = match node_ordering.get(&node.hash()) {
+//         Some(order) => format!("{order}"),
+//         None => String::new(),
+//     };
 
-    let indentation = "  ".repeat(indents);
-    let node_entry = xorname_from_entry(&node.value);
-    println!(
-        "{indentation}[{order:>2}] Node({:?}..) Entry({node_entry:64x})",
-        order
-    );
-    Ok(())
-}
+//     let indentation = "  ".repeat(indents);
+//     let node_entry = xorname_from_entry(&node.value);
+//     println!(
+//         "{indentation}[{order:>2}] Node({:?}..) Entry({node_entry:64x})",
+//         order
+//     );
+//     Ok(())
+// }
 
 async fn do_print_entries(
     client: &Client,
