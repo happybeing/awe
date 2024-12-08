@@ -30,7 +30,7 @@ serde_json = "1"
 ## Dependencies for an Autonomi client:
 
 # Generated using: awe-dependencies --branch stable-2024.09.1.3
-# FAILS testnet-full same error as with stable-2024.08.2.3 (safe_network issue #2077)
+# FAILS testnet-full same error as with stable-2024.08.2.3 (autonomi issue #2077)
 # FIX see below
 # ant-cli = { version = "0.95.0" }
 # ant-client = { version = "0.110.0" }
@@ -40,14 +40,14 @@ serde_json = "1"
 # ant-protocol = { version = "0.17.8" }
 
 # Generated using: awe-dependencies --branch stable-2024.09.1.3
-# FAILS testnet-full same error as with stable-2024.08.2.3 (safe_network issue #2077)
-# FIXED using modified ant-client (see https://github.com/maidsafe/safe_network/issues/2077#issuecomment-2340939098)
-# ant-cli = { version = "0.95.0", path = "../../safe_network/ant-cli" }
-# ant-client = { version = "0.110.0", path = "../../safe_network/ant-client" }
-# ant-peers_acquisition = { version = "0.5.0", path = "../../safe_network/ant-peers-acquisition" }
-# ant-registers = { version = "0.3.18", path = "../../safe_network/ant-registers" }
-# ant-transfers = { version = "0.19.0", path = "../../safe_network/ant-transfers" }
-# ant-protocol = { version = "0.17.8", path = "../../safe_network/ant-protocol" }
+# FAILS testnet-full same error as with stable-2024.08.2.3 (autonomi issue #2077)
+# FIXED using modified ant-client (see https://github.com/maidsafe/autonomi/issues/2077#issuecomment-2340939098)
+# ant-cli = { version = "0.95.0", path = "../../autonomi/ant-cli" }
+# ant-client = { version = "0.110.0", path = "../../autonomi/ant-client" }
+# ant-peers_acquisition = { version = "0.5.0", path = "../../autonomi/ant-peers-acquisition" }
+# ant-registers = { version = "0.3.18", path = "../../autonomi/ant-registers" }
+# ant-transfers = { version = "0.19.0", path = "../../autonomi/ant-transfers" }
+# ant-protocol = { version = "0.17.8", path = "../../autonomi/ant-protocol" }
 
 # Generated using: awe-dependencies --branch stable-2024.10.1.2
 # PRE ERC20
@@ -72,25 +72,25 @@ serde_json = "1"
 # ant-transfers = { version = "0.20.0" }
 # ant-protocol = { version = "0.17.12" }
 
-# Generated using: awe-dependencies --branch stable-2024.10.4.6 --sn-path ../../../autonomi/safe_network
-#autonomi = { version = "0.2.1", path = "../../../autonomi/safe_network/autonomi" }
-#autonomi-cli = { version = "0.1.2", path = "../../../autonomi/safe_network/autonomi-cli" }
-ant-networking = { version = "0.19.0", path = "../../../autonomi/safe_network/ant-networking" }
-#ant-peers_acquisition = { version = "0.5.4", path = "../../../autonomi/safe_network/ant-peers-acquisition" }
-ant-registers = { version = "0.4.0", path = "../../../autonomi/safe_network/ant-registers" }
-# ant-transfers = { version = "0.20.0", path = "../../../autonomi/safe_network/ant-transfers" }
-ant-protocol = { version = "0.17.12", path = "../../../autonomi/safe_network/ant-protocol" }
+# Generated using: awe-dependencies --branch stable-2024.10.4.6 --sn-path ../../../autonomi/autonomi
+#autonomi = { version = "0.2.1", path = "../../../autonomi/autonomi/autonomi" }
+#autonomi-cli = { version = "0.1.2", path = "../../../autonomi/autonomi/autonomi-cli" }
+ant-networking = { version = "0.19.0", path = "../../../autonomi/autonomi/ant-networking" }
+#ant-peers_acquisition = { version = "0.5.4", path = "../../../autonomi/autonomi/ant-peers-acquisition" }
+ant-registers = { version = "0.4.0", path = "../../../autonomi/autonomi/ant-registers" }
+# ant-transfers = { version = "0.20.0", path = "../../../autonomi/autonomi/ant-transfers" }
+ant-protocol = { version = "0.17.12", path = "../../../autonomi/autonomi/ant-protocol" }
 # Copied from awapi-test-actix:
-autonomi = { path = "../../../autonomi/safe_network/autonomi", version = "0.2.2", features = [
+autonomi = { path = "../../../autonomi/autonomi/autonomi", version = "0.2.2", features = [
     "data",
     "fs",
     "vault",
     "registers",
     "loud",
 ] }
-ant-peers-acquisition = { path = "../../../autonomi/safe_network/ant-peers-acquisition", version = "0.5.5" }
-ant-logging = { path = "../../../autonomi/safe_network/ant-logging", version = "0.2.38" }
-ant-build-info = { path = "../../../autonomi/safe_network/ant-build-info", version = "0.1.17" }
+ant-peers-acquisition = { path = "../../../autonomi/autonomi/ant-peers-acquisition", version = "0.5.5" }
+ant-logging = { path = "../../../autonomi/autonomi/ant-logging", version = "0.2.38" }
+ant-build-info = { path = "../../../autonomi/autonomi/ant-build-info", version = "0.1.17" }
 
 dweb = { path = "../../../autonomi/dweb/dweb-lib", version = "0.0.1" }
 
