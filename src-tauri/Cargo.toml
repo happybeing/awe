@@ -27,70 +27,20 @@ http = "1.1.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-## Dependencies for an Autonomi client:
-
-# Generated using: awe-dependencies --branch stable-2024.09.1.3
-# FAILS testnet-full same error as with stable-2024.08.2.3 (autonomi issue #2077)
-# FIX see below
-# ant-cli = { version = "0.95.0" }
-# ant-client = { version = "0.110.0" }
-# ant-peers_acquisition = { version = "0.5.0" }
-# ant-registers = { version = "0.3.18" }
-# ant-transfers = { version = "0.19.0" }
-# ant-protocol = { version = "0.17.8" }
-
-# Generated using: awe-dependencies --branch stable-2024.09.1.3
-# FAILS testnet-full same error as with stable-2024.08.2.3 (autonomi issue #2077)
-# FIXED using modified ant-client (see https://github.com/maidsafe/autonomi/issues/2077#issuecomment-2340939098)
-# ant-cli = { version = "0.95.0", path = "../../autonomi/ant-cli" }
-# ant-client = { version = "0.110.0", path = "../../autonomi/ant-client" }
-# ant-peers_acquisition = { version = "0.5.0", path = "../../autonomi/ant-peers-acquisition" }
-# ant-registers = { version = "0.3.18", path = "../../autonomi/ant-registers" }
-# ant-transfers = { version = "0.19.0", path = "../../autonomi/ant-transfers" }
-# ant-protocol = { version = "0.17.8", path = "../../autonomi/ant-protocol" }
-
-# Generated using: awe-dependencies --branch stable-2024.10.1.2
-# PRE ERC20
-# autonomi = { version = "0.1.1" }
-# ant-client = { version = "0.110.2" }
-# ant-cli = { version = "0.95.2" }
-# ant-networking = { version = "0.18.3" }
-# ant-peers_acquisition = { version = "0.5.2" }
-# ant-registers = { version = "0.3.20" }
-# ant-transfers = { version = "0.19.2" }
-# ant-protocol = { version = "0.17.10" }
-
-# Generated using: awe-dependencies --branch stable-2024.10.4.6
-# NOW ERC20
-# ant-client = { }
-# autonomi = { version = "0.2.1" }
-# # ant-cli = { }
-# autonomi-cli = { version = "0.1.2" }
-# ant-networking = { version = "0.19.0" }
-# ant-peers_acquisition = { version = "0.5.4" }
-# ant-registers = { version = "0.4.0" }
-# ant-transfers = { version = "0.20.0" }
-# ant-protocol = { version = "0.17.12" }
-
-# Generated using: awe-dependencies --branch stable-2024.10.4.6 --sn-path ../../../autonomi/autonomi
-#autonomi = { version = "0.2.1", path = "../../../autonomi/autonomi/autonomi" }
-#autonomi-cli = { version = "0.1.2", path = "../../../autonomi/autonomi/autonomi-cli" }
+### Dependencies for an Autonomi client
+# updated for autonomi v0.2.4
+ant-bootstrap = { version = "0.1.0", path = "../../../autonomi/autonomi/ant-bootstrap" }
 ant-networking = { version = "0.19.0", path = "../../../autonomi/autonomi/ant-networking" }
-#ant-peers_acquisition = { version = "0.5.4", path = "../../../autonomi/autonomi/ant-peers-acquisition" }
 ant-registers = { version = "0.4.0", path = "../../../autonomi/autonomi/ant-registers" }
-# ant-transfers = { version = "0.20.0", path = "../../../autonomi/autonomi/ant-transfers" }
 ant-protocol = { version = "0.17.12", path = "../../../autonomi/autonomi/ant-protocol" }
-# Copied from awapi-test-actix:
-autonomi = { path = "../../../autonomi/autonomi/autonomi", version = "0.2.2", features = [
-    "data",
+autonomi = { path = "../../../autonomi/autonomi/autonomi", version = "0.2.4", features = [
     "fs",
     "vault",
     "registers",
     "loud",
-] }
-ant-peers-acquisition = { path = "../../../autonomi/autonomi/ant-peers-acquisition", version = "0.5.5" }
-ant-logging = { path = "../../../autonomi/autonomi/ant-logging", version = "0.2.38" }
-ant-build-info = { path = "../../../autonomi/autonomi/ant-build-info", version = "0.1.17" }
+]}
+ant-logging = { path = "../../../autonomi/autonomi/ant-logging", version = "0.2.40" }
+ant-build-info = { path = "../../../autonomi/autonomi/ant-build-info", version = "0.1.19" }
 
 dweb = { path = "../../../autonomi/dweb/dweb-lib", version = "0.0.1" }
 
@@ -125,16 +75,9 @@ rpassword = "7.3.1"
 thiserror = "2.0.0"
 
 [features]
-# # Copied from autonomi-cli stable-2024.10.4.6 for reference:
-# default = ["metrics"]
-# local = ["ant-peers_acquisition/local", "autonomi/local"]
-# network-contacts = ["ant-peers_acquisition/network-contacts"]
-# metrics = ["ant-logging/process-metrics"]
-default = ["network-contacts", "skip-network-compatibility-check"]
-local = ["ant-peers-acquisition/local", "autonomi/local"]
-# WAS local-discovery = ["ant-client/local-discovery", "ant-peers_acquisition/local-discovery"]
-metrics = ["ant-logging/process-metrics"]
-network-contacts = ["ant-peers-acquisition/network-contacts"]
+# updated for autonomi v0.2.4
+default = ["skip-network-compatibility-check"]
+local = ["autonomi/local"]
 skip-network-compatibility-check = []   # Avoid need to upload avp type and include xor address in build
 # This feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.

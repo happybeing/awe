@@ -18,8 +18,8 @@ use color_eyre::eyre::{eyre, Result};
 use std::path::PathBuf;
 use xor_name::XorName;
 
-use autonomi::client::archive::Archive;
-use autonomi::client::Client;
+use autonomi::client::files::archive_public::PublicArchive;
+use autonomi::client::{data, Client};
 use autonomi::Wallet;
 use dweb::autonomi::wallet::load_wallet;
 
@@ -76,7 +76,10 @@ pub async fn publish_website(
 
 /// Uploads the tree of website content at website_root
 /// Returns the autonomi::UploadSummary if all files are uploaded
-pub async fn publish_website_content(client: &Client, website_root: &PathBuf) -> Result<Archive> {
+pub async fn publish_website_content(
+    client: &Client,
+    website_root: &PathBuf,
+) -> Result<PublicArchive> {
     if !website_root.is_dir() {
         return Err(eyre!("Website path must be a directory: {website_root:?}"));
     }
@@ -91,7 +94,10 @@ pub async fn publish_website_content(client: &Client, website_root: &PathBuf) ->
 
     let wallet = load_wallet()?;
     println!("Uploading website from: {website_root:?}");
-    let archive = match client.dir_upload(website_root.clone(), &wallet).await {
+    let archive = match client
+        .dir_upload_public(website_root.clone(), &wallet)
+        .await
+    {
         Ok(archive) => archive,
         Err(e) => return Err(eyre!("Failed to upload directory tree: {e}")),
     };
@@ -99,8 +105,8 @@ pub async fn publish_website_content(client: &Client, website_root: &PathBuf) ->
     println!("web publish completed files: {:?}", archive.map().len());
 
     println!("WEBSITE CONTENT UPLOADED:");
-    for (path, data_address, _metadata) in archive.iter() {
-        println!("{data_address:64x} {path:?}");
+    for (path, datamap_chunk, _metadata) in archive.iter() {
+        println!("{:64x} {path:?}", datamap_chunk);
     }
 
     Ok(archive)
@@ -115,7 +121,7 @@ pub async fn publish_website_content(client: &Client, website_root: &PathBuf) ->
 pub async fn publish_website_metadata(
     client: &Client,
     website_root: &PathBuf,
-    site_upload_archive: &Archive,
+    site_upload_archive: &PublicArchive,
     website_settings: WebsiteSettings,
     wallet: &Wallet,
 ) -> Result<XorName> {

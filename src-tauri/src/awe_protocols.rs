@@ -28,7 +28,7 @@ use dweb::helpers::convert::str_to_xor_name;
 use dweb::trove::file_tree::{FileTree, PATH_SEPARATOR};
 use dweb::trove::TroveHistory;
 
-use crate::awe_client::{autonomi_get_file, connect_to_autonomi};
+use crate::awe_client::{autonomi_get_file_public, connect_to_autonomi};
 
 pub const AWE_PROTOCOL_REGISTER: &str = "awv://";
 #[allow(dead_code)]
@@ -599,7 +599,7 @@ async fn awe_fetch_xor_data(
     // TODO since Tauri v2, the iframe won't load content from
     // TODO a URI unless the response has a Content-Type header
     // TODO Investigate options, such as saving content type in the site map
-    match autonomi_get_file(xor_name, client_ref).await {
+    match autonomi_get_file_public(xor_name, client_ref).await {
         Ok(content) => {
             println!("DEBUG retrieved {} bytes", content.len());
             return http::Response::builder()

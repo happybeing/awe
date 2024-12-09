@@ -30,10 +30,13 @@ pub async fn connect_to_autonomi() -> Result<Client> {
     crate::connect::connect_to_network().await
 }
 
-pub async fn autonomi_get_file(xor_name: XorName, client: &Client) -> Result<Bytes, GetError> {
-    println!("DEBUG autonomi_get_file()");
-    println!("DEBUG calling client.data_get()");
-    match client.data_get(xor_name).await {
+pub async fn autonomi_get_file_public(
+    xor_name: XorName,
+    client: &Client,
+) -> Result<Bytes, GetError> {
+    println!("DEBUG autonomi_get_file_public()");
+    println!("DEBUG calling client.data_get_public()");
+    match client.data_get_public(xor_name).await {
         Ok(content) => {
             println!("DEBUG Ok() return");
             Ok(content)
