@@ -29,10 +29,10 @@ serde_json = "1"
 
 ### Dependencies for an Autonomi client
 # updated for autonomi v0.2.4
-ant-bootstrap = { version = "0.1.0", path = "../../../autonomi/autonomi/ant-bootstrap" }
-ant-networking = { version = "0.19.0", path = "../../../autonomi/autonomi/ant-networking" }
-ant-registers = { version = "0.4.0", path = "../../../autonomi/autonomi/ant-registers" }
-ant-protocol = { version = "0.17.12", path = "../../../autonomi/autonomi/ant-protocol" }
+ant-bootstrap = { path = "../../../autonomi/autonomi/ant-bootstrap", version = "0.1.0" }
+ant-networking = { path = "../../../autonomi/autonomi/ant-networking", version = "0.19.0" }
+ant-registers = { path = "../../../autonomi/autonomi/ant-registers", version = "0.4.0" }
+ant-protocol = { path = "../../../autonomi/autonomi/ant-protocol", version = "0.17.12" }
 autonomi = { path = "../../../autonomi/autonomi/autonomi", version = "0.2.4", features = [
     "fs",
     "vault",
