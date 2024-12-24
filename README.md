@@ -6,7 +6,7 @@ It demonstrates:
 
 - use of existing web frameworks and development techniques when building for the web on Autonomi. In fact you can publish the exact same content to the web, and to the web on Autonomi.
 
-- cross platform universal access to the web on Autonomi, including from desktop and mobile devices.
+This project is being superceded by [dweb](https://github.com/happybeing/dweb) which is both a Rust library and command line app, including everything demonstrated here. However, `dweb` uses a standard browser to view decentralised websites on Autonomi rather than a built in GUI.
 
 ## Aims
 - operation on Windows, MacOS, Linux and Android
@@ -14,16 +14,12 @@ It demonstrates:
 - ability to view historic versions of any website using Autonomi's perpetual, versioned storage
 
 ## Status
-- early alpha on Linux - core features so far:
+- features demonstrated on Linux & MacOS:
   - use the `awe` command line to publish and update static HTML websites, either to Autonomi or a local test network
   - use the `awe` demo browser to view published websites using their content address on the network, including every published version of a website
+  - command line features to inspect data structures on Autonomi
 
-
-- you can build for other platforms yourself, or await:
-  - Windows (coming soon)
-  - MacOS (I need someone else to build this)
-  - Android (coming later)
-- a web naming system is being looked into for Autonomi (similar to web DNS but decentralised and perpetual, without renewal fees)
+- a web naming system was being considered but hasn't yet been designed for Autonomi. This would be similar to web DNS but decentralised and perpetual, and without renewal fees.
 
 ## Capabilities Explained
 
@@ -40,22 +36,23 @@ If you publish updates to your sites, earlier versions remain available to be vi
 ### Tauri + Svelte + Rust
 As well as demonstrating website publishing and viewing, `awe` is a showcase for a cross platform, desktop and mobile application written using Tauri with a Svelte frontend and Rust backend.
 
-### awe Rust Crate
+### dweb Rust Crate
 
-In due course `awe` will be published as a Rust library on `crates.io` for those wanting to build versioned website publishing and viewing applications the same approach.
+`awe` relies on [dweb](https://github.com/happybeing/dweb), a Rust library that is being built using code tested first in `awe`. `dweb` aims to go far beyond `awe`, both as a library for developers and as a command line tool.
+
 
 ## Usage
 ### Pre-requisites
-To publish a website on the public Autonomi network you will first need to have some Autonomi tokens available in a local wallet. These are available free for public testnets details of which are available from the Autonomi [community forum](https://forum.autonomi.community), along with a friendly and helpful community to get you started.
+To publish a website on the public Autonomi network you will first need to have some Autonomi tokens available in a local wallet. Visit the Autonomi [community forum](https://forum.autonomi.community) for help with this and other issues.
 
 ### Publish a website
-`awe publish --website-root <PATH-TO-CONTENT>`
+`awe publish-new --files-root <PATH-TO-CONTENT>`
 
-The above will attempt to upload and pay for storage of your data and print the xor-url of the website on completion. If you keep that address you and anyone you share it with can view it by entering it in the `awe` browser address bar.
+The above will attempt to upload and pay for storage of your data and print the <HISTORY-ADDRESS> of the website on completion. If you keep that address you and anyone you share it with can view it by entering it in the `awe` browser address bar.
 
 To open the `awe` browser, type `awe` without any subcommands. Or you can type `awe` followed by the address of the website you wish to view, and if you like you can also specify the version you want:
 
-`awe <XOR-URL> --website-version <INTEGER-VERSION>`
+`awe <HISTORY-ADDRESS> --website-version <INTEGER-VERSION>`
 
 Note:
 - type `awe --help` for the full list of commands and
@@ -64,22 +61,28 @@ Note:
 ## Installation
 **Linux:** for Linux, `.deb` and `.rpm` packages and an `.AppImage` are available at https://downloads.happybeing.com. The Debian image is built on Ubuntu 24.04 LTS and has been shown to work on Ubuntu 22, 23 and 24, and Mint. Please report any attempts to run other distros in an issue.
 
-**Other:** I plan support for Android, Windows and MacOS so if you would like to test these please get in touch via github or the [community forum](https://forum.autonomi.community). You'll find me as `@happybeing` on both.
+**MacOS:** MacOS builds will occasionally be uploaded to https://downloads.happybeing.com. You will also find instructions on how to build on MacOS on the Autonomi forum: [MacOS build of awe](https://forum.autonomi.community/t/macos-build-of-awe-web-publisher-browser-demo-app/40202?u=happybeing)
 
-For Windows and MacOS you should be able to build and run from source, but this has not been tested yet.
+**Other:** I had planned support for Android and Windows but those are no longer planned with the move to `dweb` which is based on `awe`. That project aims to add support for other platforms.
 
-I'll be working on Android in due course.
-
-## Implementation
+## Implementation & Learnings
 To deliver cross platform support along with the ability to access the Autonomi Rust APIs, this app is implemented using the Svelte web framework within a Tauri app. The design implements the application user interface in Svelte which loads web content into an `<iframe>` to display the static HTML stored on Autonomi. Website content is loaded using a Rust backend that accesses the Autonomi Rust API.
 
-'awe' is both a web browser and a command line app, enabling it to publish and update websites as well as view them.
+`awe` is both a web browser and a command line app, enabling it to publish and update websites as well as view them.
+
+The learnings of the project include:
+- it is feasible to use standard web tooling to create and view decentralised websites on Autonomi
+- websites can be updated and every version remains available for viewing
+- an `<iframe>` is a very limited viewer but adequate to demostrate basic browsing
+- different platforms handle URL schemes differently, making it impractical to use a custom scheme across platforms
+- a custom scheme could be supported in a custom browser (e.g. by a fork of Verso/Servo or Chromium)
+- letting go of a custom scheme and using a localhost server (as in `dweb`) gives extra flexibility and capabilities
 
 ## Developing
 
 This is a Tauri app built using the Svelte web framework and uses Rust for the backend.
 
-Visit the Tauri v2 (beta) section of ([tauri.app](https://tauri.app)) for details of pre-requisites you may need to install. Then clone this repository and run the following command in the cloned directory.
+Visit the Tauri v2 section of ([tauri.app](https://tauri.app)) for details of pre-requisites you may need to install. Then clone this repository and run the following command in the cloned directory.
 ```bash
 cargo tauri dev
 ```
