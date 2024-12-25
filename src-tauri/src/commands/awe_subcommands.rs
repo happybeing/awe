@@ -1,5 +1,4 @@
 /*
-
  Copyright (c) 2024-2025 Mark Hughes
 
  This program is free software: you can redistribute it and/or modify
@@ -20,167 +19,81 @@ use std::path::PathBuf;
 use color_eyre::{eyre::eyre, Result};
 use walkdir::WalkDir;
 
-use dweb::autonomi::access::keys::get_register_signing_key;
 // use ant_cli::{ChunkManager, Estimator};
 use dweb::autonomi::wallet::load_wallet;
-use dweb::trove::file_tree::FileTree;
-use dweb::trove::TroveHistory;
+use dweb::storage::{publish_or_update_files, report_content_published_or_updated};
 
 use crate::awe_client::connect_to_autonomi;
 use crate::cli_options::{Opt, Subcommands};
 
-use crate::awe_websites::publish_website;
-
 // Returns true if command complete, false to start the browser
 pub async fn cli_commands(opt: Opt) -> Result<bool> {
     match opt.cmd {
-        Some(Subcommands::Estimate { website_root }) => {
+        Some(Subcommands::Estimate { files_root }) => {
             let client = connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
-            match client.file_cost(&website_root).await {
+            match client.file_cost(&files_root).await {
                 Ok(tokens) => println!("Cost estimate: {tokens}"),
                 Err(e) => println!("Unable to estimate cost: {e}"),
             }
         }
-        Some(Subcommands::Publish {
-            website_root,
-            // update, TODO when NRS, re-instate
+        Some(Subcommands::Publish_new {
+            files_root,
+            // name: String, // TODO when NRS, re-instate name
             website_config,
             is_new_network: _,
         }) => {
-            // TODO move this code into a function which handles both Publish and Update
-            let _ = check_website_path(&website_root);
-
-            let mut wallet =
-                load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
+            let wallet = load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
             let client = connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
-            #[cfg(not(feature = "skip-network-compatibility-check"))]
-            if !is_new_network && !is_compatible_network(&client).await {
-                let message = format!(
-                    "ERROR: This version of awe cannot publish to this Autonomi network\
-                \nERROR: Please update awe and try again. See {MAIN_REPOSITORY}"
-                )
-                .clone();
-                println!("{message}");
-                return Err(eyre!(message));
-            }
-
-            println!("Uploading new website to network...");
-            let website_address = publish_website(&website_root, website_config, &client, &wallet)
-                .await
-                .inspect_err(|e| println!("{}", e))?;
-
-            // TODO remove?
-            // let register_type = if is_new_network {
-            //     website_address
-            // } else {
-            //     awe_client::str_to_xor_name(
-            //         awe_website_history::awv_register_type_string().as_str(),
-            //     )?
-            // };
-
-            println!("Creating versions register, please wait...");
-            let owner_secret = get_register_signing_key().inspect_err(|e| println!("{}", e))?;
-            println!("got wallet... calling TroveHistory<FileTree>::new_register()");
-            let mut website_history =
-                TroveHistory::<FileTree>::new(&client, None, Some(owner_secret), &mut wallet)
+            let (history_address, version) =
+                match publish_or_update_files(&files_root, None, website_config, &client, &wallet)
                     .await
-                    .inspect_err(|e| println!("{}", e))?;
-            match website_history
-                .publish_new_version(&client, &website_address, &wallet)
-                .await
-            {
-                Ok(version) => {
-                    let xor_address = website_history.register_address().to_hex();
-                    let website_root = website_root.to_str();
-                    let website_root = if website_root.is_some() {
-                        website_root.unwrap()
-                    } else {
-                        "<WEBSITE-ROOT>"
-                    };
-                    println!(
-                        "\nWEBSITE PUBLISHED (version {version}). All versions available at XOR-URL:\nawv://{}", &xor_address
-                    );
-                    println!("\nNOTE:\n- To update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
-                    println!("- To browse the website use 'awe awv://<XOR-ADDRESS>' as follows:\n\n   awe awv://{}\n", &xor_address);
-                    println!("- For help use 'awe --help'\n");
-                }
-                Err(e) => {
-                    println!("Failed to publish new website version: {}", e.root_cause());
-                    return Err(e);
-                }
-            }
+                {
+                    Ok(history_address) => history_address,
+                    Err(e) => {
+                        println!("Failed to publish files: {e}");
+                        return Err(e);
+                    }
+                };
+
+            report_content_published_or_updated(&history_address, version, &files_root, true, true);
         }
-        Some(Subcommands::Update {
-            website_root,
+        Some(Subcommands::Publish_update {
+            files_root,
             // name: String, // TODO when NRS, re-instate name
-            update_xor,
+            history_address,
             website_config,
         }) => {
-            let _ = check_website_path(&website_root);
-
-            let mut wallet =
-                load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
+            let wallet = load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
             let client = connect_to_autonomi()
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
-            println!("Uploading updated website to network...");
-            let owner_secret = get_register_signing_key().inspect_err(|e| println!("{}", e))?;
-
-            let website_address =
-                publish_website(&website_root, website_config, &client, &wallet).await?;
-
-            println!("Updating versions register {}", update_xor.to_hex());
-            let mut website_history = match TroveHistory::<FileTree>::new(
+            let (history_address, version) = publish_or_update_files(
+                &files_root,
+                Some(history_address),
+                website_config,
                 &client,
-                Some(update_xor),
-                Some(owner_secret),
-                &mut wallet,
+                &wallet,
             )
-            .await
-            {
-                Ok(website_history) => website_history,
-                Err(e) => {
-                    println!("Failed to access website versions. {}", e.root_cause());
-                    return Err(e);
-                }
-            };
+            .await?;
 
-            match website_history
-                .publish_new_version(&client, &website_address, &mut wallet)
-                .await
-            {
-                Ok(version) => {
-                    let xor_address = website_history.register_address().to_hex();
-                    let website_root = website_root.to_str();
-                    let website_root = if website_root.is_some() {
-                        website_root.unwrap()
-                    } else {
-                        "<WEBSITE-ROOT>"
-                    };
-                    println!(
-                        "\nWEBSITE UPDATED (version {version}). All versions available at XOR-URL:\nawv://{}", &xor_address
-                    );
-                    println!("\nNOTE:\n- To update this website, use 'awe update' as follows:\n\n   awe update --update-xor {} --website-root {}\n", &xor_address, &website_root);
-                    println!("- To browse the website use 'awe awv://<XOR-ADDRESS>' as follows:\n\n   awe awv://{}\n", &xor_address);
-                    println!("- For help use 'awe --help'\n");
-                }
-                Err(e) => {
-                    let message = format!("Failed to update website version: {e:?}");
-                    println!("{message}");
-                    return Err(eyre!(message));
-                }
-            }
+            report_content_published_or_updated(
+                &history_address,
+                version,
+                &files_root,
+                true,
+                false,
+            );
         }
 
         Some(Subcommands::Browse {
             url: _,
-            website_version: _,
+            history_number: _,
         }) => {
             return Ok(false); // Command not yet complete, is the signal to start browser
         }
@@ -241,8 +154,12 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             entries_range: _,
             files_args: _,
         }) => {
-            println!("TODO: implement subcommand download");
+            println!("TODO: implement subcommand 'download'");
         }
+
+        // Some(Subcommands::Serve { port: _ }) => {
+        //     println!("TODO: implement subcommand 'serve'");
+        // }
 
         // Default is not to return, but open the browser by continuing
         None {} => {
@@ -250,34 +167,4 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
         }
     }
     Ok(true)
-}
-
-fn check_website_path(website_root: &PathBuf) -> Result<()> {
-    let files_count = count_files_in_path_recursively(&website_root);
-
-    if files_count == 0 {
-        if website_root.is_dir() {
-            return Err(eyre!(
-                "The directory specified for upload is empty. \
-        Please verify the provided path."
-            ));
-        } else {
-            return Err(eyre!(
-                "The provided file path is invalid. Please verify the path."
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn count_files_in_path_recursively(file_path: &PathBuf) -> u32 {
-    let entries_iterator = WalkDir::new(file_path).into_iter().flatten();
-    let mut count = 0;
-
-    entries_iterator.for_each(|entry| {
-        if entry.file_type().is_file() {
-            count += 1;
-        }
-    });
-    count
 }

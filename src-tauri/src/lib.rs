@@ -21,7 +21,6 @@
 mod awe_client;
 mod awe_const;
 mod awe_protocols;
-mod awe_websites;
 mod cli_options;
 mod commands;
 mod connect;
@@ -91,7 +90,7 @@ pub fn run() {
     };
 
     let url = opt.url.clone();
-    let website_version = opt.website_version.clone();
+    let version = opt.history_number.clone();
 
     if tauri::async_runtime::block_on(async move {
         awe_subcommands::cli_commands(opt)
@@ -99,6 +98,6 @@ pub fn run() {
             .is_ok_and(|complete| !complete)
     }) {
         // No command complete, so register protocols and open the browser
-        crate::awe_protocols::register_protocols(url, website_version);
+        crate::awe_protocols::register_protocols(url, version);
     };
 }
