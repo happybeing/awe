@@ -27,6 +27,7 @@ use core::time::Duration;
 use xor_name::XorName;
 
 use ant_bootstrap::PeersArgs;
+use ant_logging::{LogFormat, LogOutputDest};
 
 use crate::awe_client::{awe_str_to_register_address, awe_str_to_xor_name};
 
@@ -64,6 +65,34 @@ pub struct Opt {
     /// The maximum duration to wait for a connection to the network before timing out.
     #[clap(long = "timeout", value_parser = |t: &str| -> Result<Duration> { Ok(t.parse().map(Duration::from_secs)?) })]
     pub connection_timeout: Option<Duration>,
+
+    /// Specify the logging format.
+    ///
+    /// Valid values are "default" or "json".
+    ///
+    /// If the argument is not used, the default format will be applied.
+    #[clap(long, value_parser = LogFormat::parse_from_str, verbatim_doc_comment)]
+    pub log_format: Option<LogFormat>,
+
+    /// Specify the logging output destination.
+    ///
+    /// Valid values are "stdout", "data-dir", or a custom path.
+    ///
+    /// `data-dir` is the default value.
+    ///
+    /// The data directory location is platform specific:
+    ///  - Linux: $HOME/.local/share/autonomi/client/logs
+    ///  - macOS: $HOME/Library/Application Support/autonomi/client/logs
+    ///  - Windows: C:\Users\<username>\AppData\Roaming\autonomi\client\logs
+    #[allow(rustdoc::invalid_html_tags)]
+    #[clap(long, value_parser = LogOutputDest::parse_from_str, verbatim_doc_comment, default_value = "data-dir")]
+    pub log_output_dest: LogOutputDest,
+
+    /// Specify the network ID to use. This will allow you to run the CLI on a different network.
+    ///
+    /// By default, the network ID is set to 1, which represents the mainnet.
+    #[clap(long, verbatim_doc_comment)]
+    pub network_id: Option<u8>,
 
     /// Enable Autonomi network logging (to the terminal)
     #[clap(long, name = "client-logs", short = 'l', default_value = "false")]

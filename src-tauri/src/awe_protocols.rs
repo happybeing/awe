@@ -120,10 +120,10 @@ pub fn set_version_loaded(version: u64) {
     *STATIC_VERSION_LOADED.lock().unwrap() = version;
 }
 
-pub fn set_version_max(version: u64) {
-    println!("DEBUG set_version_max() set to {}", version);
-    *STATIC_VERSION_MAX.lock().unwrap() = version;
-}
+// pub fn set_version_max(version: u64) {
+//     println!("DEBUG set_version_max() set to {}", version);
+//     *STATIC_VERSION_MAX.lock().unwrap() = version;
+// }
 
 const PROTOCOL_AWM: &str = "awm://";
 

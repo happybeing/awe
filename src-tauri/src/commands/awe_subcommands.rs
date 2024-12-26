@@ -14,23 +14,22 @@
  You should have received a copy of the GNU Affero General Public License
  along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-use std::path::PathBuf;
 
-use color_eyre::{eyre::eyre, Result};
-use walkdir::WalkDir;
+use color_eyre::Result;
 
 // use ant_cli::{ChunkManager, Estimator};
+use dweb::autonomi::access::network::get_peers;
 use dweb::autonomi::wallet::load_wallet;
 use dweb::storage::{publish_or_update_files, report_content_published_or_updated};
 
-use crate::awe_client::connect_to_autonomi;
 use crate::cli_options::{Opt, Subcommands};
+use crate::connect::connect_to_network;
 
 // Returns true if command complete, false to start the browser
 pub async fn cli_commands(opt: Opt) -> Result<bool> {
     match opt.cmd {
         Some(Subcommands::Estimate { files_root }) => {
-            let client = connect_to_autonomi()
+            let client = connect_to_network(get_peers(opt.peers).await?)
                 .await
                 .expect("Failed to connect to Autonomi Network");
             match client.file_cost(&files_root).await {
@@ -45,7 +44,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             is_new_network: _,
         }) => {
             let wallet = load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
-            let client = connect_to_autonomi()
+            let client = connect_to_network(get_peers(opt.peers).await?)
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
@@ -69,7 +68,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             website_config,
         }) => {
             let wallet = load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
-            let client = connect_to_autonomi()
+            let client = connect_to_network(get_peers(opt.peers).await?)
                 .await
                 .expect("Failed to connect to Autonomi Network");
 

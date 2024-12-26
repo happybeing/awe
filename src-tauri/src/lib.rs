@@ -34,28 +34,32 @@ use crate::commands::awe_subcommands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // color_eyre::install()?;
-    if std::env::var("RUST_SPANTRACE").is_err() {
-        std::env::set_var("RUST_SPANTRACE", "0");
-    }
-
+    color_eyre::install().expect("Failed to initialise error handler");
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
 
+    if let Some(network_id) = opt.network_id {
+        ant_protocol::version::set_network_id(network_id);
+    }
+
+    if std::env::var("RUST_SPANTRACE").is_err() {
+        std::env::set_var("RUST_SPANTRACE", "0");
+    }
+
+    // TODO Keep up-to-date with autonomi/ant-cli/src/main.rs init_logging_and_metrics()
     if opt.client_logs {
         let logging_targets = vec![
-            // TODO: Reset to nice and clean defaults once we have a better idea of what we want
-            ("ant_networking".to_string(), Level::DEBUG),
-            ("safe".to_string(), Level::TRACE),
+            ("ant_bootstrap".to_string(), Level::DEBUG),
             ("ant_build_info".to_string(), Level::TRACE),
-            ("autonomi".to_string(), Level::TRACE),
-            ("ant_client".to_string(), Level::TRACE),
+            ("ant_evm".to_string(), Level::TRACE),
             ("ant_logging".to_string(), Level::TRACE),
-            ("ant_peers_acquisition".to_string(), Level::TRACE),
+            ("ant_networking".to_string(), Level::INFO),
             ("ant_protocol".to_string(), Level::TRACE),
             ("ant_registers".to_string(), Level::TRACE),
-            ("ant_transfers".to_string(), Level::TRACE),
+            ("evmlib".to_string(), Level::TRACE),
+            ("autonomi_cli".to_string(), Level::TRACE),
+            ("autonomi".to_string(), Level::TRACE),
         ];
 
         let log_builder = LogBuilder::new(logging_targets);
