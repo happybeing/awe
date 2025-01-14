@@ -26,8 +26,8 @@ use autonomi::client::data::GetError;
 
 use dweb::client::AutonomiClient;
 use dweb::helpers::convert::str_to_xor_name;
-use dweb::trove::file_tree::{FileTree, PATH_SEPARATOR};
-use dweb::trove::TroveHistory;
+use dweb::trove::directory_tree::{DirectoryTree, PATH_SEPARATOR};
+use dweb::trove::History;
 
 use crate::awe_client::{autonomi_get_file_public, connect_to_autonomi};
 
@@ -517,8 +517,8 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         .await
         .expect("Failed to connect to Autonomi Network");
 
-    println!("DEBUG calling FileTree::file_tree_download()");
-    let metadata = match FileTree::file_tree_download(&client, xor_name).await {
+    println!("DEBUG calling DirectoryTree::directory_tree_download()");
+    let metadata = match DirectoryTree::directory_tree_download(&client, xor_name).await {
         Ok(metadata) => {
             println!("DEBUG got metadata");
             metadata
@@ -658,10 +658,10 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
     }
 }
 
-/// Look-up a website resource in FileTree metadata obtained from a Register on the network
+/// Look-up a website resource in DirectoryTree metadata obtained from a Register on the network
 /// according to Some(version), or the most recent version if None.
 /// The lookup automatically handles a resource_path which ends in '/', and so will return
-/// '/index.html' or '/index.htm' if found (or other defaults according to website settings in the FileTree).
+/// '/index.html' or '/index.htm' if found (or other defaults according to website settings in the DirectoryTree).
 /// Returns XorName of the resource if present, and updates the loaded version
 pub async fn awe_lookup_resource_for_website_version(
     client: &AutonomiClient,
@@ -673,28 +673,31 @@ pub async fn awe_lookup_resource_for_website_version(
     println!("DEBUG history_address: {history_address}");
     println!("DEBUG resource_path    : {resource_path}");
 
-    match TroveHistory::<FileTree>::from_register_address(client.clone(), history_address, None)
+    match History::<DirectoryTree>::from_register_address(client.clone(), history_address, None)
         .await
     {
         Ok(mut history) => {
-            let data_address =
-                match FileTree::history_lookup_web_resource(&mut history, resource_path, version)
-                    .await
-                {
-                    Ok((data_address, _)) => {
-                        let trove_version = history.get_cached_version();
-                        set_version_loaded(if trove_version.is_none() {
-                            0
-                        } else {
-                            trove_version.unwrap().version
-                        });
-                        data_address
-                    }
-                    Err(e) => {
-                        println!("Lookup web resource failed: {e:?}");
-                        return Err(e);
-                    }
-                };
+            let data_address = match DirectoryTree::history_lookup_web_resource(
+                &mut history,
+                resource_path,
+                version,
+            )
+            .await
+            {
+                Ok((data_address, _)) => {
+                    let trove_version = history.get_cached_version();
+                    set_version_loaded(if trove_version.is_none() {
+                        0
+                    } else {
+                        trove_version.unwrap().version
+                    });
+                    data_address
+                }
+                Err(e) => {
+                    println!("Lookup web resource failed: {e:?}");
+                    return Err(e);
+                }
+            };
             Ok(data_address)
         }
         Err(e) => {
