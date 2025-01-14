@@ -24,7 +24,7 @@ use clap::Parser;
 use clap::Subcommand;
 use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
-use xor_name::XorName;
+use xor_name::XorName as DirectoryAddress;
 
 use ant_bootstrap::PeersArgs;
 use ant_logging::{LogFormat, LogOutputDest};
@@ -291,8 +291,8 @@ pub enum Subcommands {
     #[allow(non_camel_case_types)]
     Inspect_files {
         /// The Autonomi network address of some awe metadata. Can be prefixed with awm://
-        #[clap(value_name = "FILES-METADATA-ADDRESS", value_parser = awe_str_to_xor_name)]
-        files_metadata_address: XorName,
+        #[clap(value_name = "DIRECTORY-ADDRESS", value_parser = awe_str_to_xor_name)]
+        files_metadata_address: DirectoryAddress,
 
         #[command(flatten)]
         files_args: FilesArgs,

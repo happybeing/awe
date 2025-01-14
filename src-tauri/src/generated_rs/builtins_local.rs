@@ -18,4 +18,4 @@
 // First register entry (version 0) to identify as WebsiteVersions register
 //
 // DO NOT CHANGE THIS COMMENT OR THE AUTOMATICALLY GENERATED LINES WHICH FOLLOW.
-pub const AWV_REG_TYPE_LOCAL: &str = "";
+pub const AWV_REG_TYPE_LOCAL: &str = "69c51307eb1a9fe965b2af1634408b0436adac987cbb098562b08530687164ef";

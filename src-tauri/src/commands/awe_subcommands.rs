@@ -17,22 +17,18 @@
 
 use color_eyre::Result;
 
-// use ant_cli::{ChunkManager, Estimator};
-use dweb::autonomi::access::network::get_peers;
-use dweb::autonomi::wallet::load_wallet;
 use dweb::storage::{publish_or_update_files, report_content_published_or_updated};
 
 use crate::cli_options::{Opt, Subcommands};
-use crate::connect::connect_to_network;
 
 // Returns true if command complete, false to start the browser
 pub async fn cli_commands(opt: Opt) -> Result<bool> {
     match opt.cmd {
         Some(Subcommands::Estimate { files_root }) => {
-            let client = connect_to_network(get_peers(opt.peers).await?)
+            let client = dweb::client::AutonomiClient::initialise_and_connect(None)
                 .await
                 .expect("Failed to connect to Autonomi Network");
-            match client.file_cost(&files_root).await {
+            match client.client.file_cost(&files_root).await {
                 Ok(tokens) => println!("Cost estimate: {tokens}"),
                 Err(e) => println!("Unable to estimate cost: {e}"),
             }
@@ -43,15 +39,12 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             website_config,
             is_new_network: _,
         }) => {
-            let wallet = load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
-            let client = connect_to_network(get_peers(opt.peers).await?)
+            let client = dweb::client::AutonomiClient::initialise_and_connect(None)
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
             let (history_address, version) =
-                match publish_or_update_files(&files_root, None, website_config, &client, &wallet)
-                    .await
-                {
+                match publish_or_update_files(&client, &files_root, None, website_config).await {
                     Ok(history_address) => history_address,
                     Err(e) => {
                         println!("Failed to publish files: {e}");
@@ -67,17 +60,15 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             history_address,
             website_config,
         }) => {
-            let wallet = load_wallet().inspect_err(|e| println!("Failed to load wallet. {}", e))?;
-            let client = connect_to_network(get_peers(opt.peers).await?)
+            let client = dweb::client::AutonomiClient::initialise_and_connect(None)
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
             let (history_address, version) = publish_or_update_files(
+                &client,
                 &files_root,
                 Some(history_address),
                 website_config,
-                &client,
-                &wallet,
             )
             .await?;
 
@@ -156,7 +147,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             println!("TODO: implement subcommand 'download'");
         }
 
-        // Some(Subcommands::Serve { port: _ }) => {
+        // Some(Subcommands::Serve { host: _, port: _ }) => {
         //     println!("TODO: implement subcommand 'serve'");
         // }
 

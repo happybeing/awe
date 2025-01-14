@@ -22,20 +22,19 @@ use xor_name::XorName;
 use ant_bootstrap::PeersArgs;
 use ant_registers::RegisterAddress;
 use autonomi::client::data::GetError;
-use autonomi::client::Client;
 
-use dweb::autonomi::access::network::get_peers;
+use dweb::client::AutonomiClient;
 
 use crate::awe_protocols::{AWE_PROTOCOL_FILE, AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
 
-pub async fn connect_to_autonomi() -> Result<Client> {
+pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
     println!("Autonomi client initialising...");
-    crate::connect::connect_to_network(get_peers(PeersArgs::default()).await?).await
+    dweb::client::AutonomiClient::initialise_and_connect(Some(PeersArgs::default())).await
 }
 
 pub async fn autonomi_get_file_public(
+    client: &AutonomiClient,
     xor_name: XorName,
-    client: &Client,
 ) -> Result<Bytes, GetError> {
     println!("DEBUG autonomi_get_file_public()");
     println!("DEBUG calling client.data_get_public()");

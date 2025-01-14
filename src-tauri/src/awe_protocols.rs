@@ -23,7 +23,8 @@ use xor_name::XorName;
 
 use ant_registers::RegisterAddress;
 use autonomi::client::data::GetError;
-use autonomi::client::Client;
+
+use dweb::client::AutonomiClient;
 use dweb::helpers::convert::str_to_xor_name;
 use dweb::trove::file_tree::{FileTree, PATH_SEPARATOR};
 use dweb::trove::TroveHistory;
@@ -441,10 +442,10 @@ async fn handle_protocol_awv(
     let current_site_version = get_version_loaded();
 
     let xor_name = match awe_lookup_resource_for_website_version(
+        &client,
         &resource_path,
         versions_register_address,
         website_version,
-        &client,
     )
     .await
     {
@@ -459,7 +460,7 @@ async fn handle_protocol_awv(
         }
     };
 
-    let response = awe_fetch_xor_data(xor_name, Some(&client)).await;
+    let response = awe_fetch_xor_data(Some(&client), xor_name).await;
     if response.status() == StatusCode::OK {
         // Keep site version unchanged when loading a resource
         if loading_resource {
@@ -512,12 +513,12 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     };
 
     // Initialise network connection, client and files api
-    let files_api = connect_to_autonomi()
+    let client = connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 
     println!("DEBUG calling FileTree::file_tree_download()");
-    let metadata = match FileTree::file_tree_download(xor_name, &files_api).await {
+    let metadata = match FileTree::file_tree_download(&client, xor_name).await {
         Ok(metadata) => {
             println!("DEBUG got metadata");
             metadata
@@ -533,7 +534,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     };
 
     let xor_name = match metadata.lookup_web_resource(&resource_path) {
-        Ok(xor_name) => xor_name,
+        Ok((xor_name, _)) => xor_name,
         Err(status_code) => {
             let message = format!("Resource not found at {resource_path}");
             println!("{message}");
@@ -544,7 +545,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    let response = awe_fetch_xor_data(xor_name, Some(&files_api)).await;
+    let response = awe_fetch_xor_data(Some(&client), xor_name).await;
     if response.status() == StatusCode::OK {
         set_last_site_address(&url.to_string());
     }
@@ -557,7 +558,7 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     println!("DEBUG Hello from handle_protocol_awf()");
 
     // Initialise network connection, client and files api
-    let files_api = connect_to_autonomi()
+    let client = connect_to_autonomi()
         .await
         .expect("Failed to connect to Autonomi Network");
 
@@ -575,13 +576,13 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    return awe_fetch_xor_data(xor_name, Some(&files_api)).await;
+    return awe_fetch_xor_data(Some(&client), xor_name).await;
 }
 
 /// Fetch data from network and return as an http Response
 async fn awe_fetch_xor_data(
+    client_opt: Option<&AutonomiClient>,
     xor_name: XorName,
-    client_opt: Option<&Client>,
 ) -> http::Response<Vec<u8>> {
     println!("DEBUG fetching xor data: {xor_name:64x}");
 
@@ -599,7 +600,7 @@ async fn awe_fetch_xor_data(
     // TODO since Tauri v2, the iframe won't load content from
     // TODO a URI unless the response has a Content-Type header
     // TODO Investigate options, such as saving content type in the site map
-    match autonomi_get_file_public(xor_name, client_ref).await {
+    match autonomi_get_file_public(client_ref, xor_name).await {
         Ok(content) => {
             println!("DEBUG retrieved {} bytes", content.len());
             return http::Response::builder()
@@ -663,39 +664,37 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
 /// '/index.html' or '/index.htm' if found (or other defaults according to website settings in the FileTree).
 /// Returns XorName of the resource if present, and updates the loaded version
 pub async fn awe_lookup_resource_for_website_version(
+    client: &AutonomiClient,
     resource_path: &String,
     history_address: RegisterAddress,
     version: Option<u64>,
-    client: &Client,
 ) -> Result<XorName, StatusCode> {
     println!("DEBUG lookup_resource_for_website_version() version {version:?}");
     println!("DEBUG history_address: {history_address}");
     println!("DEBUG resource_path    : {resource_path}");
 
-    match TroveHistory::<FileTree>::from_register_address(history_address, client, None).await {
+    match TroveHistory::<FileTree>::from_register_address(client.clone(), history_address, None)
+        .await
+    {
         Ok(mut history) => {
-            let data_address = match FileTree::history_lookup_web_resource(
-                &mut history,
-                resource_path,
-                version,
-                client,
-            )
-            .await
-            {
-                Ok(data_address) => {
-                    let version = history.get_cached_version();
-                    set_version_loaded(if version.is_none() {
-                        0
-                    } else {
-                        version.unwrap()
-                    });
-                    data_address
-                }
-                Err(e) => {
-                    println!("Lookup web resource failed: {e:?}");
-                    return Err(e);
-                }
-            };
+            let data_address =
+                match FileTree::history_lookup_web_resource(&mut history, resource_path, version)
+                    .await
+                {
+                    Ok((data_address, _)) => {
+                        let trove_version = history.get_cached_version();
+                        set_version_loaded(if trove_version.is_none() {
+                            0
+                        } else {
+                            trove_version.unwrap().version
+                        });
+                        data_address
+                    }
+                    Err(e) => {
+                        println!("Lookup web resource failed: {e:?}");
+                        return Err(e);
+                    }
+                };
             Ok(data_address)
         }
         Err(e) => {
