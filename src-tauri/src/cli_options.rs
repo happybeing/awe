@@ -46,9 +46,9 @@ pub struct Opt {
     ///
     /// Use awv://<HISTORY-ADDRESS> to browse most recent version from the history. (Use --history-version to specify a version).
     ///
-    /// Use awm://<METADATA-ADDRESS> to browse files or website from file tree metadata.
+    /// Use awm://<DIRECTORY-ADDRESS> to browse files or website from a DirectoryTree.
     ///
-    /// Use awf://<DATAMAP-ADDRESS> to load or fetch to a file rather than a website.
+    /// Use awf://<FILE-ADDRESS> to load or fetch to a file rather than a website.
     pub url: Option<String>,
 
     /// Browse the specified version number from the history
@@ -127,9 +127,9 @@ pub enum Subcommands {
         ///
         /// Use awv://<HISTORY-ADDRESS> to browse most recent version from the history. (Use --history-version to specify a version).
         ///
-        /// Use awm://<METADATA-ADDRESS> to browse files or website from file tree metadata.
+        /// Use awm://<DIRECTORY-ADDRESS> to browse files or website from a DirectoryTree.
         ///
-        /// Use awf://<DATAMAP-ADDRESS> to load or fetch to a file rather than a website.
+        /// Use awf://<FILE-ADDRESS> to load or fetch to a file rather than a website.
         url: Option<String>,
 
         /// Browse a specified version number from a history. Only valid with a HISTORY-ADDRESS.
