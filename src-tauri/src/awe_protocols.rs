@@ -673,7 +673,7 @@ pub async fn awe_lookup_resource_for_website_version(
     println!("DEBUG history_address: {history_address}");
     println!("DEBUG resource_path    : {resource_path}");
 
-    match History::<DirectoryTree>::from_register_address(client.clone(), history_address, None)
+    match History::<DirectoryTree>::from_history_address(client.clone(), history_address, None)
         .await
     {
         Ok(mut history) => {
