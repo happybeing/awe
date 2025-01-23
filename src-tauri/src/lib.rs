@@ -94,7 +94,7 @@ pub fn run() {
     };
 
     let url = opt.url.clone();
-    let version = opt.history_number.clone();
+    let version = opt.history_version.clone();
 
     if tauri::async_runtime::block_on(async move {
         awe_subcommands::cli_commands(opt)

@@ -21,11 +21,11 @@ use std::sync::Mutex;
 use http::{status::StatusCode, Request};
 use xor_name::XorName;
 
-use ant_registers::RegisterAddress;
-use autonomi::client::data::GetError;
+use ant_protocol::storage::PointerAddress as HistoryAddress;
+use autonomi::client::GetError;
 
 use dweb::client::AutonomiClient;
-use dweb::helpers::convert::str_to_xor_name;
+use dweb::helpers::convert::{str_to_pointer_address, str_to_xor_name};
 use dweb::trove::directory_tree::{DirectoryTree, PATH_SEPARATOR};
 use dweb::trove::History;
 
@@ -329,7 +329,7 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
         .expect("error while running tauri application");
 }
 
-// TODO implement publishing via version register (based on webname)
+// TODO implement publishing via version (based on webname)
 // TODO Placeholder for awe:// webname protocol
 /// Fetch using a webname URL for website versions (awe://)
 /// Returns content as an http Response
@@ -421,10 +421,10 @@ async fn handle_protocol_awv(
     }
 
     println!("DEBUG (host_xor_string, resource_path): ({host_xor_string}, {resource_path})'");
-    let versions_register_address = match RegisterAddress::from_hex(&host_xor_string.as_str()) {
-        Ok(versions_register_address) => versions_register_address,
+    let versions_history_address = match str_to_pointer_address(&host_xor_string.as_str()) {
+        Ok(versions_history_address) => versions_history_address,
         Err(err) => {
-            let message = format!("Failed to parse RegisterAddress address [{:?}]", err);
+            let message = format!("Failed to parse HistoryAddress address [{:?}]", err);
             println!("{message}");
             return http::Response::builder()
                 .status(StatusCode::BAD_REQUEST)
@@ -444,7 +444,7 @@ async fn handle_protocol_awv(
     let xor_name = match awe_lookup_resource_for_website_version(
         &client,
         &resource_path,
-        versions_register_address,
+        versions_history_address,
         website_version,
     )
     .await
@@ -666,11 +666,11 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
 pub async fn awe_lookup_resource_for_website_version(
     client: &AutonomiClient,
     resource_path: &String,
-    history_address: RegisterAddress,
+    history_address: HistoryAddress,
     version: Option<u64>,
 ) -> Result<XorName, StatusCode> {
     println!("DEBUG lookup_resource_for_website_version() version {version:?}");
-    println!("DEBUG history_address: {history_address}");
+    println!("DEBUG history_address: {}", history_address.to_hex());
     println!("DEBUG resource_path    : {resource_path}");
 
     match History::<DirectoryTree>::from_history_address(client.clone(), history_address, None)

@@ -3,7 +3,7 @@ Copyright (c) 2024-2025 Mark Hughes
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
+the Free Software Foundation, either version 3 of the License, ord
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
@@ -18,18 +18,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-use ant_registers::RegisterAddress;
+use ant_protocol::storage::PointerAddress as HistoryAddress;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
-use xor_name::XorName as DirectoryAddress;
+use xor_name::XorName;
 
 use ant_bootstrap::PeersArgs;
 use ant_logging::{LogFormat, LogOutputDest};
 
-use crate::awe_client::{awe_str_to_register_address, awe_str_to_xor_name};
+use dweb::helpers::convert::*;
 
 // TODO add example to each CLI subcommand
 
@@ -46,14 +46,14 @@ pub struct Opt {
     ///
     /// Use awv://<HISTORY-ADDRESS> to browse most recent version from the history. (Use --history-version to specify a version).
     ///
-    /// Use awm://<DIRECTORY-ADDRESS> to browse files or website from a DirectoryTree.
+    /// Use awm://<DIRECTORY-ADDRESS> to browse files or website from DirectoryTree
     ///
     /// Use awf://<FILE-ADDRESS> to load or fetch to a file rather than a website.
     pub url: Option<String>,
 
-    /// Browse the specified version number from the history
-    #[clap(long, short = 'n', value_parser = greater_than_0)]
-    pub history_number: Option<u64>,
+    /// Browse the specified version from the history
+    #[clap(long, value_parser = greater_than_0)]
+    pub history_version: Option<u64>,
 
     #[command(flatten)]
     pub peers: PeersArgs,
@@ -127,14 +127,14 @@ pub enum Subcommands {
         ///
         /// Use awv://<HISTORY-ADDRESS> to browse most recent version from the history. (Use --history-version to specify a version).
         ///
-        /// Use awm://<DIRECTORY-ADDRESS> to browse files or website from a DirectoryTree.
+        /// Use awm://<METADATA-ADDRESS> to browse files or website from file tree metadata.
         ///
-        /// Use awf://<FILE-ADDRESS> to load or fetch to a file rather than a website.
+        /// Use awf://<DATAMAP-ADDRESS> to load or fetch to a file rather than a website.
         url: Option<String>,
 
-        /// Browse a specified version number from a history. Only valid with a HISTORY-ADDRESS.
-        #[clap(long, short = 'n', value_parser = greater_than_0)]
-        history_number: Option<u64>,
+        /// Browse a specified version from a history. Only valid with a HISTORY-ADDRESS.
+        #[clap(long, value_parser = greater_than_0)]
+        history_version: Option<u64>,
     },
 
     // TODO add an example or two to each command section
@@ -184,8 +184,8 @@ pub enum Subcommands {
         #[clap(long = "files-root", value_name = "FILES-ROOT")]
         files_root: PathBuf,
         /// The address of a register referencing each version of the website. Can begin with "awv://"
-        #[clap(long, name = "HISTORY-ADDRESS", value_parser = awe_str_to_register_address)]
-        history_address: RegisterAddress,
+        #[clap(long, name = "HISTORY-ADDRESS", value_parser = awe_str_to_history_address)]
+        history_address: HistoryAddress,
         // TODO when NRS, re-instate the following (and 'conflicts_with = "update"' above)
         // /// Update the website at given awe NRS name
         // #[clap(
@@ -243,8 +243,8 @@ pub enum Subcommands {
     #[allow(non_camel_case_types)]
     Inspect_register {
         /// The address of an Autonomi register. Can be prefixed with awv://
-        #[clap(name = "REGISTER-ADDRESS", value_parser = awe_str_to_register_address)]
-        register_address: RegisterAddress,
+        #[clap(name = "REGISTER-ADDRESS", value_parser = awe_str_to_history_address)]
+        register_address: HistoryAddress,
 
         /// Print a summary of the register including type (the value of entry 0) and number of entries
         #[clap(long = "register-summary", short = 'r', default_value = "false")]
@@ -292,17 +292,22 @@ pub enum Subcommands {
     Inspect_files {
         /// The Autonomi network address of some awe metadata. Can be prefixed with awm://
         #[clap(value_name = "DIRECTORY-ADDRESS", value_parser = awe_str_to_xor_name)]
-        files_metadata_address: DirectoryAddress,
+        files_metadata_address: XorName,
 
         #[command(flatten)]
         files_args: FilesArgs,
     },
-    // /// Placeholder for testing early localhost server
-    // Serve {
-    //     /// Optional port number on which to listen for API requests
-    //     #[clap(value_name = "PORT", default_value = DEFAULT_HTTP_PORT_STR, value_parser = parse_port_number)]
-    //     port: u16,
-    // },
+
+    /// Placeholder for testing early localhost server
+    Serve {
+        /// Optional port number on which to listen for local requests
+        #[clap(value_name = "PORT", default_value = DEFAULT_HTTP_PORT_STR, value_parser = parse_port_number)]
+        port: u16,
+
+        /// Optional host on which to listen for local requests
+        #[clap(value_name = "HOST", default_value = LOCALHOST, value_parser = parse_host)]
+        host: String,
+    },
 }
 
 #[derive(Args, Debug)]

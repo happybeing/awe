@@ -19,10 +19,10 @@ crate-type = ["lib", "cdylib", "staticlib"]
 tauri-build = { version = "2.0.0-rc.0", features = [] }
 
 [features]
-# updated for autonomi v0.2.4
+# updated for autonomi v0.3.4
 default = ["skip-network-compatibility-check"]
-local = ["ant-bootstrap/local", "autonomi/local", "dweb/local"]
-metrics = ["ant-logging/process-metrics"]
+ametrics = ["ant-logging/process-metrics"]
+development = []
 skip-network-compatibility-check = []   # Avoid need to upload avp type and include xor address in build
 nightly = []
 
@@ -43,37 +43,31 @@ serde_json = "1"
 
 ### Dependencies for an Autonomi client
 
-# Generated using: awe-dependencies --branch stable --ant-path ../../../autonomi/autonomi/
-# autonomi = { version = "0.3.0", path = "../../../autonomi/autonomi/autonomi", features = [
+# Generated using: awe-dependencies --branch main --ant-path ../../autonomi
+autonomi = { version = "0.3.4", path = "../../autonomi/autonomi", features = [ "loud", ]}
+ant-bootstrap = { version = "0.1.4", path = "../../autonomi/ant-bootstrap" }
+ant-build-info = { version = "0.1.23", path = "../../autonomi/ant-build-info" }
+ant-logging = { version = "0.2.45", path = "../../autonomi/ant-logging" }
+ant-networking = { version = "0.3.4", path = "../../autonomi/ant-networking" }
+ant-protocol = { version = "0.3.3", path = "../../autonomi/ant-protocol" }
+
+# Generated using: awe-dependencies --branch stable
+# autonomi = { version = "0.3.1", features = [
 #     "fs",
 #     "vault",
 #     "registers",
 #     "loud",
 # ] }
-# ant-bootstrap = { version = "0.1.0", path = "../../../autonomi/autonomi//ant-bootstrap" }
-# ant-build-info = { version = "0.1.20", path = "../../../autonomi/autonomi//ant-build-info" }
-# ant-logging = { version = "0.2.41", path = "../../../autonomi/autonomi//ant-logging" }
-# ant-networking = { version = "0.3.0", path = "../../../autonomi/autonomi//ant-networking" }
-# ant-protocol = { version = "0.3.0", path = "../../../autonomi/autonomi//ant-protocol" }
-# ant-registers = { version = "0.4.4", path = "../../../autonomi/autonomi//ant-registers" }
-
-# Generated using: awe-dependencies --branch stable
-autonomi = { version = "0.3.1", features = [
-    "fs",
-    "vault",
-    "registers",
-    "loud",
-] }
-ant-bootstrap = { version = "0.1.1" }
-ant-build-info = { version = "0.1.21" }
-ant-logging = { version = "0.2.42" }
-ant-networking = { version = "0.3.1" }
-ant-protocol = { version = "0.3.1" }
-ant-registers = { version = "0.4.5" }
+# ant-bootstrap = { version = "0.1.1" }
+# ant-build-info = { version = "0.1.21" }
+# ant-logging = { version = "0.2.42" }
+# ant-networking = { version = "0.3.1" }
+# ant-protocol = { version = "0.3.1" }
+# ant-registers = { version = "0.4.5" }
 
 ## Local: dweb
-dweb = { path = "../../../autonomi/dweb/dweb-lib", version = "0.2.0" }
-# dweb = { version = "0.2.0" }
+dweb = { path = "../../../autonomi/dweb/dweb-lib", version = "0.2.0", features = ["development"] }
+# dweb = { version = "0.2.0", features = ["development"] }
 
 ## Everything else
 rand = { version = "~0.8.5", features = ["small_rng"] }

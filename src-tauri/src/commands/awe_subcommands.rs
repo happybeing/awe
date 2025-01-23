@@ -83,7 +83,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
 
         Some(Subcommands::Browse {
             url: _,
-            history_number: _,
+            history_version: _,
         }) => {
             return Ok(false); // Command not yet complete, is the signal to start browser
         }
@@ -99,7 +99,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             include_files,
             files_args,
         }) => {
-            match crate::commands::cmd_inspect::handle_inspect_register(
+            match crate::commands::cmd_inspect::handle_inspect_pointer(
                 register_address,
                 print_register_summary,
                 print_type,
@@ -147,9 +147,9 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             println!("TODO: implement subcommand 'download'");
         }
 
-        // Some(Subcommands::Serve { host: _, port: _ }) => {
-        //     println!("TODO: implement subcommand 'serve'");
-        // }
+        Some(Subcommands::Serve { host: _, port: _ }) => {
+            println!("TODO: implement subcommand 'serve'");
+        }
 
         // Default is not to return, but open the browser by continuing
         None {} => {
