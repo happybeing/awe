@@ -22,14 +22,18 @@ use xor_name::XorName;
 use ant_bootstrap::PeersArgs;
 use ant_protocol::storage::PointerAddress as HistoryAddress;
 
+use dweb::autonomi::access::network::{get_peers, NetworkPeers};
 use dweb::client::AutonomiClient;
 use dweb::helpers::convert::str_to_pointer_address;
 
 use crate::awe_protocols::{AWE_PROTOCOL_FILE, AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
 
+/// Fallback for use by awe protocol handlers which don't have access to CLI options
 pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
     println!("Autonomi client initialising...");
-    dweb::client::AutonomiClient::initialise_and_connect(Some(PeersArgs::default())).await
+    let peers_args = PeersArgs::default();
+    let peers = get_peers(peers_args).await?;
+    dweb::client::AutonomiClient::initialise_and_connect(peers).await
 }
 
 pub async fn autonomi_get_file_public(
