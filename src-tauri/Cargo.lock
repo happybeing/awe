@@ -1469,6 +1469,7 @@ dependencies = [
  "http 1.1.0",
  "indicatif",
  "log",
+ "mime_guess",
  "multiaddr",
  "prettytable",
  "rand 0.8.5",

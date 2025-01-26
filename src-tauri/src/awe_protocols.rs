@@ -18,7 +18,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
-use http::{status::StatusCode, Request};
+use http::{header, status::StatusCode, HeaderName, HeaderValue, Request};
+use mime_guess;
 use xor_name::XorName;
 
 use ant_protocol::storage::PointerAddress as HistoryAddress;
@@ -460,7 +461,7 @@ async fn handle_protocol_awv(
         }
     };
 
-    let response = awe_fetch_xor_data(Some(&client), xor_name).await;
+    let mut response = awe_fetch_xor_data(Some(&client), xor_name).await;
     if response.status() == StatusCode::OK {
         // Keep site version unchanged when loading a resource
         if loading_resource {
@@ -474,6 +475,15 @@ async fn handle_protocol_awv(
             set_last_site_address(&url.to_string());
         }
     }
+
+    if let Some(content_type) = mime_guess::from_path(resource_path).first_raw() {
+        if let Ok(content_type) = header::HeaderValue::from_str(&content_type) {
+            response
+                .headers_mut()
+                .append(header::CONTENT_TYPE, content_type);
+        };
+    }
+
     response
 }
 
@@ -545,10 +555,19 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    let response = awe_fetch_xor_data(Some(&client), xor_name).await;
+    let mut response = awe_fetch_xor_data(Some(&client), xor_name).await;
     if response.status() == StatusCode::OK {
         set_last_site_address(&url.to_string());
     }
+
+    if let Some(content_type) = mime_guess::from_path(resource_path).first_raw() {
+        if let Ok(content_type) = header::HeaderValue::from_str(&content_type) {
+            response
+                .headers_mut()
+                .append(header::CONTENT_TYPE, content_type);
+        };
+    }
+
     response
 }
 
@@ -701,7 +720,7 @@ pub async fn awe_lookup_resource_for_website_version(
             Ok(data_address)
         }
         Err(e) => {
-            println!("Failed to load versions register: {e:?}");
+            println!("Failed to load History: {e:?}");
             return Err(StatusCode::NOT_FOUND);
         }
     }
