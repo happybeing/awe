@@ -94,25 +94,21 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             return Ok(false); // Command not yet complete, is the signal to start browser
         }
 
-        Some(Subcommands::Inspect_register {
-            register_address,
-            print_register_summary,
+        Some(Subcommands::Inspect_history {
+            history_address,
+            print_history_summary,
             print_type,
             print_size,
-            print_audit,
-            print_merkle_reg,
             entries_range,
             include_files,
             files_args,
         }) => {
-            match crate::commands::cmd_inspect::handle_inspect_pointer(
+            match crate::commands::cmd_inspect::handle_inspect_history(
                 peers.await?,
-                register_address,
-                print_register_summary,
+                history_address,
+                print_history_summary,
                 print_type,
                 print_size,
-                print_audit,
-                print_merkle_reg,
                 entries_range,
                 include_files,
                 files_args,

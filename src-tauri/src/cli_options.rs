@@ -194,12 +194,12 @@ pub enum Subcommands {
     #[clap(hide = true)] // TODO hide until implemented
     Download {
         /// An awe compatible URL. Must be an xor address prefixed with 'awf://', 'awm://' or 'awv://' respectively
-        /// to reference a file, some files metadata or a register with entries of files metadata.
+        /// to reference a FILE-ADDRESS, a DIRECTORY-ADDRESS or a HISTORY-ADDRESS with entries of DirectoryTree.
         ///
-        /// For a metadata address you may specify the path of a specific file or directory to be downloaded
-        /// by including this at the end of the AWE-URL. This defaults to the metadata root (or '/').
+        /// For a DIRECTORY-ADDRESS you may specify the path of a specific file or directory to be downloaded
+        /// by including this at the end of the AWE-URL. This defaults to the root path ('/').
         ///
-        /// For a register, you must provide the RANGE of entries to be processed.
+        /// For a HISTORY-ADDRESS, you must provide the RANGE of entries to be processed.
         ///
         /// If you do not specify a DOWNLOAD-PATH the content downloaded will be printed
         /// on the terminal (via stdout).
@@ -214,12 +214,12 @@ pub enum Subcommands {
         /// TODO: PathBuf?
         filesystem_path: Option<String>,
 
-        /// If AWE-URL is a register (i.e. starts with 'awv://') you must specify the entry or
+        /// If AWE-URL is a HISTORY-ADDRESS (i.e. starts with 'awv://') you must specify the entry or
         /// entries you with to download with this option. The download will be applied for each
         /// entry in RANGE, which can be an integer (for a single entry), or an integer followed
         /// by ':' or two integers separated by ':'. The first entry is position 0 and the last is
-        /// register 'size minus 1'. When more than one entry is downloaded, each will be saved in
-        /// a separate subdirectory of the <DOWNLOAD-PATH>, named with a 'v' followed by the index
+        /// History 'size minus 1'. When more than one entry is downloaded, each will be saved in
+        /// a separate subdirectory of the DOWNLOAD-PATH, named with a 'v' followed by the index
         /// of the entry, such as 'v3', 'v4' etc.
         #[clap(long = "entries", short = 'e', value_name = "RANGE", value_parser = str_to_entries_range)]
         entries_range: Option<EntriesRange>,
@@ -230,16 +230,16 @@ pub enum Subcommands {
 
     /// Print information about data structures stored on Autonomi
     #[allow(non_camel_case_types)]
-    Inspect_register {
-        /// The address of an Autonomi register. Can be prefixed with awv://
+    Inspect_history {
+        /// The address of an Autonomi History. Can be prefixed with awv://
         #[clap(name = "REGISTER-ADDRESS", value_parser = awe_str_to_history_address)]
-        register_address: HistoryAddress,
+        history_address: HistoryAddress,
 
-        /// Print a summary of the register including type (the value of entry 0) and number of entries
-        #[clap(long = "register-summary", short = 'r', default_value = "false")]
-        print_register_summary: bool,
+        /// Print a summary of the History including type (the value of entry 0) and number of entries
+        #[clap(long = "history-summary", short = 'i', default_value = "false")]
+        print_history_summary: bool,
 
-        /// Print the type of metadata recorded in the register (the value of entry 0)
+        /// Print the type of metadata recorded in the History (the value of entry 0)
         #[clap(long = "type", short = 't', default_value = "false")]
         print_type: bool,
 
@@ -247,18 +247,10 @@ pub enum Subcommands {
         #[clap(long = "size", short = 's', default_value = "false")]
         print_size: bool,
 
-        /// Print the merkle register structure
-        #[clap(long = "merkle-reg", short = 'k', default_value = "false")]
-        print_merkle_reg: bool,
-
-        /// Print an audit of register nodes/values
-        #[clap(long = "audit", short = 'a', default_value = "false")]
-        print_audit: bool,
-
         /// Print information about each entry in RANGE, which can be
         /// an integer (for a single entry), or an integer followed by ':' or
         /// two integers separated by ':'. The first entry is position 0
-        /// and the last is register 'size minus 1'
+        /// and the last is History 'size minus 1'
         #[clap(long = "entries", short = 'e', value_name = "RANGE", value_parser = str_to_entries_range )]
         entries_range: Option<EntriesRange>,
 

@@ -27,14 +27,12 @@ use dweb::trove::directory_tree::DirectoryTree;
 use crate::cli_options::{EntriesRange, FilesArgs};
 
 /// Implement 'inspect-history' subcommand
-pub async fn handle_inspect_pointer(
+pub async fn handle_inspect_history(
     peers: NetworkPeers,
     pointer_address: PointerAddress,
     print_summary: bool,
     print_type: bool,
     print_size: bool,
-    print_audit: bool,
-    print_merkle_reg: bool,
     entries_range: Option<EntriesRange>,
     include_files: bool,
     files_args: FilesArgs,
@@ -80,14 +78,6 @@ pub async fn handle_inspect_pointer(
     //     .await?;
     // };
 
-    // if print_audit {
-    //     let _ = do_print_audit(&register);
-    // }
-
-    // if print_merkle_reg {
-    //     let _ = do_print_merkle_reg(&register);
-    // }
-
     Ok(())
 }
 
@@ -103,7 +93,6 @@ fn do_print_summary(pointer: &Pointer, pointer_address: &PointerAddress) -> Resu
     //     do_print_type(None)?;
     // }
     // do_print_size(size)?;
-    // do_print_audit_summary(&register)?;
     Ok(())
 }
 
@@ -120,142 +109,6 @@ fn do_print_size(size: usize) -> Result<()> {
     println!("size        : {size}");
     Ok(())
 }
-
-// TODO refactor all Register refs to use Transactions when available
-// fn do_print_merkle_reg(register: &Register) -> Result<()> {
-//     println!("{:?}", register.inner_merkle_reg());
-//     Ok(())
-// }
-
-// fn do_print_audit_summary(register: &Register) -> Result<()> {
-//     let merkle_reg = register.inner_merkle_reg();
-//     let content = merkle_reg.read();
-
-//     if content.nodes().nth(0).is_some() {
-//         println!("audit       :");
-//         // Print current/root value(s)
-//         // The 'roots' are one or more current values
-//         // We always write and merge so this should always be a single value
-//         let num_root_values = content.values().into_iter().count();
-
-//         if num_root_values == 1 {
-//             println!("   current state is merged, 1 value:");
-//         } else {
-//             println!("   current state is NOT merged, {num_root_values} values:");
-//         }
-//         for value in content.values().into_iter() {
-//             let xor_name = xorname_from_entry(value);
-//             println!("   {xor_name:64x}");
-//         }
-//     } else {
-//         println!("audit       : empty (no values)");
-//     }
-
-//     Ok(())
-// }
-
-// fn do_print_audit(register: &Register) -> Result<()> {
-//     let merkle_reg = register.inner_merkle_reg();
-//     let content = merkle_reg.read();
-
-//     let node = content.nodes().nth(0);
-//     if let Some(_node) = node {
-//         print_audit_for_nodes(merkle_reg);
-//     } else {
-//         println!("history     : empty (no values)");
-//     }
-
-//     Ok(())
-// }
-
-// fn print_audit_for_nodes(merkle_reg: &crdts::merkle_reg::MerkleReg<Entry>) {
-//     // Show the Register structure
-//     let content = merkle_reg.read();
-
-//     // Index nodes to make it easier to see where a
-//     // node appears multiple times in the output.
-//     // Note: it isn't related to the order of insertion
-//     // which is hard to determine.
-//     let mut index: usize = 0;
-//     let mut node_ordering: HashMap<Hash, usize> = HashMap::new();
-//     for (_hash, node) in content.hashes_and_nodes() {
-//         index_node_and_descendants(node, &mut index, &mut node_ordering, merkle_reg);
-//     }
-
-//     println!("======================");
-//     println!("Root (Latest) Node(s):");
-//     for node in content.nodes() {
-//         let _ = print_node(0, node, &node_ordering);
-//     }
-
-//     println!("======================");
-//     println!("Register Structure:");
-//     println!("(In general, earlier nodes are more indented)");
-//     let mut indents = 0;
-//     for (_hash, node) in content.hashes_and_nodes() {
-//         print_node_and_descendants(&mut indents, node, &node_ordering, merkle_reg);
-//     }
-
-//     println!("======================");
-// }
-
-// fn index_node_and_descendants(
-//     node: &Node<Entry>,
-//     index: &mut usize,
-//     node_ordering: &mut HashMap<Hash, usize>,
-//     merkle_reg: &MerkleReg<Entry>,
-// ) {
-//     let node_hash = node.hash();
-//     if node_ordering.get(&node_hash).is_none() {
-//         node_ordering.insert(node_hash, *index);
-//         *index += 1;
-//     }
-
-//     for child_hash in node.children.iter() {
-//         if let Some(child_node) = merkle_reg.node(*child_hash) {
-//             index_node_and_descendants(child_node, index, node_ordering, merkle_reg);
-//         } else {
-//             println!("ERROR looking up hash of child");
-//         }
-//     }
-// }
-
-// fn print_node_and_descendants(
-//     indents: &mut usize,
-//     node: &Node<Entry>,
-//     node_ordering: &HashMap<Hash, usize>,
-//     merkle_reg: &MerkleReg<Entry>,
-// ) {
-//     let _ = print_node(*indents, node, node_ordering);
-
-//     *indents += 1;
-//     for child_hash in node.children.iter() {
-//         if let Some(child_node) = merkle_reg.node(*child_hash) {
-//             // let xor_name = xorname_from_entry(child_node.value());
-//             print_node_and_descendants(indents, child_node, node_ordering, merkle_reg);
-//         }
-//     }
-//     *indents -= 1;
-// }
-
-// fn print_node(
-//     indents: usize,
-//     node: &Node<Entry>,
-//     node_ordering: &HashMap<Hash, usize>,
-// ) -> Result<()> {
-//     let order = match node_ordering.get(&node.hash()) {
-//         Some(order) => format!("{order}"),
-//         None => String::new(),
-//     };
-
-//     let indentation = "  ".repeat(indents);
-//     let node_entry = xorname_from_entry(&node.value);
-//     println!(
-//         "{indentation}[{order:>2}] Node({:?}..) Entry({node_entry:64x})",
-//         order
-//     );
-//     Ok(())
-// }
 
 // async fn do_print_entries(
 //     client: &AutonomiClient,
@@ -283,7 +136,7 @@ fn do_print_size(size: usize) -> Result<()> {
 
 //     if last > size - 1 {
 //         return Err(eyre!(
-//             "range exceeds maximum register entry which is {}",
+//             "range exceeds maximum history entry which is {}",
 //             size - 1
 //         ));
 //     }
@@ -391,24 +244,22 @@ fn do_print_total_bytes(total_bytes: u64) -> Result<()> {
 /// Implement 'inspect-files' subcommand
 ///
 /// Accepts a metadata address
-///
-/// TODO extend treatment to handle register with branches etc (post stabilisation of the Autonomi API)
 pub async fn handle_inspect_files(
     peers: NetworkPeers,
-    metadata_address: XorName,
+    directory_address: XorName,
     files_args: FilesArgs,
 ) -> Result<()> {
     let client = dweb::client::AutonomiClient::initialise_and_connect(peers)
         .await
         .expect("Failed to connect to Autonomi Network");
 
-    println!("fetching metadata at {metadata_address:64x}");
-    match DirectoryTree::directory_tree_download(&client, metadata_address).await {
+    println!("fetching directory at {directory_address:64x}");
+    match DirectoryTree::directory_tree_download(&client, directory_address).await {
         Ok(metadata) => {
             let _ = do_print_files(&metadata, &files_args);
         }
         Err(e) => {
-            println!("Failed to get website metadata from network");
+            println!("Failed to get directory from network");
             return Err(eyre!(e).into());
         }
     };

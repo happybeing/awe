@@ -53,13 +53,11 @@ pub fn run() {
             ("ant_bootstrap".to_string(), Level::DEBUG),
             ("ant_build_info".to_string(), Level::TRACE),
             ("ant_evm".to_string(), Level::TRACE),
-            ("ant_logging".to_string(), Level::TRACE),
             ("ant_networking".to_string(), Level::INFO),
-            ("ant_protocol".to_string(), Level::TRACE),
-            ("ant_registers".to_string(), Level::TRACE),
-            ("evmlib".to_string(), Level::TRACE),
-            ("autonomi_cli".to_string(), Level::TRACE),
             ("autonomi".to_string(), Level::TRACE),
+            ("evmlib".to_string(), Level::TRACE),
+            ("ant_logging".to_string(), Level::TRACE),
+            ("ant_protocol".to_string(), Level::TRACE),
         ];
 
         let log_builder = LogBuilder::new(logging_targets);

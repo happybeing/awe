@@ -32,9 +32,9 @@ use dweb::trove::History;
 
 use crate::awe_client::{autonomi_get_file_public, connect_to_autonomi};
 
-pub const AWE_PROTOCOL_REGISTER: &str = "awv://";
+pub const AWE_PROTOCOL_HISTORY: &str = "awv://";
 #[allow(dead_code)]
-pub const AWE_PROTOCOL_METADATA: &str = "awm://";
+pub const AWE_PROTOCOL_DIRECTORY: &str = "awm://";
 #[allow(dead_code)]
 pub const AWE_PROTOCOL_FILE: &str = "awf://";
 
@@ -384,7 +384,7 @@ async fn handle_protocol_awv(
     let mut xor_host_differs_from_page = false;
     let last_site_address = get_last_site_address();
     if let Some(position) = last_site_address.find(host_xor_string.as_str()) {
-        if position != AWE_PROTOCOL_REGISTER.len() {
+        if position != AWE_PROTOCOL_HISTORY.len() {
             xor_host_differs_from_page = true;
         };
     } else {
@@ -677,7 +677,7 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
     }
 }
 
-/// Look-up a website resource in DirectoryTree metadata obtained from a Register on the network
+/// Look-up a website resource in a DirectoryTree obtained from a History on the network
 /// according to Some(version), or the most recent version if None.
 /// The lookup automatically handles a resource_path which ends in '/', and so will return
 /// '/index.html' or '/index.htm' if found (or other defaults according to website settings in the DirectoryTree).
