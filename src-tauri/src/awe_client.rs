@@ -19,20 +19,20 @@ use bytes::Bytes;
 use color_eyre::eyre::{eyre, Result};
 use xor_name::XorName;
 
-use ant_bootstrap::PeersArgs;
 use ant_protocol::storage::PointerAddress as HistoryAddress;
 
-use dweb::autonomi::access::network::{get_peers, NetworkPeers};
+use dweb::autonomi::access::network::get_peers;
 use dweb::client::AutonomiClient;
 use dweb::helpers::convert::str_to_pointer_address;
 
 use crate::awe_protocols::{AWE_PROTOCOL_FILE, AWE_PROTOCOL_METADATA, AWE_PROTOCOL_REGISTER};
 
-/// Fallback for use by awe protocol handlers which don't have access to CLI options
+/// Fallback for use by awe protocol handlers
 pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
-    println!("Autonomi client initialising...");
-    let peers_args = PeersArgs::default();
-    let peers = get_peers(peers_args).await?;
+    use crate::cli_options::Opt;
+    use clap::Parser;
+    let opt = Opt::parse();
+    let peers = get_peers(opt.peers).await?;
     dweb::client::AutonomiClient::initialise_and_connect(peers).await
 }
 
