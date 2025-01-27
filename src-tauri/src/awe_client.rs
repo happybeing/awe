@@ -36,6 +36,19 @@ pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
     dweb::client::AutonomiClient::initialise_and_connect(peers).await
 }
 
+pub async fn is_local_network() -> bool {
+    use crate::cli_options::Opt;
+    use clap::Parser;
+    let opt = Opt::parse();
+
+    if let Ok(peers) = get_peers(opt.peers).await {
+        peers.is_local()
+    } else {
+        println!("WARNING: is_local_network() failed, return false");
+        false
+    }
+}
+
 pub async fn autonomi_get_file_public(
     client: &AutonomiClient,
     xor_name: XorName,

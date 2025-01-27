@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
-use http::{header, status::StatusCode, HeaderName, HeaderValue, Request};
+use http::{header, status::StatusCode, Request};
 use mime_guess;
 use xor_name::XorName;
 
@@ -131,16 +131,6 @@ const PROTOCOL_AWM: &str = "awm://";
 
 //// JavaScript interface
 
-#[cfg(not(feature = "local"))]
-fn is_local_discovery() -> bool {
-    false
-}
-
-#[cfg(feature = "local")]
-fn is_local_discovery() -> bool {
-    true
-}
-
 #[tauri::command]
 fn on_set_save_next_site_address(flag: bool) {
     println!("DEBUG TT on_set_save_next_site_address() setting save_next_address: {flag}");
@@ -157,8 +147,8 @@ fn on_get_last_site_address() -> String {
 }
 
 #[tauri::command]
-fn on_is_local_network() -> bool {
-    let is_local_network = is_local_discovery();
+async fn on_is_local_network() -> bool {
+    let is_local_network = crate::awe_client::is_local_network().await;
 
     println!("DEBUG TT tauri::cmd on_is_local_network() returning: {is_local_network}");
     is_local_network
