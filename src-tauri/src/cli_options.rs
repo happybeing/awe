@@ -232,7 +232,7 @@ pub enum Subcommands {
     #[allow(non_camel_case_types)]
     Inspect_history {
         /// The address of an Autonomi History. Can be prefixed with awv://
-        #[clap(name = "REGISTER-ADDRESS", value_parser = awe_str_to_history_address)]
+        #[clap(name = "HISTORY-ADDRESS", value_parser = awe_str_to_history_address)]
         history_address: HistoryAddress,
 
         /// Print a summary of the History including type (the value of entry 0) and number of entries
