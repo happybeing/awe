@@ -39,7 +39,7 @@ use dweb::helpers::convert::*;
     author,
     version,
     about,
-    long_about = "a web publishing and browsing app for Autonomi peer-to-peer network"
+    long_about = "a web publishing and browsing demo for Autonomi peer-to-peer network"
 )]
 pub struct Opt {
     /// Optional awe URL to browse.

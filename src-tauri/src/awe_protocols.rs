@@ -26,7 +26,7 @@ use ant_protocol::storage::PointerAddress as HistoryAddress;
 use autonomi::client::GetError;
 
 use dweb::client::AutonomiClient;
-use dweb::helpers::convert::{str_to_pointer_address, str_to_xor_name};
+use dweb::helpers::convert::{awe_str_to_pointer_address, awe_str_to_xor_name};
 use dweb::trove::directory_tree::{DirectoryTree, PATH_SEPARATOR};
 use dweb::trove::History;
 
@@ -412,7 +412,7 @@ async fn handle_protocol_awv(
     }
 
     println!("DEBUG (host_xor_string, resource_path): ({host_xor_string}, {resource_path})'");
-    let versions_history_address = match str_to_pointer_address(&host_xor_string.as_str()) {
+    let versions_history_address = match awe_str_to_pointer_address(&host_xor_string.as_str()) {
         Ok(versions_history_address) => versions_history_address,
         Err(err) => {
             let message = format!("Failed to parse HistoryAddress address [{:?}]", err);
@@ -500,7 +500,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     };
 
     println!("DEBUG (xor_string, resource_path): ({xor_string}, {resource_path})'");
-    let xor_name = match str_to_xor_name(&xor_string.as_str()) {
+    let xor_name = match awe_str_to_xor_name(&xor_string.as_str()) {
         Ok(xor_name) => xor_name,
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
@@ -573,7 +573,7 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
 
     // TODO test if need to handle trailing slash
     let autonomi_url = req.uri().to_string();
-    let xor_name = match str_to_xor_name(&autonomi_url.as_str()) {
+    let xor_name = match awe_str_to_xor_name(&autonomi_url.as_str()) {
         Ok(xor_name) => xor_name,
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
