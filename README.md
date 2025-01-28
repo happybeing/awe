@@ -14,12 +14,26 @@ This project is being superceded by [dweb](https://github.com/happybeing/dweb) w
 - ability to view historic versions of any website using Autonomi's perpetual, versioned storage
 
 ## Status
+
+`awe` has served its purpose with most aims achieved and some learnings which have lead me to move away from a custom browser solution, to one based on using standard browsers (see next).
+
 - features demonstrated on Linux & MacOS:
   - use the `awe` command line to publish and update static HTML websites, either to Autonomi or a local test network
   - use the `awe` demo browser to view published websites using their content address on the network, including every published version of a website
   - command line features to inspect data structures on Autonomi
 
 - a web naming system was being considered but hasn't yet been designed for Autonomi. This would be similar to web DNS but decentralised and perpetual, and without renewal fees.
+
+See also [Implementation & Learnings](https://github.com/happybeing/awe#implementation--learnings).
+
+### Taking awe to the next level with dweb
+All the features demonstrated in `awe` are already available in the [dweb project](https://github.com/happybeing/dweb), but using a standard web browser rather than a separate app with a webview.
+
+`dweb` includes a command line program supporting the capabilities of `awe` and a library for developers wanting to re-use these capapabilities.
+
+The ambitions for `dweb` go far beyond publishing and browsing websites on Autonomi. That is the only the first goal, and wasn't even part of the plan when I first began think about what to build following my learnings from `awe`.
+
+Initially I had abandoned the idea of publishing and browsing websites and planned instead to create a backup application by providing a back-end for rclone. When I decided on an approach for doing that I realised it would allow many more capabilities, including those demonstrated by `awe`, but using a standard browser. I have so many ideas for `dweb` because the approach allows far more web capabilities to exist using secure, decentralised, pay-once storage of Autonomi.
 
 ## Capabilities Explained
 
@@ -46,11 +60,15 @@ As well as demonstrating website publishing and viewing, `awe` is a showcase for
 To publish a website on the public Autonomi network you will first need to have some Autonomi tokens available in a local wallet. Visit the Autonomi [community forum](https://forum.autonomi.community) for help with this and other issues.
 
 ### Publish a website
-`awe publish-new --files-root <PATH-TO-CONTENT>`
+`awe publish-new --name <DWEB-NAME> --files-root <PATH-TO-CONTENT>`
 
 The above will attempt to upload and pay for storage of your data and print the <HISTORY-ADDRESS> of the website on completion. If you keep that address you and anyone you share it with can view it by entering it in the `awe` browser address bar.
 
-To open the `awe` browser, type `awe` without any subcommands. Or you can type `awe` followed by the address of the website you wish to view, and if you like you can also specify the version you want:
+To open the `awe` browser, type `awe` without any subcommands. Or you can type `awe` followed by the address of the website you wish to view. The following displays the most recent version of the site:
+
+`awe <HISTORY-ADDRESS>`
+
+Or you can specify the version explicitly:
 
 `awe <HISTORY-ADDRESS> --website-version <INTEGER-VERSION>`
 
