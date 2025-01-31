@@ -1449,6 +1449,7 @@ version = "0.11.0"
 dependencies = [
  "ant-bootstrap",
  "ant-build-info",
+ "ant-evm",
  "ant-logging",
  "ant-networking",
  "ant-protocol",
