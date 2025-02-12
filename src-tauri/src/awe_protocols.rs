@@ -7,7 +7,6 @@ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU Affero General Public License for more details.
 
@@ -22,13 +21,12 @@ use http::{header, status::StatusCode, Request};
 use mime_guess;
 use xor_name::XorName;
 
-use ant_protocol::storage::PointerAddress as HistoryAddress;
 use autonomi::client::GetError;
 
 use dweb::client::AutonomiClient;
-use dweb::helpers::convert::{awe_str_to_pointer_address, awe_str_to_xor_name};
+use dweb::helpers::convert::{awe_str_to_history_address, awe_str_to_xor_name};
 use dweb::trove::directory_tree::{DirectoryTree, PATH_SEPARATOR};
-use dweb::trove::History;
+use dweb::trove::{History, HistoryAddress};
 
 use crate::awe_client::{autonomi_get_file_public, connect_to_autonomi};
 
@@ -52,11 +50,11 @@ static STATIC_SAVE_NEXT_ADDRESS: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex:
 static STATIC_LAST_SITE_ADDRESS: LazyLock<Mutex<String>> =
     LazyLock::new(|| Mutex::<String>::new(String::from("")));
 
-static STATIC_VERSION_REQUESTED: LazyLock<Mutex<u64>> = LazyLock::new(|| Mutex::<u64>::new(0));
+static STATIC_VERSION_REQUESTED: LazyLock<Mutex<u32>> = LazyLock::new(|| Mutex::<u32>::new(0));
 
-static STATIC_VERSION_LOADED: LazyLock<Mutex<u64>> = LazyLock::new(|| Mutex::<u64>::new(0));
+static STATIC_VERSION_LOADED: LazyLock<Mutex<u32>> = LazyLock::new(|| Mutex::<u32>::new(0));
 
-static STATIC_VERSION_MAX: LazyLock<Mutex<u64>> = LazyLock::new(|| Mutex::<u64>::new(0));
+static STATIC_VERSION_MAX: LazyLock<Mutex<u32>> = LazyLock::new(|| Mutex::<u32>::new(0));
 
 pub fn get_next_load_is_address_bar() -> bool {
     let flag = *STATIC_NEXT_LOAD_IS_ADDRESS_BAR.lock().unwrap();
@@ -76,19 +74,19 @@ pub fn get_last_site_address() -> String {
     site_address.clone()
 }
 
-pub fn get_version_requested() -> u64 {
+pub fn get_version_requested() -> u32 {
     let version = *STATIC_VERSION_REQUESTED.lock().unwrap();
     println!("DEBUG get_version_requested() returning {}", version);
     version
 }
 
-pub fn get_version_loaded() -> u64 {
+pub fn get_version_loaded() -> u32 {
     let version = *STATIC_VERSION_LOADED.lock().unwrap();
     println!("DEBUG get_version_loaded() returning {}", version);
     version
 }
 
-pub fn get_version_max() -> u64 {
+pub fn get_version_max() -> u32 {
     let version = *STATIC_VERSION_MAX.lock().unwrap();
     println!("DEBUG get_version_max() returning {}", version);
     version
@@ -112,17 +110,17 @@ pub fn set_last_site_address(site_address: &String) {
     }
 }
 
-pub fn set_version_requested(version: u64) {
+pub fn set_version_requested(version: u32) {
     println!("DEBUG set_version_requested() set to {}", version);
     *STATIC_VERSION_REQUESTED.lock().unwrap() = version;
 }
 
-pub fn set_version_loaded(version: u64) {
+pub fn set_version_loaded(version: u32) {
     println!("DEBUG set_version_loaded() set to {}", version);
     *STATIC_VERSION_LOADED.lock().unwrap() = version;
 }
 
-// pub fn set_version_max(version: u64) {
+// pub fn set_version_max(version: u32) {
 //     println!("DEBUG set_version_max() set to {}", version);
 //     *STATIC_VERSION_MAX.lock().unwrap() = version;
 // }
@@ -189,7 +187,7 @@ fn on_get_version_max() -> usize {
 // Returns value truncated to the range 0..max version) or ZERO if no website loaded
 #[tauri::command]
 fn on_prep_to_load_from_address_bar(frontend_version: usize) -> usize {
-    let mut version = frontend_version as u64;
+    let mut version = frontend_version as u32;
 
     let max_version = get_version_max();
     if max_version > 0 {
@@ -258,7 +256,7 @@ fn parse_url_string(
 // TODO Notes: Discord solution re Tauri 2.0 - thought I was using v2.0?
 // TODO Notes: Discord solution suggests I can use spawn after all, worth trying as this blocks for ages
 //#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u64>) {
+pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u32>) {
     if cli_url.is_some() {
         *STATIC_CLI_URL.lock().unwrap() = cli_url.unwrap().clone();
     };
@@ -326,7 +324,7 @@ pub fn register_protocols(cli_url: Option<String>, cli_website_version: Option<u
 /// Returns content as an http Response
 async fn handle_protocol_awe(
     req: &Request<Vec<u8>>,
-    version_requested: Option<u64>,
+    version_requested: Option<u32>,
 ) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_awe() version_requested {version_requested:?}");
     let url = req.uri();
@@ -341,7 +339,7 @@ async fn handle_protocol_awe(
 /// Returns content as an http Response
 async fn handle_protocol_awv(
     req: &Request<Vec<u8>>,
-    version_requested: Option<u64>,
+    version_requested: Option<u32>,
 ) -> http::Response<Vec<u8>> {
     println!("DEBUG Hello from handle_protocol_awv() version_requested {version_requested:?}");
     let url = req.uri();
@@ -412,7 +410,7 @@ async fn handle_protocol_awv(
     }
 
     println!("DEBUG (host_xor_string, resource_path): ({host_xor_string}, {resource_path})'");
-    let versions_history_address = match awe_str_to_pointer_address(&host_xor_string.as_str()) {
+    let versions_history_address = match awe_str_to_history_address(&host_xor_string.as_str()) {
         Ok(versions_history_address) => versions_history_address,
         Err(err) => {
             let message = format!("Failed to parse HistoryAddress address [{:?}]", err);
@@ -676,15 +674,13 @@ pub async fn awe_lookup_resource_for_website_version(
     client: &AutonomiClient,
     resource_path: &String,
     history_address: HistoryAddress,
-    version: Option<u64>,
+    version: Option<u32>,
 ) -> Result<XorName, StatusCode> {
     println!("DEBUG lookup_resource_for_website_version() version {version:?}");
     println!("DEBUG history_address: {}", history_address.to_hex());
     println!("DEBUG resource_path    : {resource_path}");
 
-    match History::<DirectoryTree>::from_history_address(client.clone(), history_address, None)
-        .await
-    {
+    match History::<DirectoryTree>::from_history_address(client.clone(), history_address).await {
         Ok(mut history) => {
             let data_address = match DirectoryTree::history_lookup_web_resource(
                 &mut history,

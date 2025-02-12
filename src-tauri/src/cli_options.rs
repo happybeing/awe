@@ -53,7 +53,7 @@ pub struct Opt {
 
     /// Browse the specified version from the history
     #[clap(long, value_parser = greater_than_0)]
-    pub history_version: Option<u64>,
+    pub history_version: Option<u32>,
 
     #[command(flatten)]
     pub peers: PeersArgs,
@@ -85,7 +85,7 @@ pub struct Opt {
     ///  - macOS: $HOME/Library/Application Support/autonomi/client/logs
     ///  - Windows: C:\Users\<username>\AppData\Roaming\autonomi\client\logs
     #[allow(rustdoc::invalid_html_tags)]
-    #[clap(long, value_parser = LogOutputDest::parse_from_str, verbatim_doc_comment, default_value = "data-dir")]
+    #[clap(long, value_parser = LogOutputDest::parse_from_str, verbatim_doc_comment, default_value = "stdout")]
     pub log_output_dest: LogOutputDest,
 
     /// Specify the network ID to use. This will allow you to run the CLI on a different network.
@@ -105,8 +105,8 @@ pub struct Opt {
     // TODO --wallet-path <path-to-wallet-dir>
 }
 
-fn greater_than_0(s: &str) -> Result<u64, String> {
-    match s.parse::<u64>() {
+fn greater_than_0(s: &str) -> Result<u32, String> {
+    match s.parse::<u32>() {
         Err(e) => Err(e.to_string()),
         Ok(value) => {
             if value >= 1 {
@@ -134,7 +134,7 @@ pub enum Subcommands {
 
         /// Browse a specified version from a history. Only valid with a HISTORY-ADDRESS.
         #[clap(long, value_parser = greater_than_0)]
-        history_version: Option<u64>,
+        history_version: Option<u32>,
     },
 
     // TODO add an example or two to each command section

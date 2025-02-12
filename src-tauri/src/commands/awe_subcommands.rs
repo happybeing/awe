@@ -41,25 +41,33 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             website_config,
             is_new_network: _,
         }) => {
+            let app_secret_key = dweb::helpers::get_app_secret_key()?;
             let client = dweb::client::AutonomiClient::initialise_and_connect(peers.await?)
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
-            let (name, history_address, version) =
-                match publish_or_update_files(&client, &files_root, name, website_config, true)
-                    .await
-                {
-                    Ok(history_address) => history_address,
-                    Err(e) => {
-                        println!("Failed to publish files: {e}");
-                        return Err(e);
-                    }
-                };
+            let (cost, name, history_address, version) = match publish_or_update_files(
+                &client,
+                &files_root,
+                app_secret_key,
+                name,
+                website_config,
+                true,
+            )
+            .await
+            {
+                Ok(history_address) => history_address,
+                Err(e) => {
+                    println!("Failed to publish files: {e}");
+                    return Err(e);
+                }
+            };
 
             report_content_published_or_updated(
                 &history_address,
                 &name,
                 version,
+                cost,
                 &files_root,
                 true,
                 true,
@@ -71,17 +79,26 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             name,
             website_config,
         }) => {
+            let app_secret_key = dweb::helpers::get_app_secret_key()?;
             let client = dweb::client::AutonomiClient::initialise_and_connect(peers.await?)
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
-            let (name, history_address, version) =
-                publish_or_update_files(&client, &files_root, name, website_config, false).await?;
+            let (cost, name, history_address, version) = publish_or_update_files(
+                &client,
+                &files_root,
+                app_secret_key,
+                name,
+                website_config,
+                false,
+            )
+            .await?;
 
             report_content_published_or_updated(
                 &history_address,
                 &name,
                 version,
+                cost,
                 &files_root,
                 true,
                 false,

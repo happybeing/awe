@@ -2797,6 +2797,7 @@ dependencies = [
  "anyhow",
  "async-stream",
  "autonomi",
+ "blsttc",
  "bytes",
  "chrono",
  "clap 4.5.4",
