@@ -18,6 +18,7 @@
 use color_eyre::Result;
 
 use dweb::storage::{publish_or_update_files, report_content_published_or_updated};
+use dweb::trove::{directory_tree::DirectoryTree, HistoryAddress};
 
 use crate::cli_options::{Opt, Subcommands};
 

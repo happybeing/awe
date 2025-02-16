@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-use ant_protocol::storage::PointerAddress as HistoryAddress;
+use ant_protocol::storage::PointerAddress;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
@@ -30,6 +30,7 @@ use ant_bootstrap::PeersArgs;
 use ant_logging::{LogFormat, LogOutputDest};
 
 use dweb::helpers::convert::*;
+use dweb::trove::{directory_tree::DirectoryTree, HistoryAddress};
 
 // TODO add example to each CLI subcommand
 

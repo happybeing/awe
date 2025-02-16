@@ -23,13 +23,14 @@ use ant_protocol::storage::{Pointer, PointerAddress};
 
 use dweb::autonomi::access::network::NetworkPeers;
 use dweb::trove::directory_tree::DirectoryTree;
+use dweb::trove::HistoryAddress;
 
 use crate::cli_options::{EntriesRange, FilesArgs};
 
 /// Implement 'inspect-history' subcommand
 pub async fn handle_inspect_history(
     peers: NetworkPeers,
-    pointer_address: PointerAddress,
+    history_address: HistoryAddress,
     print_summary: bool,
     print_type: bool,
     print_size: bool,
@@ -37,46 +38,48 @@ pub async fn handle_inspect_history(
     include_files: bool,
     files_args: FilesArgs,
 ) -> Result<()> {
-    let client = dweb::client::AutonomiClient::initialise_and_connect(peers)
-        .await
-        .expect("Failed to connect to Autonomi Network");
+    // TODO copy from dweb
 
-    let pointer = match client.client.pointer_get(pointer_address).await {
-        Ok(pointer) => pointer,
-        Err(e) => {
-            let message = format!("Failed to get pointer from network - {e}");
-            println!("{message}");
-            return Err(eyre!(message));
-        }
-    };
+    // let client = dweb::client::AutonomiClient::initialise_and_connect(peers)
+    //     .await
+    //     .expect("Failed to connect to Autonomi Network");
 
-    let count = pointer.counter();
-    if print_summary {
-        do_print_summary(&pointer, &pointer_address)?;
-    } else {
-        if print_type {
-            // if size > 0 {
-            //     do_print_type(Some(&entries_vec[0]))?;
-            // } else {
-            //     do_print_type(None)?;
-            // }
-        }
-
-        if print_size {
-            // do_print_size(size)?;
-        }
-    }
-
-    // if let Some(entries_range) = entries_range {
-    //     do_print_entries(
-    //         &client,
-    //         &entries_range,
-    //         entries_vec,
-    //         include_files,
-    //         &files_args,
-    //     )
-    //     .await?;
+    // let pointer = match client.client.pointer_get(history_address).await {
+    //     Ok(pointer) => pointer,
+    //     Err(e) => {
+    //         let message = format!("Failed to get pointer from network - {e}");
+    //         println!("{message}");
+    //         return Err(eyre!(message));
+    //     }
     // };
+
+    // let count = pointer.counter();
+    // if print_summary {
+    //     do_print_summary(&pointer, &pointer_address)?;
+    // } else {
+    //     if print_type {
+    //         // if size > 0 {
+    //         //     do_print_type(Some(&entries_vec[0]))?;
+    //         // } else {
+    //         //     do_print_type(None)?;
+    //         // }
+    //     }
+
+    //     if print_size {
+    //         // do_print_size(size)?;
+    //     }
+    // }
+
+    // // if let Some(entries_range) = entries_range {
+    // //     do_print_entries(
+    // //         &client,
+    // //         &entries_range,
+    // //         entries_vec,
+    // //         include_files,
+    // //         &files_args,
+    // //     )
+    // //     .await?;
+    // // };
 
     Ok(())
 }
