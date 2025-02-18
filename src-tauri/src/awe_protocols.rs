@@ -515,8 +515,8 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         .await
         .expect("Failed to connect to Autonomi Network");
 
-    println!("DEBUG calling DirectoryTree::directory_tree_download()");
-    let metadata = match DirectoryTree::directory_tree_download(&client, xor_name).await {
+    println!("DEBUG calling DirectoryTree::from_archive_address()");
+    let metadata = match DirectoryTree::from_archive_address(&client, xor_name).await {
         Ok(metadata) => {
             println!("DEBUG got metadata");
             metadata

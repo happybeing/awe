@@ -15,10 +15,9 @@
  along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use color_eyre::Result;
+use color_eyre::{eyre::eyre, Result};
 
 use dweb::storage::{publish_or_update_files, report_content_published_or_updated};
-use dweb::trove::{directory_tree::DirectoryTree, HistoryAddress};
 
 use crate::cli_options::{Opt, Subcommands};
 
@@ -39,7 +38,6 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
         Some(Subcommands::Publish_new {
             files_root,
             name,
-            website_config,
             is_new_network: _,
         }) => {
             let app_secret_key = dweb::helpers::get_app_secret_key()?;
@@ -52,12 +50,12 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 &files_root,
                 app_secret_key,
                 name,
-                website_config,
+                None,
                 true,
             )
             .await
             {
-                Ok(history_address) => history_address,
+                Ok(result) => result,
                 Err(e) => {
                     println!("Failed to publish files: {e}");
                     return Err(e);
@@ -72,28 +70,18 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 &files_root,
                 true,
                 true,
-                true,
+                false,
             );
         }
-        Some(Subcommands::Publish_update {
-            files_root,
-            name,
-            website_config,
-        }) => {
+        Some(Subcommands::Publish_update { files_root, name }) => {
             let app_secret_key = dweb::helpers::get_app_secret_key()?;
             let client = dweb::client::AutonomiClient::initialise_and_connect(peers.await?)
                 .await
                 .expect("Failed to connect to Autonomi Network");
 
-            let (cost, name, history_address, version) = publish_or_update_files(
-                &client,
-                &files_root,
-                app_secret_key,
-                name,
-                website_config,
-                false,
-            )
-            .await?;
+            let (cost, name, history_address, version) =
+                publish_or_update_files(&client, &files_root, app_secret_key, name, None, false)
+                    .await?;
 
             report_content_published_or_updated(
                 &history_address,
@@ -103,34 +91,27 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 &files_root,
                 true,
                 false,
-                true,
+                false,
             );
-        }
-
-        Some(Subcommands::Browse {
-            url: _,
-            history_version: _,
-        }) => {
-            return Ok(false); // Command not yet complete, is the signal to start browser
         }
 
         Some(Subcommands::Inspect_history {
             history_address,
-            print_history_summary,
-            print_type,
-            print_size,
+            print_history_full,
             entries_range,
+            shorten_hex_strings,
             include_files,
+            graph_keys,
             files_args,
         }) => {
             match crate::commands::cmd_inspect::handle_inspect_history(
                 peers.await?,
                 history_address,
-                print_history_summary,
-                print_type,
-                print_size,
+                print_history_full,
                 entries_range,
                 include_files,
+                graph_keys,
+                shorten_hex_strings,
                 files_args,
             )
             .await
@@ -143,13 +124,49 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             }
         }
 
+        Some(Subcommands::Inspect_graphentry {
+            graph_entry_address,
+            print_full,
+            shorten_hex_strings,
+        }) => {
+            match crate::commands::cmd_inspect::handle_inspect_graphentry(
+                peers.await?,
+                graph_entry_address,
+                print_full,
+                shorten_hex_strings,
+            )
+            .await
+            {
+                Ok(()) => return Ok(true),
+                Err(e) => {
+                    println!("{e:?}");
+                    return Err(e);
+                }
+            }
+        }
+
+        Some(Subcommands::Inspect_pointer { pointer_address }) => {
+            match crate::commands::cmd_inspect::handle_inspect_pointer(
+                peers.await?,
+                pointer_address,
+            )
+            .await
+            {
+                Ok(()) => return Ok(true),
+                Err(e) => {
+                    println!("{e:?}");
+                    return Err(e);
+                }
+            }
+        }
+
         Some(Subcommands::Inspect_files {
-            files_metadata_address,
+            archive_address,
             files_args,
         }) => {
             match crate::commands::cmd_inspect::handle_inspect_files(
                 peers.await?,
-                files_metadata_address,
+                archive_address,
                 files_args,
             )
             .await
@@ -171,12 +188,9 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             println!("TODO: implement subcommand 'download'");
         }
 
-        Some(Subcommands::Serve { host: _, port: _ }) => {
-            println!("TODO: implement subcommand 'serve'"); // THIS IS REALLY FOR DWEB-CLI
-        }
-
         // Default is not to return, but open the browser by continuing
         None {} => {
+            println!("No command provided, try 'dweb --help'");
             return Ok(false); // Command not yet complete, is the signal to start browser
         }
     }
