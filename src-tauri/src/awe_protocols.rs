@@ -680,7 +680,9 @@ pub async fn awe_lookup_resource_for_website_version(
     println!("DEBUG history_address: {}", history_address.to_hex());
     println!("DEBUG resource_path    : {resource_path}");
 
-    match History::<DirectoryTree>::from_history_address(client.clone(), history_address).await {
+    match History::<DirectoryTree>::from_history_address(client.clone(), history_address, false, 0)
+        .await
+    {
         Ok(mut history) => {
             let data_address = match DirectoryTree::history_lookup_web_resource(
                 &mut history,
