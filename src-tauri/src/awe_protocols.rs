@@ -19,12 +19,12 @@ use std::sync::Mutex;
 
 use http::{header, status::StatusCode, Request};
 use mime_guess;
-use xor_name::XorName;
 
+use autonomi::client::data::DataAddress;
 use autonomi::client::GetError;
 
 use dweb::client::AutonomiClient;
-use dweb::helpers::convert::{awe_str_to_history_address, awe_str_to_xor_name};
+use dweb::helpers::convert::{awe_str_to_data_address, awe_str_to_history_address};
 use dweb::trove::directory_tree::{DirectoryTree, PATH_SEPARATOR};
 use dweb::trove::{History, HistoryAddress};
 
@@ -430,7 +430,7 @@ async fn handle_protocol_awv(
     // Save in case we don't want site version changed
     let current_site_version = get_version_loaded();
 
-    let xor_name = match awe_lookup_resource_for_website_version(
+    let data_address = match awe_lookup_resource_for_website_version(
         &client,
         &resource_path,
         versions_history_address,
@@ -438,7 +438,7 @@ async fn handle_protocol_awv(
     )
     .await
     {
-        Ok(xor_name) => xor_name,
+        Ok(address) => address,
         Err(status_code) => {
             let message = format!("Resource not found at {resource_path}");
             println!("{message}");
@@ -449,7 +449,7 @@ async fn handle_protocol_awv(
         }
     };
 
-    let mut response = awe_fetch_xor_data(Some(&client), xor_name).await;
+    let mut response = awe_fetch_xor_data(Some(&client), data_address).await;
     if response.status() == StatusCode::OK {
         // Keep site version unchanged when loading a resource
         if loading_resource {
@@ -489,7 +489,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     };
 
     let mut remainder = remainder.to_string();
-    let (xor_string, resource_path) = match remainder.find(PATH_SEPARATOR) {
+    let (address_string, resource_path) = match remainder.find(PATH_SEPARATOR) {
         Some(separator_position) => {
             let path_part = remainder.split_off(separator_position);
             (remainder, path_part)
@@ -497,11 +497,11 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         None => (remainder, String::from(PATH_SEPARATOR)),
     };
 
-    println!("DEBUG (xor_string, resource_path): ({xor_string}, {resource_path})'");
-    let xor_name = match awe_str_to_xor_name(&xor_string.as_str()) {
-        Ok(xor_name) => xor_name,
+    println!("DEBUG (address_string, resource_path): ({address_string}, {resource_path})'");
+    let address = match awe_str_to_data_address(&address_string.as_str()) {
+        Ok(address) => address,
         Err(err) => {
-            let message = format!("Failed to parse XOR address. [{:?}]", err);
+            let message = format!("Failed to parse hex address. [{:?}]", err);
             println!("{message}");
             return http::Response::builder()
                 .status(StatusCode::BAD_REQUEST)
@@ -516,7 +516,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         .expect("Failed to connect to Autonomi Network");
 
     println!("DEBUG calling DirectoryTree::from_archive_address()");
-    let metadata = match DirectoryTree::from_archive_address(&client, xor_name).await {
+    let metadata = match DirectoryTree::from_archive_address(&client, address).await {
         Ok(metadata) => {
             println!("DEBUG got metadata");
             metadata
@@ -531,8 +531,8 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    let xor_name = match metadata.lookup_web_resource(&resource_path) {
-        Ok((xor_name, _)) => xor_name,
+    let data_address = match metadata.lookup_web_resource(&resource_path) {
+        Ok((address, _)) => address,
         Err(status_code) => {
             let message = format!("Resource not found at {resource_path}");
             println!("{message}");
@@ -543,7 +543,7 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    let mut response = awe_fetch_xor_data(Some(&client), xor_name).await;
+    let mut response = awe_fetch_xor_data(Some(&client), data_address).await;
     if response.status() == StatusCode::OK {
         set_last_site_address(&url.to_string());
     }
@@ -571,8 +571,8 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
 
     // TODO test if need to handle trailing slash
     let autonomi_url = req.uri().to_string();
-    let xor_name = match awe_str_to_xor_name(&autonomi_url.as_str()) {
-        Ok(xor_name) => xor_name,
+    let data_address = match awe_str_to_data_address(&autonomi_url.as_str()) {
+        Ok(data_address) => data_address,
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
             println!("{message}");
@@ -583,15 +583,15 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    return awe_fetch_xor_data(Some(&client), xor_name).await;
+    return awe_fetch_xor_data(Some(&client), data_address).await;
 }
 
 /// Fetch data from network and return as an http Response
 async fn awe_fetch_xor_data(
     client_opt: Option<&AutonomiClient>,
-    xor_name: XorName,
+    data_address: DataAddress,
 ) -> http::Response<Vec<u8>> {
-    println!("DEBUG fetching xor data: {xor_name:64x}");
+    println!("DEBUG fetching xor data: {}", data_address.to_hex());
 
     let client;
     let client_ref;
@@ -607,7 +607,7 @@ async fn awe_fetch_xor_data(
     // TODO since Tauri v2, the iframe won't load content from
     // TODO a URI unless the response has a Content-Type header
     // TODO Investigate options, such as saving content type in the site map
-    match autonomi_get_file_public(client_ref, xor_name).await {
+    match autonomi_get_file_public(client_ref, data_address).await {
         Ok(content) => {
             println!("DEBUG retrieved {} bytes", content.len());
             return http::Response::builder()
@@ -618,8 +618,10 @@ async fn awe_fetch_xor_data(
         Err(e) => {
             let (status, status_message) = tauri_http_status_from_network_error(&e);
             let error_message = format!("{:?}", e);
-            let body_message =
-                format!("Failed to retrieve data at [{xor_name:64x}]: {error_message}");
+            let body_message = format!(
+                "Failed to retrieve data at [{}]: {error_message}",
+                data_address.to_hex()
+            );
             println!("{body_message}\n{status_message}");
 
             return http::Response::builder()
@@ -675,7 +677,7 @@ pub async fn awe_lookup_resource_for_website_version(
     resource_path: &String,
     history_address: HistoryAddress,
     version: Option<u32>,
-) -> Result<XorName, StatusCode> {
+) -> Result<DataAddress, StatusCode> {
     println!("DEBUG lookup_resource_for_website_version() version {version:?}");
     println!("DEBUG history_address: {}", history_address.to_hex());
     println!("DEBUG resource_path    : {resource_path}");

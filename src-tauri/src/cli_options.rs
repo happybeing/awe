@@ -23,11 +23,11 @@ use clap::Parser;
 use clap::Subcommand;
 use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
-use xor_name::XorName;
 
 use ant_bootstrap::PeersArgs;
 use ant_logging::{LogFormat, LogOutputDest};
 use ant_protocol::storage::PointerAddress;
+use autonomi::files::archive_public::ArchiveAddress;
 
 use dweb::helpers::convert::*;
 use dweb::trove::HistoryAddress;
@@ -156,6 +156,7 @@ pub enum Subcommands {
     ///
     /// If successful, prints the xor address of the content, accessible
     /// using Awe Browser using a URL like 'awv://HISTORY-ADDRESS'.
+    #[allow(non_camel_case_types)]
     Publish_update {
         /// The root directory containing the new website content to be uploaded
         #[clap(long = "files-root", value_name = "FILES-ROOT")]
@@ -284,8 +285,8 @@ pub enum Subcommands {
     #[allow(non_camel_case_types)]
     Inspect_files {
         /// The address of some a directory uploaded to Autonomi
-        #[clap(value_name = "ARCHIVE-ADDRESS", value_parser = awe_str_to_xor_name)]
-        archive_address: XorName,
+        #[clap(value_name = "ARCHIVE-ADDRESS", value_parser = str_to_archive_address)]
+        archive_address: ArchiveAddress,
 
         #[command(flatten)]
         files_args: FilesArgs,

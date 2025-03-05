@@ -15,8 +15,10 @@
  along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use color_eyre::{eyre::eyre, Result};
+use color_eyre::Result;
 
+use dweb::autonomi::access::network::NetworkPeers;
+use dweb::client::AutonomiClient;
 use dweb::storage::{publish_or_update_files, report_content_published_or_updated};
 
 use crate::cli_options::{Opt, Subcommands};
@@ -104,8 +106,9 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             graph_keys,
             files_args,
         }) => {
+            let (client, _) = connect_and_announce(peers.await?, true).await;
             match crate::commands::cmd_inspect::handle_inspect_history(
-                peers.await?,
+                client,
                 history_address,
                 print_history_full,
                 entries_range,
@@ -129,8 +132,9 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             print_full,
             shorten_hex_strings,
         }) => {
+            let (client, _) = connect_and_announce(peers.await?, true).await;
             match crate::commands::cmd_inspect::handle_inspect_graphentry(
-                peers.await?,
+                client,
                 graph_entry_address,
                 print_full,
                 shorten_hex_strings,
@@ -146,11 +150,9 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
         }
 
         Some(Subcommands::Inspect_pointer { pointer_address }) => {
-            match crate::commands::cmd_inspect::handle_inspect_pointer(
-                peers.await?,
-                pointer_address,
-            )
-            .await
+            let (client, _) = connect_and_announce(peers.await?, true).await;
+            match crate::commands::cmd_inspect::handle_inspect_pointer(client, pointer_address)
+                .await
             {
                 Ok(()) => return Ok(true),
                 Err(e) => {
@@ -164,8 +166,9 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             archive_address,
             files_args,
         }) => {
+            let (client, _) = connect_and_announce(peers.await?, true).await;
             match crate::commands::cmd_inspect::handle_inspect_files(
-                peers.await?,
+                client,
                 archive_address,
                 files_args,
             )
@@ -195,4 +198,21 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
         }
     }
     Ok(true)
+}
+
+async fn connect_and_announce(peers: NetworkPeers, announce: bool) -> (AutonomiClient, bool) {
+    let is_local_network = peers.is_local();
+    let client = dweb::client::AutonomiClient::initialise_and_connect(peers)
+        .await
+        .expect("Failed to connect to Autonomi Network");
+
+    if announce {
+        if is_local_network {
+            println!("-> local network: {}", client.network);
+        } else {
+            println!("-> public network {}", client.network);
+        };
+    };
+
+    (client, is_local_network)
 }

@@ -15,6 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use autonomi::data::DataAddress;
 use bytes::Bytes;
 use color_eyre::eyre::{eyre, Result};
 use xor_name::XorName;
@@ -51,11 +52,11 @@ pub async fn is_local_network() -> bool {
 
 pub async fn autonomi_get_file_public(
     client: &AutonomiClient,
-    xor_name: XorName,
+    address: DataAddress,
 ) -> Result<Bytes, autonomi::client::GetError> {
     println!("DEBUG autonomi_get_file_public()");
     println!("DEBUG calling client.data_get_public()");
-    match client.data_get_public(xor_name).await {
+    match client.data_get_public(address).await {
         Ok(content) => {
             println!("DEBUG Ok() return");
             Ok(content)
