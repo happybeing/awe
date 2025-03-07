@@ -1,7 +1,11 @@
 # awe - Autonomi Website Publisher/Browser
 This is a demonstration of website publishing and browsing on Autonomi, an autonomous secure peer-to-peer network.
 
-It demonstrates:
+IMPORTANT: `awe` has been discontinued in favour of `dweb` (see https://github.com/happybeing/dweb), which achieves everything demonstrated with awe, but using a standard browser.
+
+One day, it may make sense to have a custom browser and some of the ideas demonstrated in awe which have to be done differently in a standard browser, may be resumed.
+
+### awe demonstrates:
 - *a perpetual world wide web* without gatekeepers, censorship or surveillance. Where every version of every website will be accesssible to everyone, forever.
 
 - use of existing web frameworks and development techniques when building for the web on Autonomi. In fact you can publish the exact same content to the web, and to the web on Autonomi.
