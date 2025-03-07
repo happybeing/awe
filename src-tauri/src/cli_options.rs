@@ -148,6 +148,9 @@ pub enum Subcommands {
         /// Disable the AWV check when publishing a new website to allow for init of a new Autonomi network (during beta)
         #[clap(long, name = "is-new-network", hide = true, default_value = "false")]
         is_new_network: bool,
+        /// Override default 'max fee per gas' limit (which may be too low at times).
+        #[clap(long, short = 'x')]
+        max_fee_per_gas: Option<u128>,
     },
 
     /// Update a previously uploaded directory while preserving old versions on Autonomi
@@ -165,6 +168,9 @@ pub enum Subcommands {
         /// Defaults to use the name of the website directory (FILES-ROOT)
         #[clap(long, short = 'n')]
         name: Option<String>,
+        /// Override default 'max fee per gas' limit (which may be too low at times).
+        #[clap(long, short = 'x')]
+        max_fee_per_gas: Option<u128>,
     },
 
     /// Download a file or directory. TODO: not yet implemented
