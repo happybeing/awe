@@ -25,6 +25,7 @@ use ant_protocol::storage::PointerAddress as HistoryAddress;
 use dweb::autonomi::access::network::get_peers;
 use dweb::client::AutonomiClient;
 use dweb::helpers::convert::str_to_pointer_address;
+use dweb::tokens::ShowCost;
 
 use crate::awe_protocols::{AWE_PROTOCOL_DIRECTORY, AWE_PROTOCOL_FILE, AWE_PROTOCOL_HISTORY};
 
@@ -34,7 +35,7 @@ pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
     use clap::Parser;
     let opt = Opt::parse();
     let peers = get_peers(opt.peers).await?;
-    dweb::client::AutonomiClient::initialise_and_connect(peers, None).await
+    dweb::client::AutonomiClient::initialise_and_connect(peers, Some(ShowCost::Both), None).await
 }
 
 pub async fn is_local_network() -> bool {

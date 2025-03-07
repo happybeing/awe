@@ -2897,6 +2897,7 @@ dependencies = [
  "const-hex",
  "crdts",
  "dirs-next",
+ "evmlib",
  "futures",
  "hex",
  "http 1.2.0",

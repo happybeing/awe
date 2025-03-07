@@ -15,11 +15,15 @@
  along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use color_eyre::Result;
+use color_eyre::{Report, Result};
+
+use autonomi::AttoTokens;
 
 use dweb::autonomi::access::network::NetworkPeers;
 use dweb::client::AutonomiClient;
 use dweb::storage::{publish_or_update_files, report_content_published_or_updated};
+use dweb::tokens::{show_spend_return_value, ShowCost, Spends};
+use dweb::trove::HistoryAddress;
 
 use crate::cli_options::{Opt, Subcommands};
 
@@ -29,9 +33,13 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
 
     match opt.cmd {
         Some(Subcommands::Estimate { files_root }) => {
-            let client = dweb::client::AutonomiClient::initialise_and_connect(peers.await?, None)
-                .await
-                .expect("Failed to connect to Autonomi Network");
+            let client = dweb::client::AutonomiClient::initialise_and_connect(
+                peers.await?,
+                Some(ShowCost::Both),
+                None,
+            )
+            .await
+            .expect("Failed to connect to Autonomi Network");
             match client.client.file_cost(&files_root).await {
                 Ok(tokens) => println!("Cost estimate: {tokens}"),
                 Err(e) => println!("Unable to estimate cost: {e}"),
@@ -44,10 +52,14 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             is_new_network: _,
         }) => {
             let app_secret_key = dweb::helpers::get_app_secret_key()?;
-            let client =
-                dweb::client::AutonomiClient::initialise_and_connect(peers.await?, max_fee_per_gas)
-                    .await
-                    .expect("Failed to connect to Autonomi Network");
+            let client = dweb::client::AutonomiClient::initialise_and_connect(
+                peers.await?,
+                Some(ShowCost::Both),
+                max_fee_per_gas,
+            )
+            .await
+            .expect("Failed to connect to Autonomi Network");
+            let spends = Spends::new(&client, Some(&"Publish new cost: ")).await?;
 
             let (cost, name, history_address, version) = match publish_or_update_files(
                 &client,
@@ -59,10 +71,15 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             )
             .await
             {
-                Ok(result) => result,
+                Ok(result) => {
+                    show_spend_return_value::<(AttoTokens, String, HistoryAddress, u32)>(
+                        &spends, result,
+                    )
+                    .await
+                }
                 Err(e) => {
                     println!("Failed to publish files: {e}");
-                    return Err(e);
+                    return show_spend_return_value::<Result<bool, Report>>(&spends, Err(e)).await;
                 }
             };
 
@@ -74,7 +91,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 &files_root,
                 true,
                 true,
-                false,
+                true,
             );
         }
         Some(Subcommands::Publish_update {
@@ -83,14 +100,36 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             max_fee_per_gas,
         }) => {
             let app_secret_key = dweb::helpers::get_app_secret_key()?;
-            let client =
-                dweb::client::AutonomiClient::initialise_and_connect(peers.await?, max_fee_per_gas)
-                    .await
-                    .expect("Failed to connect to Autonomi Network");
+            let client = dweb::client::AutonomiClient::initialise_and_connect(
+                peers.await?,
+                Some(ShowCost::Both),
+                max_fee_per_gas,
+            )
+            .await
+            .expect("Failed to connect to Autonomi Network");
 
-            let (cost, name, history_address, version) =
-                publish_or_update_files(&client, &files_root, app_secret_key, name, None, false)
-                    .await?;
+            let spends = Spends::new(&client, Some(&"Publish new cost: ")).await?;
+            let (cost, name, history_address, version) = match publish_or_update_files(
+                &client,
+                &files_root,
+                app_secret_key,
+                name,
+                None,
+                false,
+            )
+            .await
+            {
+                Ok(result) => {
+                    show_spend_return_value::<(AttoTokens, String, HistoryAddress, u32)>(
+                        &spends, result,
+                    )
+                    .await
+                }
+                Err(e) => {
+                    println!("Failed to publish files: {e}");
+                    return show_spend_return_value::<Result<bool, Report>>(&spends, Err(e)).await;
+                }
+            };
 
             report_content_published_or_updated(
                 &history_address,
@@ -100,7 +139,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
                 &files_root,
                 true,
                 false,
-                false,
+                true,
             );
         }
 
@@ -213,9 +252,13 @@ async fn connect_and_announce(
     announce: bool,
 ) -> (AutonomiClient, bool) {
     let is_local_network = peers.is_local();
-    let client = dweb::client::AutonomiClient::initialise_and_connect(peers, max_fee_per_gas)
-        .await
-        .expect("Failed to connect to Autonomi Network");
+    let client = dweb::client::AutonomiClient::initialise_and_connect(
+        peers,
+        Some(ShowCost::Both),
+        max_fee_per_gas,
+    )
+    .await
+    .expect("Failed to connect to Autonomi Network");
 
     if announce {
         if is_local_network {
