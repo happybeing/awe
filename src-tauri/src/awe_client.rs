@@ -25,7 +25,7 @@ use ant_protocol::storage::PointerAddress as HistoryAddress;
 use dweb::autonomi::access::network::get_peers;
 use dweb::client::AutonomiClient;
 use dweb::helpers::convert::str_to_pointer_address;
-use dweb::tokens::ShowCost;
+use dweb::token::ShowCost;
 
 use crate::awe_protocols::{AWE_PROTOCOL_DIRECTORY, AWE_PROTOCOL_FILE, AWE_PROTOCOL_HISTORY};
 

@@ -22,7 +22,7 @@ use autonomi::AttoTokens;
 use dweb::autonomi::access::network::NetworkPeers;
 use dweb::client::AutonomiClient;
 use dweb::storage::{publish_or_update_files, report_content_published_or_updated};
-use dweb::tokens::{show_spend_return_value, ShowCost, Spends};
+use dweb::token::{show_spend_return_value, ShowCost, Spends};
 use dweb::trove::HistoryAddress;
 
 use crate::cli_options::{Opt, Subcommands};
