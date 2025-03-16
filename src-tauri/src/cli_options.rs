@@ -30,6 +30,7 @@ use ant_protocol::storage::PointerAddress;
 use autonomi::files::archive_public::ArchiveAddress;
 
 use dweb::helpers::convert::*;
+use dweb::token::ShowCost;
 use dweb::trove::HistoryAddress;
 
 // TODO add example to each CLI subcommand
@@ -104,6 +105,18 @@ pub struct Opt {
     // pub files_root: Option<PathBuf>,
     // TODO implement remaining CLI options:
     // TODO --wallet-path <path-to-wallet-dir>
+    /// Show the cost of dweb API calls after each call in tokens, gas, both or none
+    #[clap(long, hide = true, default_value = "both")]
+    pub show_dweb_costs: ShowCost,
+    /// Override default 'max fee per gas' limit (which may be too low at times).
+    #[clap(long, hide = true, short = 'x')]
+    pub max_fee_per_gas: Option<u128>,
+    // Control API use of pointers: when present ignores or trusts rather than the default which varies
+    #[clap(long, hide = true)]
+    pub ignore_pointers: Option<bool>,
+    // Control API call retries (0 for unlimited tries)
+    #[clap(long, hide = true, default_value = "0")]
+    pub retry_api: u32,
 }
 
 fn greater_than_0(s: &str) -> Result<u64, String> {
@@ -148,9 +161,6 @@ pub enum Subcommands {
         /// Disable the AWV check when publishing a new website to allow for init of a new Autonomi network (during beta)
         #[clap(long, name = "is-new-network", hide = true, default_value = "false")]
         is_new_network: bool,
-        /// Override default 'max fee per gas' limit (which may be too low at times).
-        #[clap(long, short = 'x')]
-        max_fee_per_gas: Option<u128>,
     },
 
     /// Update a previously uploaded directory while preserving old versions on Autonomi
@@ -168,9 +178,6 @@ pub enum Subcommands {
         /// Defaults to use the name of the website directory (FILES-ROOT)
         #[clap(long, short = 'n')]
         name: Option<String>,
-        /// Override default 'max fee per gas' limit (which may be too low at times).
-        #[clap(long, short = 'x')]
-        max_fee_per_gas: Option<u128>,
     },
 
     /// Download a file or directory. TODO: not yet implemented

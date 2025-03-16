@@ -24,7 +24,6 @@ use ant_protocol::storage::{GraphEntry, GraphEntryAddress, Pointer, PointerAddre
 use autonomi::client::key_derivation::{DerivationIndex, MainPubkey};
 use autonomi::files::archive_public::ArchiveAddress;
 
-use dweb::autonomi::access::network::NetworkPeers;
 use dweb::client::AutonomiClient;
 use dweb::helpers::graph_entry::graph_entry_get;
 use dweb::trove::History;

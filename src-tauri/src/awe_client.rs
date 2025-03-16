@@ -26,17 +26,25 @@ use ant_protocol::storage::PointerAddress as HistoryAddress;
 use dweb::autonomi::access::network::get_peers;
 use dweb::client::AutonomiClient;
 use dweb::helpers::convert::str_to_pointer_address;
-use dweb::token::ShowCost;
 
 use crate::awe_protocols::{AWE_PROTOCOL_DIRECTORY, AWE_PROTOCOL_FILE, AWE_PROTOCOL_HISTORY};
+use crate::awe_subcommands::connect_and_announce;
 
 /// Fallback for use by awe protocol handlers
 pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
-    dweb::client::AutonomiClient::initialise_and_connect(opt.peers, ShowCost::Both, None, None)
-        .await
+    let (client, _is_local_network) = connect_and_announce(
+        opt.peers,
+        opt.show_dweb_costs,
+        opt.max_fee_per_gas,
+        opt.ignore_pointers,
+        opt.retry_api,
+        true,
+    )
+    .await;
+    Ok(client)
 }
 
 pub async fn is_local_network() -> bool {
