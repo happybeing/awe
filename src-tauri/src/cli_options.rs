@@ -24,7 +24,7 @@ use clap::Subcommand;
 use color_eyre::{eyre::eyre, Result};
 use core::time::Duration;
 
-use ant_bootstrap::PeersArgs;
+use ant_bootstrap::InitialPeersConfig;
 use ant_logging::{LogFormat, LogOutputDest};
 use ant_protocol::storage::PointerAddress;
 use autonomi::files::archive_public::ArchiveAddress;
@@ -57,7 +57,7 @@ pub struct Opt {
     pub history_version: Option<u32>,
 
     #[command(flatten)]
-    pub peers: PeersArgs,
+    pub peers: InitialPeersConfig,
 
     /// Available sub commands
     #[command(subcommand)]

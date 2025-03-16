@@ -17,7 +17,7 @@
 
 use color_eyre::{Report, Result};
 
-use autonomi::AttoTokens;
+use autonomi::{AttoTokens, InitialPeersConfig};
 
 use dweb::autonomi::access::network::NetworkPeers;
 use dweb::client::AutonomiClient;
@@ -29,12 +29,10 @@ use crate::cli_options::{Opt, Subcommands};
 
 // Returns true if command complete, false to start the browser
 pub async fn cli_commands(opt: Opt) -> Result<bool> {
-    let peers = dweb::autonomi::access::network::get_peers(opt.peers);
-
     match opt.cmd {
         Some(Subcommands::Estimate { files_root }) => {
             let client = dweb::client::AutonomiClient::initialise_and_connect(
-                peers.await?,
+                opt.peers,
                 Some(ShowCost::Both),
                 None,
             )
@@ -53,7 +51,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
         }) => {
             let app_secret_key = dweb::helpers::get_app_secret_key()?;
             let client = dweb::client::AutonomiClient::initialise_and_connect(
-                peers.await?,
+                opt.peers,
                 Some(ShowCost::Both),
                 max_fee_per_gas,
             )
@@ -101,7 +99,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
         }) => {
             let app_secret_key = dweb::helpers::get_app_secret_key()?;
             let client = dweb::client::AutonomiClient::initialise_and_connect(
-                peers.await?,
+                opt.peers,
                 Some(ShowCost::Both),
                 max_fee_per_gas,
             )
@@ -152,7 +150,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             graph_keys,
             files_args,
         }) => {
-            let (client, _) = connect_and_announce(peers.await?, None, true).await;
+            let (client, _) = connect_and_announce(opt.peers, None, true).await;
             match crate::commands::cmd_inspect::handle_inspect_history(
                 client,
                 history_address,
@@ -178,7 +176,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             print_full,
             shorten_hex_strings,
         }) => {
-            let (client, _) = connect_and_announce(peers.await?, None, true).await;
+            let (client, _) = connect_and_announce(opt.peers, None, true).await;
             match crate::commands::cmd_inspect::handle_inspect_graphentry(
                 client,
                 graph_entry_address,
@@ -196,7 +194,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
         }
 
         Some(Subcommands::Inspect_pointer { pointer_address }) => {
-            let (client, _) = connect_and_announce(peers.await?, None, true).await;
+            let (client, _) = connect_and_announce(opt.peers, None, true).await;
             match crate::commands::cmd_inspect::handle_inspect_pointer(client, pointer_address)
                 .await
             {
@@ -212,7 +210,7 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
             archive_address,
             files_args,
         }) => {
-            let (client, _) = connect_and_announce(peers.await?, None, true).await;
+            let (client, _) = connect_and_announce(opt.peers, None, true).await;
             match crate::commands::cmd_inspect::handle_inspect_files(
                 client,
                 archive_address,
@@ -247,11 +245,11 @@ pub async fn cli_commands(opt: Opt) -> Result<bool> {
 }
 
 async fn connect_and_announce(
-    peers: NetworkPeers,
+    peers: InitialPeersConfig,
     max_fee_per_gas: Option<u128>,
     announce: bool,
 ) -> (AutonomiClient, bool) {
-    let is_local_network = peers.is_local();
+    let is_local_network = peers.local;
     let client = dweb::client::AutonomiClient::initialise_and_connect(
         peers,
         Some(ShowCost::Both),

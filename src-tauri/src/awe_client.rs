@@ -34,8 +34,8 @@ pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
-    let peers = get_peers(opt.peers).await?;
-    dweb::client::AutonomiClient::initialise_and_connect(peers, Some(ShowCost::Both), None).await
+    dweb::client::AutonomiClient::initialise_and_connect(opt.peers, Some(ShowCost::Both), None)
+        .await
 }
 
 pub async fn is_local_network() -> bool {
