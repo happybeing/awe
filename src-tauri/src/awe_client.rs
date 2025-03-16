@@ -1,4 +1,5 @@
 /*
+
 Copyright (c) 2024-2025 Mark Hughes
 
 This program is free software: you can redistribute it and/or modify
@@ -34,7 +35,7 @@ pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
-    dweb::client::AutonomiClient::initialise_and_connect(opt.peers, Some(ShowCost::Both), None)
+    dweb::client::AutonomiClient::initialise_and_connect(opt.peers, ShowCost::Both, None, None)
         .await
 }
 
