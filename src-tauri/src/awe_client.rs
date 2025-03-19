@@ -24,7 +24,7 @@ use xor_name::XorName;
 use ant_protocol::storage::PointerAddress as HistoryAddress;
 
 use dweb::autonomi::access::network::get_peers;
-use dweb::client::AutonomiClient;
+use dweb::client::{ApiControl, AutonomiClient};
 use dweb::helpers::convert::str_to_pointer_address;
 
 use crate::awe_protocols::{AWE_PROTOCOL_DIRECTORY, AWE_PROTOCOL_FILE, AWE_PROTOCOL_HISTORY};
@@ -35,15 +35,16 @@ pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
-    let (client, _is_local_network) = connect_and_announce(
-        opt.peers,
-        opt.show_dweb_costs,
-        opt.max_fee_per_gas,
-        opt.ignore_pointers,
-        opt.retry_api,
-        true,
-    )
-    .await;
+
+    let api_control = ApiControl {
+        tries: opt.retry_api,
+        upload_file_by_file: opt.upload_file_by_file,
+        ignore_pointers: opt.ignore_pointers,
+        max_fee_per_gas: opt.max_fee_per_gas,
+        ..Default::default()
+    };
+
+    let (client, _is_local_network) = connect_and_announce(opt.peers, api_control, true).await;
     Ok(client)
 }
 
