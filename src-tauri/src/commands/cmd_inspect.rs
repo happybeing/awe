@@ -24,7 +24,7 @@ use ant_protocol::storage::{GraphEntry, GraphEntryAddress, Pointer, PointerAddre
 use autonomi::client::key_derivation::{DerivationIndex, MainPubkey};
 use autonomi::files::archive_public::ArchiveAddress;
 
-use dweb::client::AutonomiClient;
+use dweb::client::DwebClient;
 use dweb::helpers::graph_entry::graph_entry_get;
 use dweb::trove::History;
 use dweb::trove::{directory_tree::DirectoryTree, HistoryAddress};
@@ -33,7 +33,7 @@ use crate::cli_options::{EntriesRange, FilesArgs};
 
 /// Implement 'inspect-history' subcommand
 pub async fn handle_inspect_history(
-    client: AutonomiClient,
+    client: DwebClient,
     history_address: HistoryAddress,
     print_history_full: bool,
     entries_range: Option<EntriesRange>,
@@ -129,7 +129,7 @@ pub async fn handle_inspect_history(
 }
 
 fn print_history(
-    _client: &AutonomiClient,
+    _client: &DwebClient,
     history: &History<DirectoryTree>,
     full: bool,
     shorten_hex_strings: bool,
@@ -199,7 +199,7 @@ fn print_history(
 
 /// Implement 'inspect-pointer' subcommand
 pub async fn handle_inspect_pointer(
-    client: AutonomiClient,
+    client: DwebClient,
     pointer_address: PointerAddress,
 ) -> Result<()> {
     let pointer = match client.client.pointer_get(&pointer_address).await {
@@ -224,7 +224,7 @@ fn print_pointer(pointer: &Pointer, pointer_address: &PointerAddress) {
 
 /// Implement 'inspect-graphentry' subcommand
 pub async fn handle_inspect_graphentry(
-    client: AutonomiClient,
+    client: DwebClient,
     graph_entry_address: GraphEntryAddress,
     full: bool,
     shorten_hex_strings: bool,
@@ -247,7 +247,7 @@ pub async fn handle_inspect_graphentry(
 /// Print full or partial details for a GraphEntry
 /// If History is Some, shows parent and descendent as network addresses rather than public keys
 pub async fn print_graphentry(
-    _client: &AutonomiClient,
+    _client: &DwebClient,
     indent: &str,
     graph_entry: &GraphEntry,
     graph_keys: bool,
@@ -421,7 +421,7 @@ fn print_total_size(indent: &str, total_bytes: u64) -> Result<()> {
 
 /// Implement 'inspect-files' subcommand
 pub async fn handle_inspect_files(
-    client: AutonomiClient,
+    client: DwebClient,
     archive_address: ArchiveAddress,
     files_args: FilesArgs,
 ) -> Result<()> {

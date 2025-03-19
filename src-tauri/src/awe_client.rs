@@ -24,14 +24,14 @@ use xor_name::XorName;
 use ant_protocol::storage::PointerAddress as HistoryAddress;
 
 use dweb::autonomi::access::network::get_peers;
-use dweb::client::{ApiControl, AutonomiClient};
+use dweb::client::{ApiControl, DwebClient};
 use dweb::helpers::convert::str_to_pointer_address;
 
 use crate::awe_protocols::{AWE_PROTOCOL_DIRECTORY, AWE_PROTOCOL_FILE, AWE_PROTOCOL_HISTORY};
 use crate::awe_subcommands::connect_and_announce;
 
 /// Fallback for use by awe protocol handlers
-pub async fn connect_to_autonomi() -> Result<AutonomiClient> {
+pub async fn connect_to_autonomi() -> Result<DwebClient> {
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
@@ -62,7 +62,7 @@ pub async fn is_local_network() -> bool {
 }
 
 pub async fn autonomi_get_file_public(
-    client: &AutonomiClient,
+    client: &DwebClient,
     address: DataAddress,
 ) -> Result<Bytes, autonomi::client::GetError> {
     println!("DEBUG autonomi_get_file_public()");

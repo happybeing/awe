@@ -23,7 +23,7 @@ use mime_guess;
 use autonomi::client::data::DataAddress;
 use autonomi::client::GetError;
 
-use dweb::client::AutonomiClient;
+use dweb::client::DwebClient;
 use dweb::helpers::convert::{awe_str_to_data_address, awe_str_to_history_address};
 use dweb::trove::directory_tree::{DirectoryTree, PATH_SEPARATOR};
 use dweb::trove::{History, HistoryAddress};
@@ -588,7 +588,7 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
 
 /// Fetch data from network and return as an http Response
 async fn awe_fetch_xor_data(
-    client_opt: Option<&AutonomiClient>,
+    client_opt: Option<&DwebClient>,
     data_address: DataAddress,
 ) -> http::Response<Vec<u8>> {
     println!("DEBUG fetching xor data: {}", data_address.to_hex());
@@ -673,7 +673,7 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
 /// '/index.html' or '/index.htm' if found (or other defaults according to website settings in the DirectoryTree).
 /// Returns XorName of the resource if present, and updates the loaded version
 pub async fn awe_lookup_resource_for_website_version(
-    client: &AutonomiClient,
+    client: &DwebClient,
     resource_path: &String,
     history_address: HistoryAddress,
     version: Option<u32>,
