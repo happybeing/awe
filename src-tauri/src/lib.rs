@@ -57,7 +57,6 @@ pub fn run() {
             ("autonomi".to_string(), Level::TRACE),
             ("evmlib".to_string(), Level::TRACE),
             ("ant_logging".to_string(), Level::TRACE),
-            ("ant_protocol".to_string(), Level::TRACE),
         ];
 
         let log_builder = LogBuilder::new(logging_targets);

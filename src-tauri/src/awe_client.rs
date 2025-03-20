@@ -21,7 +21,7 @@ use bytes::Bytes;
 use color_eyre::eyre::{eyre, Result};
 use xor_name::XorName;
 
-use ant_protocol::storage::PointerAddress as HistoryAddress;
+use autonomi::PointerAddress as HistoryAddress;
 
 use dweb::autonomi::access::network::get_peers;
 use dweb::client::{ApiControl, DwebClient};
