@@ -17,18 +17,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
+use dweb::files::directory::get_content_using_hex;
 use http::{header, status::StatusCode, Request};
 use mime_guess;
 
+use autonomi::chunk::DataMapChunk;
 use autonomi::client::data::DataAddress;
 use autonomi::client::GetError;
 
 use dweb::client::DwebClient;
+use dweb::files::archive::ARCHIVE_PATH_SEPARATOR;
+use dweb::files::directory::{datamap_and_address_from_hex, get_content, Tree};
 use dweb::helpers::convert::{awe_str_to_data_address, awe_str_to_history_address};
-use dweb::trove::directory_tree::{DirectoryTree, PATH_SEPARATOR};
 use dweb::trove::{History, HistoryAddress};
 
-use crate::awe_client::{autonomi_get_file_public, connect_to_autonomi};
+use crate::awe_client::connect_to_autonomi;
 
 pub const AWE_PROTOCOL_HISTORY: &str = "awv://";
 #[allow(dead_code)]
@@ -430,7 +433,7 @@ async fn handle_protocol_awv(
     // Save in case we don't want site version changed
     let current_site_version = get_version_loaded();
 
-    let data_address = match awe_lookup_resource_for_website_version(
+    let (datamap_chunk, data_address, content_type) = match awe_lookup_resource_for_website_version(
         &client,
         &resource_path,
         versions_history_address,
@@ -438,7 +441,7 @@ async fn handle_protocol_awv(
     )
     .await
     {
-        Ok(address) => address,
+        Ok(result) => result,
         Err(status_code) => {
             let message = format!("Resource not found at {resource_path}");
             println!("{message}");
@@ -449,7 +452,8 @@ async fn handle_protocol_awv(
         }
     };
 
-    let mut response = awe_fetch_xor_data(Some(&client), data_address).await;
+    let (datamap_chunk, data_address) = datamap_and_address_from_hex(datamap_chunk, data_address);
+    let mut response = awe_fetch_xor_data(Some(&client), datamap_chunk, data_address).await;
     if response.status() == StatusCode::OK {
         // Keep site version unchanged when loading a resource
         if loading_resource {
@@ -489,12 +493,12 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
     };
 
     let mut remainder = remainder.to_string();
-    let (address_string, resource_path) = match remainder.find(PATH_SEPARATOR) {
+    let (address_string, resource_path) = match remainder.find(ARCHIVE_PATH_SEPARATOR) {
         Some(separator_position) => {
             let path_part = remainder.split_off(separator_position);
             (remainder, path_part)
         }
-        None => (remainder, String::from(PATH_SEPARATOR)),
+        None => (remainder, String::from(ARCHIVE_PATH_SEPARATOR)),
     };
 
     println!("DEBUG (address_string, resource_path): ({address_string}, {resource_path})'");
@@ -515,11 +519,11 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         .await
         .expect("Failed to connect to Autonomi Network");
 
-    println!("DEBUG calling DirectoryTree::from_archive_address()");
-    let metadata = match DirectoryTree::from_archive_address(&client, address).await {
-        Ok(metadata) => {
-            println!("DEBUG got metadata");
-            metadata
+    println!("DEBUG calling Tree::from_archive_address()");
+    let file_tree = match Tree::from_archive_address(&client, address).await {
+        Ok(file_tree) => {
+            println!("DEBUG got file_tree");
+            file_tree
         }
         Err(err) => {
             let message = format!("Failed to parse XOR address. [{:?}]", err);
@@ -531,10 +535,33 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    let data_address = match metadata.lookup_web_resource(&resource_path) {
-        Ok((address, _)) => address,
+    let response = match file_tree.lookup_file(&resource_path, true) {
+        Ok((datamap_chunk, data_address, content_type)) => {
+            match get_content_using_hex(&client, datamap_chunk, data_address).await {
+                Ok(content) => {
+                    let mut response = http::Response::builder().status(200);
+                    if let Some(content_type) = content_type {
+                        if let Ok(content_type) = header::HeaderValue::from_str(&content_type) {
+                            response
+                                .headers_mut()
+                                .unwrap()
+                                .insert("Content-Type", content_type);
+                        }
+                    }
+                    response.body(content.into()).unwrap()
+                }
+                Err(e) => {
+                    let message = format!("Faild to get content {resource_path} - {e}");
+                    println!("{message}");
+                    return http::Response::builder()
+                        .status(StatusCode::BAD_GATEWAY)
+                        .body(message.into_bytes())
+                        .unwrap();
+                }
+            }
+        }
         Err(status_code) => {
-            let message = format!("Resource not found at {resource_path}");
+            let message = format!("Tree lookup failed for {resource_path}");
             println!("{message}");
             return http::Response::builder()
                 .status(status_code)
@@ -543,17 +570,8 @@ async fn handle_protocol_awm(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    let mut response = awe_fetch_xor_data(Some(&client), data_address).await;
     if response.status() == StatusCode::OK {
         set_last_site_address(&url.to_string());
-    }
-
-    if let Some(content_type) = mime_guess::from_path(resource_path).first_raw() {
-        if let Ok(content_type) = header::HeaderValue::from_str(&content_type) {
-            response
-                .headers_mut()
-                .append(header::CONTENT_TYPE, content_type);
-        };
     }
 
     response
@@ -583,15 +601,19 @@ async fn handle_protocol_awf(req: &Request<Vec<u8>>) -> http::Response<Vec<u8>> 
         }
     };
 
-    return awe_fetch_xor_data(Some(&client), data_address).await;
+    return awe_fetch_xor_data(Some(&client), None, Some(data_address)).await;
 }
 
 /// Fetch data from network and return as an http Response
 async fn awe_fetch_xor_data(
     client_opt: Option<&DwebClient>,
-    data_address: DataAddress,
+    datamap_chunk: Option<DataMapChunk>,
+    data_address: Option<DataAddress>,
 ) -> http::Response<Vec<u8>> {
-    println!("DEBUG fetching xor data: {}", data_address.to_hex());
+    println!(
+        "DEBUG awe_fetch_xor_data() using data_address: {:?} or datamap_chunk: {:?}",
+        data_address, datamap_chunk
+    );
 
     let client;
     let client_ref;
@@ -607,7 +629,7 @@ async fn awe_fetch_xor_data(
     // TODO since Tauri v2, the iframe won't load content from
     // TODO a URI unless the response has a Content-Type header
     // TODO Investigate options, such as saving content type in the site map
-    match autonomi_get_file_public(client_ref, data_address).await {
+    match get_content(&client_ref, datamap_chunk, data_address).await {
         Ok(content) => {
             println!("DEBUG retrieved {} bytes", content.len());
             return http::Response::builder()
@@ -616,17 +638,10 @@ async fn awe_fetch_xor_data(
                 .unwrap();
         }
         Err(e) => {
-            let (status, status_message) = tauri_http_status_from_network_error(&e);
-            let error_message = format!("{:?}", e);
-            let body_message = format!(
-                "Failed to retrieve data at [{}]: {error_message}",
-                data_address.to_hex()
-            );
-            println!("{body_message}\n{status_message}");
-
+            let message = format!("{e}");
             return http::Response::builder()
-                .status(status)
-                .body(body_message.into_bytes())
+                .status(StatusCode::BAD_GATEWAY)
+                .body(message.into_bytes())
                 .unwrap();
         }
     }
@@ -655,7 +670,6 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
         GetError::Network(ant_networking::NetworkError::GetRecordError(_)) => {
             (StatusCode::NOT_FOUND, String::from("404 Not found"))
         }
-
         GetError::Network(_network_error) => (
             StatusCode::SERVICE_UNAVAILABLE,
             String::from("Unknown error (NetworkError))"),
@@ -667,47 +681,39 @@ pub fn tauri_http_status_from_network_error(error: &GetError) -> (StatusCode, St
     }
 }
 
-/// Look-up a website resource in a DirectoryTree obtained from a History on the network
+/// Look-up a website resource in a Tree obtained from a History on the network
 /// according to Some(version), or the most recent version if None.
 /// The lookup automatically handles a resource_path which ends in '/', and so will return
-/// '/index.html' or '/index.htm' if found (or other defaults according to website settings in the DirectoryTree).
-/// Returns XorName of the resource if present, and updates the loaded version
+/// '/index.html' or '/index.htm' if found (or other defaults according to website settings in the Tree).
+/// Updates the loaded version
+/// Returns DataMapChunk or DataAddress as hex strings if present and the content type if known
 pub async fn awe_lookup_resource_for_website_version(
     client: &DwebClient,
     resource_path: &String,
     history_address: HistoryAddress,
     version: Option<u32>,
-) -> Result<DataAddress, StatusCode> {
+) -> Result<(String, String, Option<String>), StatusCode> {
     println!("DEBUG lookup_resource_for_website_version() version {version:?}");
     println!("DEBUG history_address: {}", history_address.to_hex());
     println!("DEBUG resource_path    : {resource_path}");
 
-    match History::<DirectoryTree>::from_history_address(client.clone(), history_address, false, 0)
-        .await
-    {
+    match History::<Tree>::from_history_address(client.clone(), history_address, false, 0).await {
         Ok(mut history) => {
-            let data_address = match DirectoryTree::history_lookup_web_resource(
-                &mut history,
-                resource_path,
-                version,
-            )
-            .await
-            {
-                Ok((data_address, _)) => {
+            match Tree::history_lookup_file(&mut history, resource_path, true, version).await {
+                Ok(result) => {
                     let trove_version = history.get_cached_version();
                     set_version_loaded(if trove_version.is_none() {
                         0
                     } else {
                         trove_version.unwrap().version
                     });
-                    data_address
+                    Ok(result)
                 }
                 Err(e) => {
                     println!("Lookup web resource failed: {e:?}");
                     return Err(e);
                 }
-            };
-            Ok(data_address)
+            }
         }
         Err(e) => {
             println!("Failed to load History: {e:?}");

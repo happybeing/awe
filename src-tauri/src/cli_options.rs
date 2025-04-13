@@ -48,7 +48,7 @@ pub struct Opt {
     ///
     /// Use awv://<HISTORY-ADDRESS> to browse most recent version from the history. (Use --history-version to specify a version).
     ///
-    /// Use awm://<DIRECTORY-ADDRESS> to browse files or website from DirectoryTree
+    /// Use awm://<DIRECTORY-ADDRESS> to browse files or website from Tree
     ///
     /// Use awf://<FILE-ADDRESS> to load or fetch to a file rather than a website.
     pub url: Option<String>,
@@ -189,7 +189,7 @@ pub enum Subcommands {
     #[clap(hide = true)] // TODO hide until implemented
     Download {
         /// An awe compatible URL. Must be an xor address prefixed with 'awf://', 'awm://' or 'awv://' respectively
-        /// to reference a FILE-ADDRESS, a DIRECTORY-ADDRESS or a HISTORY-ADDRESS with entries of DirectoryTree.
+        /// to reference a FILE-ADDRESS, a DIRECTORY-ADDRESS or a HISTORY-ADDRESS with entries of Tree.
         ///
         /// For a history, you must provide the RANGE of entries to be processed.
         ///
