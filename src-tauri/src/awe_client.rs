@@ -23,7 +23,6 @@ use xor_name::XorName;
 
 use autonomi::PointerAddress as HistoryAddress;
 
-use dweb::autonomi::access::network::get_peers;
 use dweb::client::{ApiControl, DwebClient};
 use dweb::helpers::convert::str_to_pointer_address;
 
@@ -52,13 +51,7 @@ pub async fn is_local_network() -> bool {
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
-
-    if let Ok(peers) = get_peers(opt.peers).await {
-        peers.is_local()
-    } else {
-        println!("WARNING: is_local_network() failed, return false");
-        false
-    }
+    opt.peers.local
 }
 
 pub async fn autonomi_get_file_public(
@@ -67,7 +60,7 @@ pub async fn autonomi_get_file_public(
 ) -> Result<Bytes, autonomi::client::GetError> {
     println!("DEBUG autonomi_get_file_public()");
     println!("DEBUG calling client.data_get_public()");
-    match client.data_get_public(address).await {
+    match client.client.data_get_public(&address).await {
         Ok(content) => {
             println!("DEBUG Ok() return");
             Ok(content)
