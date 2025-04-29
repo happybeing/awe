@@ -2897,9 +2897,9 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "dweb"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0451f36fcf949962964dc7d3f793a9c7fbeba57eead2d7643c6d5a8d2a25953"
+checksum = "3e320427ad5a0ed5b19fbc91b8e41a374c2e2cf9b7195e87bc3965e0c9c99a1b"
 dependencies = [
  "actix-web",
  "ant-build-info",
