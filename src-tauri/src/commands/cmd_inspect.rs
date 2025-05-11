@@ -14,21 +14,13 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-use blsttc::PublicKey;
-use chrono::offset::Utc;
-use chrono::DateTime;
-use color_eyre::{eyre::eyre, Result};
-use std::time::{Duration, UNIX_EPOCH};
+use color_eyre::Result;
 
-use autonomi::client::key_derivation::{DerivationIndex, MainPubkey};
 use autonomi::files::archive_public::ArchiveAddress;
-use autonomi::{GraphEntry, GraphEntryAddress, Pointer, PointerAddress};
+use autonomi::{GraphEntryAddress, Pointer, PointerAddress};
 
 use dweb::client::DwebClient;
-use dweb::files::directory::Tree;
-use dweb::helpers::graph_entry::graph_entry_get;
-use dweb::trove::History;
-use dweb::trove::HistoryAddress;
+use dweb::history::HistoryAddress;
 
 use crate::cli_options::{EntriesRange, FilesArgs};
 

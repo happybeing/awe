@@ -40,7 +40,7 @@ pub fn run() {
     let opt = Opt::parse();
 
     if let Some(network_id) = opt.network_id {
-        ant_protocol::version::set_network_id(network_id);
+        autonomi::version::set_network_id(network_id);
     }
 
     if std::env::var("RUST_SPANTRACE").is_err() {

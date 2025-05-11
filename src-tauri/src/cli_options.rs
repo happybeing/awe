@@ -26,12 +26,11 @@ use core::time::Duration;
 
 use ant_logging::{LogFormat, LogOutputDest};
 use autonomi::files::archive_public::ArchiveAddress;
-use autonomi::InitialPeersConfig;
 use autonomi::PointerAddress;
 
 use dweb::helpers::convert::*;
+use dweb::history::HistoryAddress;
 use dweb::token::ShowCost;
-use dweb::trove::HistoryAddress;
 
 // TODO add example to each CLI subcommand
 
@@ -44,6 +43,14 @@ use dweb::trove::HistoryAddress;
     long_about = "a demo of web publishing and browsing for Autonomi peer-to-peer network"
 )]
 pub struct Opt {
+    /// Connect to the alpha public network
+    #[clap(long)]
+    pub alpha: bool,
+
+    /// Connect to a local testnet
+    #[clap(long, conflicts_with("alpha"))]
+    pub local: bool,
+
     /// Optional awe URL to browse.
     ///
     /// Use awv://<HISTORY-ADDRESS> to browse most recent version from the history. (Use --history-version to specify a version).
@@ -56,9 +63,6 @@ pub struct Opt {
     /// Browse the specified version from the history
     #[clap(long, value_parser = greater_than_0)]
     pub history_version: Option<u32>,
-
-    #[command(flatten)]
-    pub peers: InitialPeersConfig,
 
     /// Available sub commands
     #[command(subcommand)]

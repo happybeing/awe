@@ -29,7 +29,7 @@ use dweb::client::DwebClient;
 use dweb::files::archive::ARCHIVE_PATH_SEPARATOR;
 use dweb::files::directory::{datamap_and_address_from_hex, get_content, Tree};
 use dweb::helpers::convert::{awe_str_to_data_address, awe_str_to_history_address};
-use dweb::trove::{History, HistoryAddress};
+use dweb::history::{History, HistoryAddress};
 
 use crate::awe_client::connect_to_autonomi;
 

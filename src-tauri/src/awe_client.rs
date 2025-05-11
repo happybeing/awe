@@ -43,7 +43,8 @@ pub async fn connect_to_autonomi() -> Result<DwebClient> {
         ..Default::default()
     };
 
-    let (client, _is_local_network) = connect_and_announce(opt.peers, api_control, true).await;
+    let (client, _is_local_network) =
+        connect_and_announce(opt.local, opt.alpha, api_control, true).await;
     Ok(client)
 }
 
@@ -51,7 +52,7 @@ pub async fn is_local_network() -> bool {
     use crate::cli_options::Opt;
     use clap::Parser;
     let opt = Opt::parse();
-    opt.peers.local
+    opt.local
 }
 
 pub async fn autonomi_get_file_public(
